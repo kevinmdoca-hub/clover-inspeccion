@@ -1,12 +1,11 @@
 {
   "name": "Clover — Inspección de Condición Base",
   "short_name": "Clover Inspección",
-  "description": "Inspección de condición base y planeación de servicio para montacargas Clover.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f3f7f5",
-  "theme_color": "#143b68",
+  "background_color": "#f4f7f5",
+  "theme_color": "#17497d",
   "lang": "es-MX",
   "icons": [
     {
