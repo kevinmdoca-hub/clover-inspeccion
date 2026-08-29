@@ -1,0 +1,44 @@
+# Clover — Inspección de Condición Base PWA v0.4
+
+## Qué cambia respecto al HTML v0.3
+
+- Misma experiencia visual y mismo contenido de inspección.
+- Guardado automático del formulario en el dispositivo.
+- Copia secundaria de los datos estructurados en IndexedDB.
+- Intento de guardar fotos/videos seleccionados en IndexedDB.
+- Indicador visible de Guardando / Guardado.
+- Funciona sin internet después de instalarla correctamente.
+- Permite importar un respaldo JSON.
+- Solicita almacenamiento persistente cuando el navegador lo soporta.
+
+## IMPORTANTE: no abrir el archivo index.html directamente desde WhatsApp/Files para uso real
+
+Para que el modo PWA/offline funcione, la carpeta debe publicarse en una dirección HTTPS.
+Después:
+
+### iPhone / iPad
+1. Abrir la dirección HTTPS en Safari.
+2. Tocar Compartir.
+3. Elegir "Agregar a pantalla de inicio".
+4. Abrir la app Clover desde el icono de la pantalla de inicio.
+5. Dentro de la app tocar "Proteger almacenamiento".
+6. Confirmar que arriba diga "Guardado automático activo" o "Guardado en este dispositivo".
+7. Antes de salir a campo, abrir la app una vez con internet y luego probar Modo Avión.
+
+### Android
+1. Abrir la dirección HTTPS en Chrome.
+2. Menú > "Instalar aplicación" / "Agregar a pantalla principal".
+3. Abrir la app instalada.
+4. Tocar "Proteger almacenamiento".
+5. Probar Modo Avión antes de salir a campo.
+
+## Respaldo recomendado para el piloto
+
+- El formulario guarda automáticamente.
+- Al terminar cada unidad o cada pocas unidades, usar "Descargar respaldo JSON".
+- No borrar la app ni limpiar datos del navegador hasta confirmar que ya se extrajo la información.
+- Fotos/videos grandes pueden consumir mucho espacio. Esta v0.4 los guarda localmente cuando el navegador lo permite, pero todavía no tiene sincronización a un servidor Clover.
+
+## Para publicar
+
+Esta carpeta es un sitio estático. Puede publicarse tal cual en GitHub Pages, Netlify, Cloudflare Pages u otro hosting HTTPS.
