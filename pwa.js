@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v0.4';
+  const VERSION = 'v0.5';
   const STATE_KEY = 'clover-baseline-es-v04';
   const DB_NAME = 'clover-inspeccion-pwa-v04';
   const DB_VERSION = 1;
@@ -9,7 +9,10 @@
   const MEDIA_STORE = 'media';
 
   const $ = s => document.querySelector(s);
-  const $$ = (root, s) => [...root.querySelectorAll(s)];
+  const $$ = (root, s) => {
+    if (typeof root === 'string' && s === undefined) return [...document.querySelectorAll(root)];
+    return [...root.querySelectorAll(s)];
+  };
   const dot = $('#pwaDot');
   const mainState = $('#pwaMainState');
   const subState = $('#pwaSubState');
@@ -302,22 +305,365 @@
   }
 
   async function init() {
-    ensureUnitIds();
-    wireEvents();
-    wireInstall();
-    wireImport();
-    await recoverFromSecondaryStore();
-    await registerSW();
-    await countMedia();
-    await showStorageEstimate();
-    await mirrorStateNow();
-    if (navigator.storage?.persisted) {
-      try {
-        const persisted = await navigator.storage.persisted();
-        if (persisted) setStatus('ok', navigator.onLine ? 'Guardado automático activo' : 'Modo sin conexión', 'Almacenamiento persistente confirmado.');
-      } catch (e) {}
+    try {
+      ensureUnitIds();
+      wireEvents();
+      wireInstall();
+      wireImport();
+      const recovered = await recoverFromSecondaryStore();
+      if (recovered) return;
+      await registerSW();
+      await countMedia();
+      await showStorageEstimate();
+      await mirrorStateNow();
+      if (navigator.storage?.persisted) {
+        try {
+          const persisted = await navigator.storage.persisted();
+          if (persisted) setStatus('ok', navigator.onLine ? 'Guardado automático activo' : 'Modo sin conexión', 'Almacenamiento persistente confirmado.');
+          else if (navigator.onLine) setStatus('ok', 'Guardado automático activo', 'Los cambios de la inspección se guardan en este dispositivo.');
+        } catch (e) {}
+      } else if (navigator.onLine) {
+        setStatus('ok', 'Guardado automático activo', 'Los cambios de la inspección se guardan en este dispositivo.');
+      }
+    } catch (e) {
+      console.error('Clover PWA init error', e);
+      setStatus('bad', 'Error en la capa de guardado PWA', 'El formulario puede seguir usando su guardado local básico, pero no uses fotos/videos hasta actualizar la app.');
     }
   }
 
   init();
+})();
+
+
+/* ---------- v0.5 Monday usability layer ---------- */
+(() => {
+  const makes = [
+    'Toyota','Crown','Hyster','Yale','Hyundai','UniCarriers','Nissan','Mitsubishi',
+    'CAT','Clark','Komatsu','Doosan','Bobcat','Raymond','Jungheinrich','Linde',
+    'Hangcha','Heli','TCM','Manitou','Baoli','Still','Kalmar'
+  ];
+
+  const q = s => document.querySelector(s);
+  const qa = (r,s) => [...r.querySelectorAll(s)];
+
+  function setupSearchableMakes(root=document){
+    qa(root,'.search-make').forEach(inp => {
+      if (inp.dataset.v05) return; inp.dataset.v05='1';
+      const box = inp.parentElement.querySelector('.search-suggestions');
+      const render = () => {
+        const v = inp.value.trim().toLowerCase();
+        const matches = makes.filter(m => !v || m.toLowerCase().includes(v)).slice(0,8);
+        box.innerHTML = matches.map(m=>`<button type="button">${m}</button>`).join('') + `<button type="button">Otra / No listada</button>`;
+        box.classList.toggle('hidden', !v);
+        qa(box,'button').forEach(b=>b.addEventListener('click',()=>{
+          if (b.textContent.startsWith('Otra')) { inp.value=''; inp.placeholder='Escribe la marca'; }
+          else inp.value=b.textContent;
+          box.classList.add('hidden'); inp.dispatchEvent(new Event('change',{bubbles:true}));
+        }));
+      };
+      inp.addEventListener('input',render);
+      inp.addEventListener('focus',render);
+      inp.addEventListener('blur',()=>setTimeout(()=>box.classList.add('hidden'),180));
+    });
+  }
+
+  function setupConditionalOther(root=document){
+    qa(root,'select[data-k="forkLength"],select[data-k="mast"],select[data-k="attachments"]').forEach(sel=>{
+      if(sel.dataset.v05)return; sel.dataset.v05='1';
+      const other = sel.parentElement.querySelector('.conditional-other');
+      const sync=()=>{ if(other) other.classList.toggle('hidden', sel.value!=='Otro'); };
+      sel.addEventListener('change',sync); sync();
+    });
+  }
+
+  function setupConditionalSections(root=document){
+    qa(root,'.unit').forEach(unit=>{
+      const power=unit.querySelector('[data-k="power"]');
+      const attachment=unit.querySelector('[data-k="attachments"]');
+      if(power && !power.dataset.cond05){
+        power.dataset.cond05='1';
+        power.addEventListener('change',()=>{
+          const electric=power.value==='Electric' || power.value==='Eléctrico';
+          unit.querySelectorAll('.electric-section').forEach(x=>x.classList.toggle('hidden',!electric));
+          unit.querySelectorAll('.ic-section').forEach(x=>x.classList.toggle('hidden',electric));
+          recalcUnit(unit);
+        });
+      }
+      if(attachment && !attachment.dataset.cond05){
+        attachment.dataset.cond05='1';
+        attachment.addEventListener('change',()=>{
+          const none=attachment.value==='Ninguno';
+          unit.querySelectorAll('[data-attachment-only="1"]').forEach(x=>x.classList.toggle('hidden',none));
+          recalcUnit(unit);
+        });
+      }
+    });
+  }
+
+  function normalizeItemOptions(root=document){
+    qa(root,'.item').forEach(item=>{
+      if(item.dataset.opts05)return; item.dataset.opts05='1';
+      const quick=item.querySelector('.quick'); if(!quick)return;
+      const names=qa(quick,'input[type=radio]').map(r=>r.value);
+      const groupName = qa(quick,'input[type=radio]')[0]?.name || ('r-'+Math.random());
+      const add=(value,label)=>{
+        if(names.includes(value))return;
+        const lab=document.createElement('label'); lab.className='chip';
+        lab.innerHTML=`<input type="radio" name="${groupName}" value="${value}"><span>${label}</span>`;
+        quick.appendChild(lab);
+        lab.querySelector('input').addEventListener('change',()=>{ item.classList.toggle('has-unable', value==='No se pudo inspeccionar'); recalcUnit(item.closest('.unit')); });
+      };
+      add('No inspeccionado','No inspeccionado');
+      add('No se pudo inspeccionar','No se pudo inspeccionar');
+      if(!item.querySelector('.unable-reason')){
+        const div=document.createElement('div');div.className='unable-reason';
+        div.innerHTML='<label>Motivo</label><select class="unable-reason-select"><option value="">Seleccionar</option><option>Unidad no operable</option><option>Acceso no disponible</option><option>Herramienta requerida</option><option>Restricción del cliente</option><option>Otro</option></select>';
+        item.appendChild(div);
+      }
+    });
+  }
+
+  function activeSteps(unit){
+    return qa(unit,'.step').filter(s=>!s.classList.contains('hidden'));
+  }
+
+  function stepRequiredControls(step){
+    const listItems=qa(step,'.item').filter(i=>!i.classList.contains('hidden'));
+    if(listItems.length) return listItems.map(i=>i.querySelector('input[type=radio]:checked') ? 1 : 0);
+    const evidenceStatuses=qa(step,'.evidence-selected');
+    if(evidenceStatuses.length) return evidenceStatuses.map(el=>el.textContent.trim()?1:0);
+    const req = qa(step,'input[data-k],select[data-k]').filter(el=>!el.closest('.hidden') && !el.classList.contains('conditional-other'));
+    return req.map(el=>String(el.value||'').trim()?1:0);
+  }
+
+  function recalcUnit(unit){
+    if(!unit)return;
+    let totalMissing=0,totalAnswered=0,totalRequired=0;
+    activeSteps(unit).forEach(step=>{
+      const vals=stepRequiredControls(step);
+      if(!vals.length)return;
+      const done=vals.reduce((a,b)=>a+b,0), total=vals.length, missing=total-done;
+      totalRequired+=total; totalAnswered+=done; totalMissing+=missing;
+      const status=step.querySelector('.step-status');
+      if(status){
+        status.textContent = `${done}/${total}` + (missing?` · Faltan ${missing}`:' · Completo');
+        status.classList.toggle('section-complete',missing===0);
+        status.classList.toggle('section-incomplete',missing>0);
+      }
+    });
+    unit.dataset.missing=String(totalMissing);
+    unit.dataset.answered=String(totalAnswered);
+    unit.dataset.required=String(totalRequired);
+    renderDashboard();
+    renderMissingReview();
+  }
+
+  function renderDashboard(){
+    const box=q('#unitCards'); if(!box)return;
+    const units=qa(document,'.unit');
+    box.innerHTML=units.map((u,i)=>{
+      const label=u.querySelector('[data-k="clientUnit"]')?.value || `Montacargas ${i+1}`;
+      const make=u.querySelector('[data-k="make"]')?.value || '';
+      const model=u.querySelector('[data-k="model"]')?.value || '';
+      const missing=Number(u.dataset.missing||0), answered=Number(u.dataset.answered||0), required=Number(u.dataset.required||0);
+      return `<button type="button" class="unit-nav-card" data-unit-jump="${i}">
+        <strong>${label}${make||model?` · ${make} ${model}`:''}</strong>
+        <small>${answered}/${required} respuestas · ${missing?`Faltan ${missing}`:'Completa'}</small>
+        <div class="mini"><span class="badge">${missing?'En progreso':'Lista para revisión'}</span></div>
+      </button>`;
+    }).join('');
+    qa(box,'[data-unit-jump]').forEach(b=>b.addEventListener('click',()=>{
+      const unit=qa(document,'.unit')[Number(b.dataset.unitJump)];
+      unit?.scrollIntoView({behavior:'smooth',block:'start'});
+    }));
+  }
+
+  function missingForStep(step){
+    const misses=[];
+    const items=qa(step,'.item').filter(i=>!i.classList.contains('hidden'));
+    if(items.length){
+      items.forEach(i=>{ if(!i.querySelector('input[type=radio]:checked')) misses.push(i.dataset.item||i.querySelector('b')?.textContent||'Ítem'); });
+      return misses;
+    }
+    const evidenceStatuses=qa(step,'.evidence-selected');
+    if(evidenceStatuses.length){
+      evidenceStatuses.forEach(el=>{ if(!el.textContent.trim()) misses.push(el.dataset.evidenceStatus || 'Evidencia'); });
+      return misses;
+    }
+    qa(step,'input[data-k],select[data-k]').filter(el=>!el.closest('.hidden')&&!el.classList.contains('conditional-other')).forEach(el=>{
+      if(!String(el.value||'').trim()){
+        const label=el.closest('div')?.querySelector('label')?.textContent || el.dataset.k;
+        misses.push(label);
+      }
+    });
+    return misses;
+  }
+
+  function renderMissingReview(){
+    const summary=q('#missingSummary'), groups=q('#missingGroups'); if(!summary||!groups)return;
+    let total=0; const chunks=[];
+    qa(document,'.unit').forEach((unit,ui)=>{
+      activeSteps(unit).forEach(step=>{
+        const misses=missingForStep(step); if(!misses.length)return;
+        total+=misses.length;
+        const title=step.querySelector('summary strong')?.textContent || step.querySelector('summary')?.textContent.trim() || 'Sección';
+        chunks.push({ui,step,title,misses});
+      });
+    });
+    summary.textContent = total ? `Faltan ${total} respuestas/evidencias antes de cerrar la sesión.` : '✓ No se detectan respuestas pendientes.';
+    groups.innerHTML=chunks.map((c,idx)=>`<div class="missing-group"><b>Montacargas ${c.ui+1} · ${c.title}</b><div class="small">${c.misses.slice(0,5).join(' · ')}${c.misses.length>5?'…':''}</div><button type="button" class="missing-link" data-missing="${idx}">Ir a esta sección (${c.misses.length})</button></div>`).join('');
+    qa(groups,'[data-missing]').forEach(btn=>btn.addEventListener('click',()=>{
+      const c=chunks[Number(btn.dataset.missing)];
+      c.step.open=true; c.step.scrollIntoView({behavior:'smooth',block:'start'});
+      const first=[...c.step.querySelectorAll('.item')].find(i=>!i.querySelector('input[type=radio]:checked'));
+      (first||c.step).scrollIntoView({behavior:'smooth',block:'center'});
+    }));
+  }
+
+  function setupMarkNormal(root=document){
+    qa(root,'.mark-normal').forEach(btn=>{
+      if(btn.dataset.v05)return;btn.dataset.v05='1';
+      btn.addEventListener('click',()=>{
+        const step=btn.closest('.step');
+        qa(step,'.item').forEach(item=>{
+          if(item.querySelector('input[type=radio]:checked'))return;
+          const normal=qa(item,'input[type=radio]').find(r=>r.value==='Normal');
+          if(normal){ normal.checked=true; normal.dispatchEvent(new Event('change',{bubbles:true})); }
+        });
+        recalcUnit(btn.closest('.unit'));
+      });
+    });
+  }
+
+  function setupContinue(root=document){
+    qa(root,'.continue-btn').forEach(btn=>{
+      if(btn.dataset.v05)return;btn.dataset.v05='1';
+      btn.addEventListener('click',()=>setTimeout(()=>recalcUnit(btn.closest('.unit')),10));
+    });
+  }
+
+  function floatingSaveState(state,text){
+    const b=q('#floatingSave'); if(!b)return;
+    b.classList.remove('saved','saving','error'); b.classList.add(state); b.textContent=text;
+  }
+
+  function setupFloatingSave(){
+    const b=q('#floatingSave'); if(!b)return;
+    b.addEventListener('click',()=>{
+      floatingSaveState('saving','Guardando…');
+      document.dispatchEvent(new Event('input',{bubbles:true}));
+      setTimeout(()=>floatingSaveState('saved',`✓ Guardado ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`),900);
+    });
+    document.addEventListener('input',()=>{ floatingSaveState('saving','Guardando…'); setTimeout(()=>floatingSaveState('saved','✓ Guardado'),900); },true);
+    document.addEventListener('change',()=>{ floatingSaveState('saving','Guardando…'); setTimeout(()=>floatingSaveState('saved','✓ Guardado'),900); },true);
+  }
+
+  function setupAutoTiming(root=document){
+    qa(root,'.unit').forEach(unit=>{
+      if(unit.dataset.time05)return; unit.dataset.time05='1';
+      let start=unit.querySelector('[data-k="startTime"]');
+      if(start && !start.value){
+        const now=new Date(); start.value=now.toTimeString().slice(0,5); start.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+    });
+  }
+
+  function buildReport(){
+    const root=q('#reportRoot'); if(!root)return;
+    const client=q('#sessionClient')?.value||'';
+    const location=q('#sessionLocation')?.value||'';
+    const date=q('#sessionDate')?.value||'';
+    const tech=q('#sessionTech')?.value||'';
+    const apprentice=q('#sessionApprentice')?.value||'';
+    const logo=document.querySelector('header img')?.src||'';
+    const pages=qa(document,'.unit').map((u,i)=>{
+      const f=k=>u.querySelector(`[data-k="${k}"]`)?.value||'';
+      const findings=qa(u,'.item').filter(item=>{
+        const r=item.querySelector('input[type=radio]:checked'); return r && !['Normal','N/A'].includes(r.value);
+      }).map(item=>{
+        const r=item.querySelector('input[type=radio]:checked');
+        const obs=item.querySelector('.obs')?.value||'';
+        const cls=item.querySelector('.classification')?.value||'';
+        const notes=item.querySelector('.item-notes')?.value||'';
+        return `<div class="report-find"><b>${item.dataset.group} — ${item.dataset.item}</b><div>${r?.value||''}${cls?` · ${cls}`:''}</div>${obs?`<div><b>Observado:</b> ${obs}</div>`:''}${notes?`<div><b>Notas:</b> ${notes}</div>`:''}</div>`;
+      }).join('') || '<p>Sin hallazgos anormales registrados.</p>';
+      return `<div class="report-page">
+        <div class="report-header">${logo?`<img src="${logo}">`:''}<div><h1 style="margin:0;color:#143b68;font-size:20px">Clover — Reporte de Inspección</h1><div>${client} · ${location} · ${date}</div></div></div>
+        <table class="report-table">
+          <tr><th>Unidad</th><td>${f('clientUnit')||i+1}</td><th>Marca/Modelo</th><td>${f('make')} ${f('model')}</td></tr>
+          <tr><th>Serie</th><td>${f('serial')}</td><th>Horómetro</th><td>${f('hours')}</td></tr>
+          <tr><th>Capacidad</th><td>${f('capacity')} lb</td><th>Energía/Llantas</th><td>${f('power')} / ${f('tires')}</td></tr>
+          <tr><th>Técnico</th><td>${tech}</td><th>Aprendiz</th><td>${apprentice}</td></tr>
+          <tr><th>Completitud</th><td colspan="3">${u.dataset.answered||0}/${u.dataset.required||0} · Faltan ${u.dataset.missing||0}</td></tr>
+        </table>
+        <h2 style="color:#143b68">Hallazgos y planeación de servicio</h2>${findings}
+        <h2 style="color:#143b68">Notas generales</h2><p>${f('overallNotes')||'—'}</p>
+      </div>`;
+    }).join('');
+    root.innerHTML=pages;
+  }
+
+  function setupReportButton(){
+    const buttons=qa(document,'button');
+    const btn=buttons.find(b=>/Generar reporte PDF|Guardar PDF|Imprimir/.test(b.textContent));
+    if(!btn)return;
+    btn.addEventListener('click',e=>{
+      e.stopImmediatePropagation(); e.preventDefault();
+      buildReport(); document.body.classList.add('report-mode'); window.print();
+      setTimeout(()=>document.body.classList.remove('report-mode'),1200);
+    },true);
+  }
+
+  
+function enhanceEvidenceStep(root=document){
+  qa(root,'.unit').forEach(unit=>{
+    const step=unit.querySelector('.step[data-step="2"]');
+    if(!step || step.dataset.evidence05)return;
+    step.dataset.evidence05='1';
+    const body=step.querySelector('.step-body'); if(!body)return;
+    const actions=body.querySelector('.section-actions');
+    const slot=(key,title,help,multiple=false)=>`
+      <div class="evidence-slot">
+        <h4>${title}</h4>
+        <p>${help}</p>
+        <div class="evidence-actions">
+          <label class="evidence-action camera">📷 Tomar foto
+            <input type="file" accept="image/*" capture="environment" ${multiple?'multiple':''} data-evidence="${key}" data-evidence-label="${title}">
+          </label>
+          <label class="evidence-action library">🖼 Elegir ${multiple?'fotos':'foto'} existente${multiple?'s':''}
+            <input type="file" accept="image/*" ${multiple?'multiple':''} data-evidence="${key}" data-evidence-label="${title}">
+          </label>
+        </div>
+        <div class="evidence-selected" data-evidence-status="${key}"></div>
+      </div>`;
+    body.innerHTML = `
+      <div class="step-note"><b>Objetivo:</b> crear una línea base visual confiable. Puedes tomar la foto ahora o elegir una imagen existente.</div>
+      ${slot('foto1_frente_derecho','Foto 1 — Frente / lado derecho','Unidad completa, incluyendo contrapeso y techo protector.')}
+      ${slot('foto2_trasera_izquierda','Foto 2 — Parte trasera / lado izquierdo','Documentar carrocería, contrapeso y golpes existentes.')}
+      ${slot('placa_datos','Placa de datos','La información de fabricante, modelo, serie y capacidad debe ser legible.')}
+      ${slot('horometro_pantalla','Horómetro / pantalla','Capturar horas y cualquier alerta o código visible.')}
+      ${slot('mastil_carro_horquillas','Mástil / carro / horquillas','Capturar el conjunto completo; agrega evidencia adicional si existe daño.',true)}
+      ${slot('llantas_ruedas','Llantas / ruedas','Capturar llantas de tracción y dirección.',true)}
+      ${slot('motor_bateria','Compartimiento motor o batería','Capturar el compartimiento abierto y condiciones relevantes.',true)}
+      <div class="section-actions"><button type="button" class="go-next primary-light continue-btn">Continuar</button></div>`;
+    setupContinue(step);
+  });
+}
+
+  function hydrate(){
+    setupSearchableMakes(); setupConditionalOther(); setupConditionalSections(); enhanceEvidenceStep();
+    normalizeItemOptions(); setupMarkNormal(); setupContinue(); setupAutoTiming();
+    qa(document,'.unit').forEach(recalcUnit);
+  }
+
+  const observer=new MutationObserver(()=>hydrate());
+  observer.observe(document.body,{childList:true,subtree:true});
+
+  document.addEventListener('change',e=>{ const u=e.target.closest('.unit'); if(u)setTimeout(()=>recalcUnit(u),20); },true);
+  document.addEventListener('input',e=>{ const u=e.target.closest('.unit'); if(u)setTimeout(()=>recalcUnit(u),50); },true);
+  q('#reviewMissing')?.addEventListener('click',renderMissingReview);
+
+  setupFloatingSave();
+  setupReportButton();
+  hydrate();
 })();
