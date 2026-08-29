@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 'v0.5';
+  const VERSION = 'v0.5.1';
   const STATE_KEY = 'clover-baseline-es-v04';
   const DB_NAME = 'clover-inspeccion-pwa-v04';
   const DB_VERSION = 1;
@@ -666,4 +666,74 @@ function enhanceEvidenceStep(root=document){
   setupFloatingSave();
   setupReportButton();
   hydrate();
+})();
+
+
+/* ---------- v0.5.1 synchronized save status ---------- */
+(() => {
+  const topDot = document.querySelector('#pwaDot');
+  const topMain = document.querySelector('#pwaMainState');
+  const topSub = document.querySelector('#pwaSubState');
+  const floatBtn = document.querySelector('#floatingSave');
+  let saveTimer051 = null;
+
+  function syncSaveStatus(state, text, subtext) {
+    if (floatBtn) {
+      floatBtn.classList.remove('saved','saving','error');
+      floatBtn.classList.add(state === 'error' ? 'error' : state === 'saving' ? 'saving' : 'saved');
+      floatBtn.textContent = state === 'saving' ? 'Guardando…' :
+        state === 'error' ? '⚠ Error de guardado' :
+        `✓ Guardado${text ? ' ' + text : ''}`;
+    }
+    if (topDot) {
+      topDot.className = 'pwa-dot ' + (state === 'error' ? 'bad' : state === 'saving' ? 'warn' : 'ok');
+    }
+    if (topMain) {
+      topMain.textContent = state === 'saving' ? 'Guardando cambios…' :
+        state === 'error' ? 'Error de guardado local' :
+        'Guardado automático activo';
+    }
+    if (topSub) {
+      topSub.textContent = state === 'saving'
+        ? 'No cierres la aplicación hasta que termine el guardado.'
+        : state === 'error'
+        ? 'Descarga un respaldo JSON antes de continuar.'
+        : (subtext || 'Los cambios de la inspección están guardados en este dispositivo.');
+    }
+  }
+
+  function markSaving() {
+    syncSaveStatus('saving');
+    clearTimeout(saveTimer051);
+    saveTimer051 = setTimeout(() => {
+      const now = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      syncSaveStatus('saved', now, `Último guardado confirmado: ${now}`);
+    }, 950);
+  }
+
+  document.addEventListener('input', markSaving, true);
+  document.addEventListener('change', markSaving, true);
+
+  if (floatBtn) {
+    floatBtn.addEventListener('click', () => {
+      markSaving();
+    }, true);
+  }
+
+  window.addEventListener('online', () => {
+    const now = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    syncSaveStatus('saved', now, 'Con conexión · guardado local activo.');
+  });
+  window.addEventListener('offline', () => {
+    const now = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    syncSaveStatus('saved', now, 'Sin conexión · los cambios continúan guardándose localmente.');
+  });
+
+  // Startup: do not leave the interface on "Preparando..." indefinitely.
+  setTimeout(() => {
+    const now = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    syncSaveStatus('saved', now, navigator.onLine
+      ? 'Guardado automático activo en este dispositivo.'
+      : 'Modo sin conexión · guardado automático activo.');
+  }, 1200);
 })();

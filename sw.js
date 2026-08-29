@@ -1,4 +1,4 @@
-const CACHE = 'clover-inspeccion-v050b-20260829';
+const CACHE = 'clover-inspeccion-v051-20260829';
 const ASSETS = [
   './',
   './index.html',
