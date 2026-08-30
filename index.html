@@ -1,137 +1,95 @@
 <!doctype html>
-<html lang="es">
+<html lang="es-MX">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#17497d">
+<meta name="theme-color" content="#131720">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Clover Inspección">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Clover Inspection">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<title>Clover — Inspección de Condición Base v0.6</title>
+<title>Clover — Inspection</title>
 <style>
-:root{--navy:#17497d;--green:#43ae43;--bg:#f4f7f5;--card:#fff;--text:#18314d;--muted:#647381;--line:#d6e0e5;--soft:#f7fafc;--warn:#c59a35;--red:#a23a35}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);font-size:16px}
-header{background:var(--navy);color:white;padding:18px 18px}.head{max-width:980px;margin:auto;display:flex;gap:14px;align-items:center}.head img{width:96px;background:white;border-radius:18px;padding:7px}.head h1{font-size:22px;line-height:1.18;margin:0}.head p{margin:7px 0 0;color:#dce7f2}
-main{max-width:980px;margin:auto;padding:14px 14px 100px}.notice,.feedback,.save-panel,.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0}.notice{background:#edf8ec;border-color:#cfe6cc}.feedback{background:#eef5fb;border-color:#cddfeb}.save-panel{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.save-left{display:flex;gap:9px;align-items:flex-start}.dot{width:12px;height:12px;border-radius:50%;background:var(--warn);margin-top:7px}.dot.ok{background:var(--green)}.dot.bad{background:var(--red)}.save-title{font-weight:850;font-size:18px}.small{font-size:13px;color:var(--muted)}
-h2{margin:0 0 10px;font-size:20px}label{display:block;font-weight:750;margin:9px 0 5px}input,select,textarea{width:100%;font:inherit;font-size:16px;min-height:46px;padding:10px 12px;border:1px solid #bac9d2;border-radius:12px;background:white;color:var(--text)}textarea{min-height:78px;resize:vertical}
-.grid2,.grid3{display:grid;grid-template-columns:1fr;gap:10px}@media(min-width:720px){.grid2{grid-template-columns:1fr 1fr}.grid3{grid-template-columns:repeat(3,1fr)}}
-button{font:inherit;min-height:44px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--text);font-weight:750;cursor:pointer}.primary{background:var(--navy);color:white;border-color:var(--navy)}.green{background:var(--green);color:white;border-color:var(--green)}.danger{color:var(--red)}
-.toolbar,.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.unit-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0}.unit-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}.unit-title{font-size:22px;font-weight:900}.badge{display:inline-block;border-radius:999px;padding:4px 8px;background:#eef2f4;font-size:12px;margin:2px 4px 2px 0}
-.steps{margin-top:12px}.step{border:1px solid var(--line);border-radius:15px;overflow:hidden;margin:10px 0;background:#fff}.step summary{list-style:none;cursor:pointer;background:#f6f9fb;padding:14px;display:flex;gap:10px;align-items:flex-start}.step summary::-webkit-details-marker{display:none}.num{display:flex;align-items:center;justify-content:center;min-width:42px;height:42px;border-radius:50%;background:var(--navy);color:white;font-weight:900}.step-title{font-weight:900;font-size:18px}.step-status{display:block;color:var(--muted);font-size:13px;margin-top:4px}.step-body{padding:14px;border-top:1px solid var(--line)}
-.quick{display:flex;gap:7px;flex-wrap:wrap}.chip{position:relative}.chip input{position:absolute;opacity:0}.chip span{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 11px;border:1px solid #bfcbd3;border-radius:999px;background:#fff;font-size:14px;font-weight:700}.chip input:checked+span{background:#e9f6e8;border-color:var(--green);color:#245b31}
-.item{border:1px solid #e2e7ea;border-radius:12px;padding:10px;margin:8px 0}.item-name{font-weight:800;margin-bottom:7px}.detail{display:none;margin-top:9px;padding-top:9px;border-top:1px dashed #d8dedf}.item.abnormal .detail,.item.unable .detail{display:block}
-.search-wrap{position:relative}.suggest{position:absolute;z-index:100;left:0;right:0;top:100%;background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:0 8px 24px rgba(0,0,0,.08);overflow:hidden}.suggest.hidden{display:none}.suggest button{width:100%;border:0;border-radius:0;text-align:left;background:#fff;border-bottom:1px solid #eef1f3}
-.hidden{display:none!important}.inline{display:flex;align-items:center;gap:8px}.suffix{font-weight:800;color:var(--muted)}
-.mark-normal{background:#eef8ec;border-color:#cae3c6;color:#245b31}.continue{margin-top:10px;background:#eaf3fb;border-color:#c7dced;color:var(--navy)}
-.evidence-slot{border:1px solid var(--line);border-radius:14px;background:#fbfcfd;padding:12px;margin:10px 0}.evidence-slot h4{margin:0 0 4px;font-size:17px}.evidence-slot p{margin:0 0 10px;color:var(--muted);font-size:13px}.ev-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ev-label{position:relative;min-height:46px;border:1px solid #c1d4df;border-radius:11px;display:flex;align-items:center;justify-content:center;font-weight:800;background:#fff;text-align:center}.ev-label.camera{background:#eaf5ff}.ev-label.library{background:#eef7ee}.ev-label input{position:absolute;inset:0;width:100%;height:100%;opacity:0}.ev-status{margin-top:6px;color:var(--green);font-size:12px;font-weight:800}@media(max-width:390px){.ev-actions{grid-template-columns:1fr}}
-.dashboard .unit-nav{display:block;width:100%;text-align:left;margin:7px 0;background:#fff}.missing{background:#fffaf0;border-color:#e4cf91}.missing-group{padding:9px 0;border-top:1px solid #eadfbf}.missing-group:first-child{border-top:0}.jump{display:block;width:100%;text-align:left;margin-top:6px}
-.float-save{position:fixed;z-index:9999;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));border:0;border-radius:999px;background:var(--green);color:white;box-shadow:0 8px 28px rgba(0,0,0,.18);min-width:135px}.float-save.saving{background:#8e7620}.float-save.error{background:var(--red)}
-.report-root{display:none}
-@media print{body{background:#fff}.screen{display:none!important}.report-root{display:block!important}.report-page{page-break-after:always;padding:8px}.report-page:last-child{page-break-after:auto}.report-head{display:flex;gap:12px;align-items:center;border-bottom:2px solid var(--navy);padding-bottom:9px;margin-bottom:12px}.report-head img{width:70px}.report-table{width:100%;border-collapse:collapse;font-size:12px}.report-table th,.report-table td{border:1px solid #cfd8dc;padding:6px;text-align:left;vertical-align:top}.report-find{border:1px solid #d7dfe3;padding:8px;border-radius:8px;margin:8px 0;break-inside:avoid}}
-
-/* v0.7 */
-.grid2>div,.grid3>div{min-width:0}
-input[type="date"]{width:100%;max-width:100%;min-width:0;display:block;-webkit-appearance:none;appearance:none}
-.other-input{margin-top:12px}
-.capacity-wrap{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
-.unit-toggle{display:inline-flex;border:1px solid #b9c8d1;border-radius:12px;overflow:hidden;background:#fff;min-height:46px}
-.unit-toggle button{border:0;border-radius:0;min-width:52px;padding:8px 10px;background:#fff;color:var(--muted)}
-.unit-toggle button.active{background:var(--navy);color:#fff}
-.photo-preview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
-.photo-preview{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#f7fafb;min-height:90px}
-.photo-preview img{width:100%;height:100px;object-fit:cover;display:block}
-.photo-preview .file-meta{padding:6px;font-size:11px;color:var(--muted);word-break:break-word}
-.photo-preview .delete-media{position:absolute;right:5px;top:5px;width:32px;height:32px;min-height:32px;border-radius:50%;border:0;background:rgba(162,58,53,.92);color:#fff;padding:0;font-size:18px;display:flex;align-items:center;justify-content:center}
-.ev-label.single{background:#eef5fb;border-color:#bfd6e6;min-height:50px}
-.bottom-status{margin:8px 0;font-size:13px;color:var(--muted)}
-.save-panel.error-state{border-color:#e5b5b1;background:#fff7f6}
-.save-panel.ok-state{border-color:#cfe6cc;background:#f7fcf6}
-
+:root{
+  --clover-bg:#E7E9EC;--clover-bg-secondary:#D9DCE1;--clover-surface:#F4F5F6;--clover-surface-strong:#ECEEF0;
+  --clover-input:#FCFCFB;--clover-border:#B8BCC2;--clover-border-strong:#969CA5;
+  --clover-text:#1A1D22;--clover-text-bright:#0F1116;--clover-text-muted:#666B73;
+  --clover-dark:#131720;--clover-dark-2:#0F1116;--clover-gold:#D4AF37;--clover-gold-bright:#E2AE20;
+  --clover-green:#2E7D32;--clover-green-soft:#E6F3E8;--clover-monitor:#4E8A62;--clover-monitor-soft:#E8F2EB;
+  --clover-coral:#D94B4B;--clover-coral-soft:#F8E8E8;--clover-major:#A92F3A;--clover-major-soft:#F5E4E7;
+  --clover-neutral:#5F6670;--clover-neutral-soft:#ECEEF1;--clover-link:#347FAE;
+  --shadow:0 8px 24px rgba(15,17,22,.08)
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--clover-bg);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--clover-text);font-size:16px;line-height:1.4}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+header{background:var(--clover-dark);color:#fff;border-bottom:4px solid var(--clover-gold);padding:16px}
+.head{max-width:1040px;margin:auto;display:flex;gap:14px;align-items:center}.head img{width:78px;height:78px;object-fit:contain;background:#fff;border-radius:16px;padding:6px}.head h1{font-size:22px;line-height:1.16;margin:0;color:#fff}.head p{margin:6px 0 0;color:#D7DADE;font-size:14px}.version-chip{display:inline-block;margin-top:6px;color:var(--clover-gold);font-weight:800;font-size:12px}
+main{max-width:1040px;margin:auto;padding:14px 14px 110px}.card,.notice,.feedback,.save-panel{background:var(--clover-surface);border:1px solid var(--clover-border);border-radius:18px;padding:14px;margin:12px 0;box-shadow:0 1px 0 rgba(255,255,255,.5)}
+.notice{border-left:5px solid var(--clover-gold)}.feedback{background:#EEF0F2}.save-panel{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.save-left{display:flex;gap:10px;align-items:flex-start}.dot{width:12px;height:12px;border-radius:50%;background:var(--clover-gold);margin-top:7px;flex:0 0 auto}.dot.ok{background:var(--clover-green)}.dot.bad{background:var(--clover-coral)}.save-title{font-weight:900;font-size:17px}.small{font-size:13px;color:var(--clover-text-muted)}
+h2{margin:0 0 10px;font-size:20px;color:var(--clover-dark)}h3{margin:0 0 8px;font-size:18px}
+label{display:block;font-weight:800;margin:9px 0 5px}.q-label{display:flex;gap:7px;align-items:baseline;flex-wrap:wrap}.qid{display:inline-flex;align-items:center;justify-content:center;min-width:42px;padding:2px 7px;border-radius:999px;background:#FFF8DD;border:1px solid #DDC36A;color:#775F12;font-size:12px;font-weight:900;letter-spacing:.02em}.optional-tag{font-size:11px;color:var(--clover-text-muted);font-weight:700}
+input,select,textarea{width:100%;font-size:16px;min-height:46px;padding:10px 12px;border:1px solid var(--clover-border);border-radius:12px;background:var(--clover-input);color:var(--clover-text);outline:none}input:focus,select:focus,textarea:focus{border-color:#8D7A35;box-shadow:0 0 0 3px rgba(212,175,55,.16)}textarea{min-height:82px;resize:vertical}.grid2,.grid3{display:grid;grid-template-columns:1fr;gap:10px}.grid2>*,.grid3>*{min-width:0}@media(min-width:720px){.grid2{grid-template-columns:1fr 1fr}.grid3{grid-template-columns:repeat(3,1fr)}}
+button{min-height:44px;padding:10px 14px;border-radius:12px;border:1px solid var(--clover-border);background:var(--clover-input);color:var(--clover-text);font-weight:850}.primary{background:var(--clover-dark);border-color:var(--clover-dark);color:#fff}.brand{background:var(--clover-gold);border-color:var(--clover-gold);color:var(--clover-dark-2)}.add-unit{background:var(--clover-dark);border-color:var(--clover-dark);color:#fff}.add-unit::first-letter{color:var(--clover-gold)}.danger{color:var(--clover-coral);border-color:#D9A9A9}.toolbar,.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.unit-card{background:var(--clover-surface);border:1px solid var(--clover-border-strong);border-radius:18px;padding:14px;margin:14px 0;box-shadow:var(--shadow);scroll-margin-top:10px}.unit-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.unit-title{font-size:22px;font-weight:950;color:var(--clover-dark)}.badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 9px;background:var(--clover-neutral-soft);font-size:12px;font-weight:800;margin:3px 4px 2px 0}.badge.complete{background:#FFF6CF;color:#66520E;border:1px solid #DDC875}.badge.finalized{background:var(--clover-green-soft);color:#245F2A;border:1px solid #A9D1AD}.badge.finding{background:var(--clover-coral-soft);color:#8D3333;border:1px solid #E6B4B4}
+.steps{margin-top:12px}.step{border:1px solid var(--clover-border);border-radius:15px;overflow:hidden;margin:10px 0;background:var(--clover-input);scroll-margin-top:10px}.step summary{list-style:none;cursor:pointer;background:var(--clover-surface-strong);padding:13px;display:flex;gap:11px;align-items:flex-start}.step summary::-webkit-details-marker{display:none}.num{display:flex;align-items:center;justify-content:center;min-width:42px;height:42px;border-radius:50%;background:var(--clover-dark);color:var(--clover-gold);font-weight:950;border:1px solid #2D3440}.step-title{font-weight:950;font-size:18px;color:var(--clover-dark)}.step-subtitle{display:block;color:var(--clover-text-muted);font-size:12px;margin-top:2px}.step-status{display:block;color:var(--clover-text-muted);font-size:13px;margin-top:4px}.step-status.complete{color:#6B5715;font-weight:850}.step-body{padding:14px;border-top:1px solid var(--clover-border)}
+.quick{display:flex;gap:7px;flex-wrap:wrap}.chip{position:relative}.chip input{position:absolute;opacity:0;pointer-events:none}.chip span{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 12px;border:1px solid var(--clover-border);border-radius:999px;background:var(--clover-input);font-size:14px;font-weight:750}.chip input:checked+span{background:#FBEAEC;border-color:var(--clover-coral);color:#963839}
+.check-item{border:1px solid #C9CDD2;border-radius:13px;padding:11px;margin:9px 0;background:#FAFAF9}.item-name{font-weight:900;margin-bottom:8px;display:flex;gap:8px;align-items:flex-start}.item-name .qid{margin-top:0}.item-help{font-size:12px;color:var(--clover-text-muted);margin:-3px 0 9px}.status-control{display:grid;grid-template-columns:minmax(96px,.7fr) minmax(150px,1.3fr);gap:8px;align-items:stretch}.status-primary,.status-more{min-height:44px}.status-primary{border:1px solid #9DBFA0;background:var(--clover-green-soft);color:#245F2A}.status-primary.active{background:var(--clover-green);border-color:var(--clover-green);color:#fff}.status-more{border:1px solid var(--clover-border);background:var(--clover-input);font-weight:850;padding-right:34px}.status-more.monitor-selected{border-color:var(--clover-monitor);background:var(--clover-monitor-soft);color:#2F6942}.status-more.repair-selected{border-color:var(--clover-coral);background:var(--clover-coral-soft);color:#913434}.status-more.major-selected{border-color:var(--clover-major);background:var(--clover-major-soft);color:#7A2630}.status-more.neutral-selected{border-color:#90959C;background:var(--clover-neutral-soft);color:#4D535B}.status-more.observed-selected{border-color:var(--clover-coral);background:var(--clover-coral-soft);color:#913434}.status-more.functional-selected{border-color:var(--clover-coral);background:var(--clover-coral-soft);color:#913434}
+@media(max-width:380px){.status-control{grid-template-columns:1fr}.status-primary,.status-more{width:100%}}
+.detail{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed #C8CCD1}.check-item.show-detail .detail{display:block}.detail .classification-wrap.hidden,.detail .unable-wrap.hidden{display:none}.history-select{margin-top:4px}.history-extra{display:none;margin-top:10px;padding-top:10px;border-top:1px dashed #C8CCD1}.check-item.show-history-extra .history-extra{display:block}
+.search-wrap{position:relative}.suggest{position:absolute;z-index:100;left:0;right:0;top:100%;background:#fff;border:1px solid var(--clover-border);border-radius:11px;box-shadow:var(--shadow);overflow:hidden}.suggest.hidden{display:none}.suggest button{width:100%;border:0;border-radius:0;text-align:left;background:#fff;border-bottom:1px solid #E6E8EB}.hidden{display:none!important}.other-input{margin-top:10px}
+.capacity-wrap{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.unit-toggle{display:inline-flex;border:1px solid var(--clover-border);border-radius:12px;overflow:hidden;background:var(--clover-input);min-height:46px}.unit-toggle button{border:0;border-radius:0;min-width:54px;background:var(--clover-input);color:var(--clover-text-muted)}.unit-toggle button.active{background:var(--clover-dark);color:var(--clover-gold)}
+.mark-normal{background:#EDF3EE;border-color:#B7CBBB;color:#2D6438}.continue{margin-top:10px;background:#D7DADE;border-color:#C2C6CB;color:#5A6068}.continue.ready{background:var(--clover-gold);border-color:var(--clover-gold);color:var(--clover-dark-2)}
+.evidence-slot{border:1px solid var(--clover-border);border-radius:14px;background:#F7F8F8;padding:12px;margin:10px 0}.evidence-slot h4{margin:0 0 4px;font-size:16px}.evidence-slot p{margin:0 0 10px;color:var(--clover-text-muted);font-size:12px}.ev-label{position:relative;min-height:48px;border:1px solid #AEB8C0;border-radius:11px;display:flex;align-items:center;justify-content:center;font-weight:850;background:#F9FAFA;text-align:center;padding:9px}.ev-label input{position:absolute;inset:0;width:100%;height:100%;opacity:0}.photo-preview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.photo-preview{position:relative;border:1px solid var(--clover-border);border-radius:10px;overflow:hidden;background:#ECEFF1;min-height:90px}.photo-preview img{width:100%;height:105px;object-fit:cover;display:block}.photo-preview .file-meta{padding:6px;font-size:11px;color:var(--clover-text-muted);word-break:break-word}.delete-media{position:absolute;right:5px;top:5px;width:32px;height:32px;min-height:32px;border-radius:50%;border:0;background:rgba(169,47,58,.94);color:#fff;padding:0;font-size:18px;display:flex;align-items:center;justify-content:center}
+.dashboard .unit-nav{display:block;width:100%;text-align:left;margin:7px 0;background:#FAFAF9}.dashboard .unit-nav:hover{border-color:#9A8A4E}.fleet-progress{margin:8px 0 12px}.progress-track{height:12px;background:#D1D4D8;border-radius:999px;overflow:hidden}.progress-bar{height:100%;width:0;background:var(--clover-gold);transition:width .2s ease}.progress-copy{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:13px;color:var(--clover-text-muted)}
+.missing{border-left:5px solid var(--clover-gold)}.missing-unit{border:1px solid var(--clover-border);border-radius:12px;margin:8px 0;background:#FAFAF9;overflow:hidden}.missing-unit>summary{list-style:none;padding:11px 12px;cursor:pointer;font-weight:900}.missing-unit>summary::-webkit-details-marker{display:none}.missing-unit-body{padding:0 12px 12px}.missing-group{padding:9px 0;border-top:1px solid #DFE1E4}.missing-group:first-child{border-top:0}.jump{display:block;width:100%;text-align:left;margin-top:6px}.unit-footer{margin-top:12px;padding-top:12px;border-top:1px solid var(--clover-border);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}.unit-progress-copy{font-size:13px;color:var(--clover-text-muted)}.finish-unit{background:var(--clover-dark);color:#fff;border-color:var(--clover-dark)}.finish-unit.ready{background:var(--clover-gold);color:var(--clover-dark-2);border-color:var(--clover-gold)}.finish-unit.finalized{background:var(--clover-green);color:#fff;border-color:var(--clover-green)}
+.bottom-status{margin:9px 0;font-size:13px;color:var(--clover-text-muted)}.float-save{position:fixed;z-index:9999;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));border:0;border-radius:999px;background:var(--clover-green);color:white;box-shadow:0 8px 28px rgba(0,0,0,.18);min-width:132px}.float-save.saving{background:#7A692D}.float-save.error{background:var(--clover-coral)}.save-panel.error-state{border-color:#D8A2A2;background:#FAEEEE}.save-panel.ok-state{border-color:#A9C9AD;background:#EFF6F0}
+.summary-find{border:1px solid var(--clover-border);border-left:4px solid var(--clover-coral);padding:9px;border-radius:9px;margin:8px 0;background:#FAFAF9}.summary-find.monitor{border-left-color:var(--clover-monitor)}.summary-find.neutral{border-left-color:#7B828A}.finalize-hint{padding:10px;border-radius:10px;background:#F0F1F2;color:var(--clover-text-muted);font-size:13px;margin:10px 0}.timestamp-note{font-size:12px;color:var(--clover-text-muted);margin-top:8px}
+dialog{border:1px solid var(--clover-border-strong);border-radius:18px;padding:0;max-width:620px;width:calc(100% - 28px);box-shadow:0 20px 60px rgba(0,0,0,.25)}dialog::backdrop{background:rgba(15,17,22,.48)}.dialog-head{background:var(--clover-dark);color:#fff;padding:14px 16px;border-bottom:3px solid var(--clover-gold)}.dialog-head h2{color:#fff;margin:0}.dialog-body{padding:15px;background:var(--clover-surface)}.pdf-unit-option{display:flex;gap:10px;align-items:flex-start;padding:9px;border:1px solid var(--clover-border);border-radius:10px;margin:7px 0;background:#FAFAF9}.pdf-unit-option input{width:20px;min-height:20px;margin-top:2px}.dialog-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}
+@media(max-width:560px){.head img{width:66px;height:66px}.head h1{font-size:19px}.unit-head{align-items:flex-start}.remove{padding:8px 10px}.photo-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar .small{flex-basis:100%}.actions>button{flex:1 1 180px}.float-save{font-size:14px;min-width:118px}}
+@media(max-width:360px){main{padding-left:9px;padding-right:9px}.card,.notice,.feedback,.save-panel,.unit-card{padding:11px;border-radius:14px}.step-body{padding:10px}.step summary{padding:10px}.num{min-width:38px;height:38px}.step-title{font-size:16px}}
 </style>
 </head>
 <body>
-<header class="screen"><div class="head"><img src="./icon-192.png" alt="Clover"><div><h1>Inspección de Condición Base y Planeación de Servicio</h1><p>Borrador técnico v0.7.1 · Español · Móvil · Offline · Guardado automático</p></div></div></header>
+<header class="screen"><div class="head"><img src="./icon-192.png" alt="Clover"><div><h1 id="headerTitle"></h1><p id="headerSub"></p><span id="versionChip" class="version-chip"></span></div></div></header>
 <main class="screen">
-<div class="notice"><b>Objetivo del piloto:</b> documentar la condición real de cada montacargas, necesidades inmediatas, mantenimiento diferido y exposición probable de servicio sin pedir al técnico que determine precio o riesgo comercial.</div>
-<section class="save-panel"><div class="save-left"><span id="saveDot" class="dot"></span><div><div id="saveTitle" class="save-title">Inicializando guardado…</div><div id="saveSub" class="small">La app confirmará cuando el estado esté almacenado.</div></div></div><div class="actions"><button id="persistBtn" type="button">Proteger almacenamiento</button><button id="importBtn" type="button">Importar respaldo</button><input id="importFile" type="file" accept=".json,application/json" hidden></div></section>
-<div class="feedback"><b>Retroalimentación que queremos del equipo:</b><ul><li>¿Está en el orden en que realmente inspeccionan?</li><li>¿Qué sobra, falta o se repite?</li><li>¿Qué debería resolverse con un solo toque?</li><li>¿Qué requiere herramientas que Clover todavía no tiene?</li><li>¿Qué puede documentar el aprendiz y qué debe verificar el técnico?</li></ul></div>
+  <div class="notice" id="pilotNotice"></div>
+  <section class="save-panel"><div class="save-left"><span id="saveDot" class="dot"></span><div><div id="saveTitle" class="save-title"></div><div id="saveSub" class="small"></div></div></div><div class="actions"><button id="persistBtn" type="button"></button><button id="importBtn" type="button"></button><input id="importFile" type="file" accept=".json,application/json" hidden></div></section>
+  <div class="feedback" id="feedbackBox"></div>
 
-<section class="card">
-<h2>Sesión de inspección</h2>
-<div class="grid2">
-<div><label>Cliente / empresa</label><input id="client" autocomplete="organization"></div>
-<div><label>Ubicación</label><input id="location" autocomplete="street-address" placeholder="Planta / ciudad"></div>
-<div><label>Técnico</label><input id="tech" autocomplete="name"></div>
-<div><label>Fecha</label><input id="date" type="date"></div>
-<div><label>Notas de la sesión</label><input id="sessionNotes" placeholder="Opcional"></div>
-</div>
-</section>
-
-<div class="toolbar"><button id="addUnit" type="button" class="green">+ Agregar montacargas</button><span class="small">La misma sesión puede incluir cualquier cantidad de unidades.</span></div>
-<section class="card dashboard"><h2>Unidades de la sesión</h2><div id="unitDashboard"></div></section>
-<div id="units"></div>
-
-<section class="card missing"><h2>Revisión antes de cerrar</h2><div id="missingSummary" class="small"></div><div id="missingGroups"></div></section>
-<div id="bottomActionStatus" class="bottom-status"></div><div class="actions"><button id="backupBtn" type="button" class="primary">Descargar respaldo JSON</button><button id="findingsCsvBtn" type="button">Exportar hallazgos CSV</button><button id="pdfBtn" type="button">Generar reporte PDF</button><button id="clearBtn" type="button" class="danger">Borrar sesión</button></div>
-</main>
-<button id="floatSave" type="button" class="float-save screen">✓ Guardado</button>
-<section id="reportRoot" class="report-root"></section>
-
-<template id="unitTemplate">
-<article class="unit-card unit">
-<div class="unit-head"><div><div class="unit-title">Montacargas <span class="unitIndex"></span></div><div class="unitSubtitle small">Unidad nueva</div><div><span class="badge findingBadge">Hallazgos: 0</span><span class="badge completeBadge">0/0</span></div></div><button type="button" class="remove danger">Eliminar</button></div>
-<div class="steps">
-
-<details class="step" data-step="1" open>
-<summary><span class="num">1</span><span><span class="step-title">Identificación y estado actual</span><span class="step-status">0/10</span></span></summary>
-<div class="step-body">
-<div class="grid3">
-<div><label>Número de unidad del cliente</label><input data-k="clientUnit" autocomplete="off" placeholder="Ej. FL-04"></div>
-<div><label>Marca</label><div class="search-wrap"><input data-k="make" class="makeSearch" autocomplete="off" placeholder="Empieza a escribir, ej. Toy…"><div class="suggest hidden"></div></div></div>
-<div><label>Modelo</label><input data-k="model" autocomplete="off"></div>
-<div><label>Número de serie</label><input data-k="serial" autocomplete="off"></div>
-<div><label>Año</label><input data-k="year" inputmode="numeric" pattern="[0-9]*" maxlength="4"></div>
-<div><label>Capacidad nominal</label>
-      <div class="capacity-wrap">
-        <input data-k="capacity" inputmode="decimal" pattern="[0-9.]*" placeholder="5000">
-        <div class="unit-toggle" data-capacity-toggle>
-          <button type="button" data-unit="lb" class="active">lb</button>
-          <button type="button" data-unit="kg">kg</button>
-        </div>
-      </div>
-      <input type="hidden" data-k="capacityUnit" value="lb">
+  <section class="card">
+    <h2 id="sessionHeading"></h2>
+    <div class="grid2">
+      <div><label id="clientLabel"></label><input id="client" autocomplete="organization"></div>
+      <div><label id="locationLabel"></label><input id="location" autocomplete="street-address"></div>
+      <div><label id="techLabel"></label><input id="tech" autocomplete="name"></div>
+      <div><label id="dateLabel"></label><input id="date" type="date"></div>
+      <div style="grid-column:1/-1"><label id="sessionNotesLabel"></label><input id="sessionNotes"></div>
     </div>
-<div><label>Horómetro</label><input data-k="hours" inputmode="decimal" pattern="[0-9.]*"></div>
-<div><label>Tipo de energía</label><select data-k="power"><option value="">Seleccionar</option><option>LP</option><option>Gasolina</option><option>Diesel</option><option>Eléctrico</option><option>Otro</option></select></div>
-<div><label>Tipo de llanta</label><select data-k="tires"><option value="">Seleccionar</option><option>Cushion</option><option>Sólida neumática</option><option>Neumática de aire</option><option>Poliuretano</option><option>Otro / desconocido</option></select></div>
-<div><label>Tipo de mástil</label><select data-k="mast"><option value="">Seleccionar</option><option>2 etapas / Duplex</option><option>3 etapas / Triplex</option><option>4 etapas / Quad</option><option>Simplex</option><option>Full free lift</option><option>Desconocido</option><option>Otro</option></select><input data-k="mastOther" class="hidden other-input" placeholder="Otro tipo"></div>
-<div><label>Aditamento(s)</label><select data-k="attachment"><option value="">Seleccionar</option><option>Ninguno</option><option>Desplazador lateral</option><option>Posicionador de horquillas</option><option>Clamp</option><option>Paper roll clamp</option><option>Carton clamp</option><option>Rotator</option><option>Push/Pull</option><option>Bale clamp</option><option>Multiple load handler</option><option>Otro</option></select><input data-k="attachmentOther" class="hidden other-input" placeholder="Otro aditamento"></div>
-<div class="fork-length-wrap hidden"><label>Largo de horquillas</label><select data-k="forkLength"><option value="">Seleccionar</option><option>36"</option><option>42"</option><option>48"</option><option>54"</option><option>60"</option><option>72"</option><option>84"</option><option>96"</option><option>Otro</option></select><input data-k="forkLengthOther" class="hidden other-input" placeholder="Otro largo"></div>
-<div><label>Estado operativo actual</label><select data-k="operational"><option>Operando</option><option>Operando con problema reportado</option><option>Operación limitada</option><option>Fuera de servicio</option><option>No probado / desconocido</option></select></div>
-</div>
-<label>Problemas reportados por operador</label><div class="quick concerns"></div>
-<label>¿Cuándo ocurre?</label><div class="quick occurrence"></div>
-<label>Notas del operador / problema reportado</label><textarea data-k="operatorNotes"></textarea>
-<button type="button" class="continue">Continuar</button>
-</div></details>
+  </section>
 
-<details class="step" data-step="2">
-<summary><span class="num">2</span><span><span class="step-title">Fotos de línea base</span><span class="step-status">0/7</span></span></summary>
-<div class="step-body evidenceArea"></div></details>
+  <div class="toolbar"><button id="addUnit" type="button" class="add-unit"></button><span id="addUnitHelp" class="small"></span></div>
+  <section class="card dashboard"><h2 id="unitsHeading"></h2><div class="fleet-progress"><div class="progress-track"><div id="fleetProgressBar" class="progress-bar"></div></div><div id="fleetProgressCopy" class="progress-copy"></div></div><div id="unitDashboard"></div></section>
+  <div id="units"></div>
+  <div class="toolbar"><button id="addUnitBottom" type="button" class="add-unit"></button></div>
 
-<div class="dynamicSteps"></div>
+  <section class="card missing"><h2 id="reviewHeading"></h2><div id="missingSummary" class="small"></div><div id="missingGroups"></div></section>
+  <section class="card"><h2 id="closeHeading"></h2><div id="sessionFinishStatus" class="small"></div><div class="actions" style="margin-top:10px"><button id="finishSessionBtn" type="button" class="brand"></button></div></section>
 
-<details class="step" data-step="12">
-<summary><span class="num">12</span><span><span class="step-title">Resumen de hallazgos y planeación de servicio</span><span class="step-status">0/3</span></span></summary>
-<div class="step-body"><div class="findingsSummary"></div><label>Notas generales del técnico</label><textarea data-k="overallNotes"></textarea><label>Información / herramienta que hizo falta</label><textarea data-k="missingTools"></textarea><div class="grid2"><div><label>Inicio</label><input data-k="startTime" type="time"></div><div><label>Fin</label><input data-k="finishTime" type="time"></div></div><button type="button" class="continue">Finalizar revisión</button></div>
-</details>
+  <div id="bottomActionStatus" class="bottom-status"></div>
+  <div class="actions"><button id="backupBtn" type="button" class="primary"></button><button id="findingsCsvBtn" type="button"></button><button id="pdfBtn" type="button"></button><button id="clearBtn" type="button" class="danger"></button></div>
+</main>
+<button id="floatSave" type="button" class="float-save screen"></button>
 
-</div>
-</article>
-</template>
+<dialog id="pdfDialog">
+  <div class="dialog-head"><h2 id="pdfDialogTitle"></h2></div>
+  <div class="dialog-body"><div id="pdfDialogHelp" class="small"></div><div id="pdfUnitOptions"></div><div id="pdfDialogStatus" class="small"></div><div class="dialog-actions"><button id="pdfCancelBtn" type="button"></button><button id="pdfGenerateBtn" type="button" class="brand"></button></div></div>
+</dialog>
 
-<script src="./app.js?v=071"></script>
+<script>window.CLOVER_LANG='es';</script>
+<script src="./app.js?v=072"></script>
 </body>
 </html>

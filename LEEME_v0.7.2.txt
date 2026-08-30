@@ -1,0 +1,34 @@
+Clover — Inspección de Condición Base y Planeación de Servicio
+v0.7.2 — Español
+
+Cambios principales:
+- Nuevo control compacto Normal | Más opciones.
+- Tema claro industrial Clover (gris claro, superficies suaves, encabezado oscuro, oro Clover, verdes y coral por estado).
+- IDs estables por pregunta (ej. 6-C, 9-A, 11-D, 12-A).
+- Revisión de faltantes por montacargas y progreso de flota.
+- Botón Agregar montacargas también al final de la lista y dentro del flujo de cada unidad.
+- Secciones 9, 10 y 11 revisadas para que las respuestas coincidan con el tipo de pregunta.
+- 9-A captura disponibilidad del historial de servicio y datos opcionales del último servicio.
+- Revisión explícita de cargador dentro del flujo eléctrico.
+- Hasta 3 fotos/videos por selección; se pueden agregar lotes adicionales.
+- Corrección de restauración: comentarios, clasificación y evidencia vuelven a mostrarse al reabrir un hallazgo no Normal.
+- Corrección de largo de horquillas oculto y registros vacíos/malformados.
+- Aplicabilidad explícita de preguntas condicionadas en JSON/CSV/PDF.
+- Tiempos internos de inicio/actividad/finalización sin mostrar duración al técnico ni en PDF.
+- Finalización explícita por unidad y por flota.
+- Generar PDF de toda una sesión completa registra el cierre; un PDF parcial/subconjunto no cierra la sesión.
+- PDF generado directamente por la app, sin encabezados/pies del navegador, con selección de unidades, PRELIMINAR/FINAL, fotos de línea base y evidencia de hallazgos.
+- Migración automática de datos locales v0.7.1 en la app española.
+- Caché offline aislada para que el repositorio español no interfiera con el repositorio inglés.
+
+Despliegue GitHub Pages (repositorio español actual):
+1. Reemplazar los archivos de la raíz del repositorio con los de este paquete.
+2. Mantener GitHub Pages apuntando a la rama principal / raíz.
+3. Abrir la app con internet después del despliegue para permitir que el nuevo service worker se instale.
+4. Si todavía aparece v0.7.1 la primera vez, cerrar completamente la PWA y volver a abrirla con internet; una recarga adicional puede ser necesaria durante la actualización del service worker.
+5. Confirmar que el encabezado muestre “Piloto v0.7.2”.
+6. Después hacer una prueba offline antes de usarla en campo.
+
+Nota de almacenamiento:
+- Esta versión conserva el namespace local de la app española para poder restaurar/migrar el trabajo guardado en v0.7.1.
+- La versión inglesa usa un namespace distinto para evitar que ambas apps se sobrescriban cuando viven bajo repositorios de GitHub Pages del mismo usuario.

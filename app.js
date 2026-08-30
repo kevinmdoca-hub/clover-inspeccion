@@ -1,215 +1,461 @@
 (() => {
 'use strict';
-const VERSION='0.7', STATE_KEY='clover-inspeccion-v07-state', DB_NAME='clover-inspeccion-v07', DB_VERSION=2, MEDIA='media', STATE_STORE='state';
-const MAKES=["Toyota", "Crown", "Hyster", "Yale", "Hyundai", "UniCarriers", "Nissan", "Mitsubishi", "CAT", "Clark", "Komatsu", "Doosan", "Bobcat", "Raymond", "Jungheinrich", "Linde", "Hangcha", "Heli", "TCM", "Manitou", "Baoli", "Still", "Kalmar"];
-const GROUPS={"3|Seguridad": ["Freno de servicio", "Freno de estacionamiento", "Dirección / seguridad", "Claxon", "Luces", "Alarma de reversa (si está equipada)", "Asiento / sistema de retención", "Sistema de presencia / seguridad del operador", "Techo protector", "Calcomanías de seguridad", "Daño estructural evidente"], "4|Horquillas / mástil / sistema de carga": ["Desgaste / daño de horquillas", "Talón de horquillas", "Seguro de horquillas", "Condición de cadenas", "Elongación de cadenas (cuando sea práctico)", "Rodillos / rodamientos", "Carro", "Canales del mástil", "Cilindros de elevación / inclinación", "Mangueras del mástil", "Condición del aditamento", "Juego excesivo"], "5|Dirección / chasis": ["Eje de dirección", "Kingpins / articulaciones", "Cilindro de dirección", "Rodamientos de rueda", "Bastidor", "Contrapeso", "Puntos de montaje", "Evidencia de impactos"], "6|Sistema hidráulico": ["Operación de bomba", "Ruido hidráulico", "Mangueras", "Conexiones", "Cilindros", "Fugas", "Nivel de aceite hidráulico", "Condición de aceite hidráulico", "Operación elevación / inclinación / aditamento"], "7A|Tren motriz IC / LP": ["Condición general del motor", "Arranque", "Calidad de ralentí", "Humo / escape", "Fugas de motor", "Ruido anormal de motor", "Operación de transmisión", "Enganche adelante / reversa", "Indicadores de diferencial / mando final", "Sistema de enfriamiento", "Radiador", "Bandas / mangueras", "Sistema LP / combustible", "Sistema de encendido"], "7B|Sistema eléctrico / batería": ["Comportamiento motor de tracción", "Comportamiento motor hidráulico", "Controladores", "Contactores", "Cableado", "Conectores", "Códigos de error", "Ruido / calor anormal", "Condición física de batería", "Corrosión", "Cables / conectores de batería", "Condición de celdas", "Nivel / mantenimiento de agua (si aplica)", "Resultado de prueba de batería (si hay equipo)"], "8|Llantas": ["Cortes / chunking — tracción", "Desgaste irregular — tracción", "Daño — tracción", "Cortes / chunking — dirección", "Desgaste irregular — dirección", "Daño — dirección", "Condición rueda / rin", "Necesidad estimada de reemplazo"], "9|PM / mantenimiento diferido": ["Evidencia de PM vencido", "Fluidos viejos / contaminados", "Filtros descuidados", "Deficiencias de lubricación", "Fugas diferidas", "Mangueras viejas / deterioradas", "Reparaciones previas deficientes", "Reparaciones temporales", "Modificaciones no OEM"], "10|Condición general / indicadores de abuso": ["Evidencia de colisión", "Daño de operador", "Componentes doblados", "Modificaciones inusuales", "Indicadores de mal uso", "Corrosión / daño ambiental", "Reparaciones / modificaciones no autorizadas"], "11|Prueba funcional y evidencia en video": ["Arranca / energiza", "Estado de pantalla / códigos", "Traslado hacia adelante", "Traslado en reversa", "Aceleración", "Freno de servicio", "Freno de estacionamiento", "Dirección en rango completo", "Elevación", "Descenso", "Inclinación adelante / atrás", "Función hidráulica auxiliar / aditamento", "Ruido / vibración anormal", "Revisión de fugas después de operar"]};
-const concerns=['Arranque','Baja potencia','Traslado / transmisión','Dirección','Frenado','Hidráulicos / mástil','Aditamento','Ruido / vibración','Fuga','Alerta / código','Llanta / rueda','Batería / autonomía','Controles / operador','Otro'];
-const occurrence=['Constante','Intermitente','En frío','En caliente','Al arrancar','Bajo carga','Después de uso prolongado','Desconocido'];
-let state={session:{},units:[]}, saveTimer=null, dbPromise=null;
 
+const LANG=(window.CLOVER_LANG||document.documentElement.lang||'es').toLowerCase().startsWith('en')?'en':'es';
+const VERSION='0.7.2';
+const STATE_KEY=LANG==='en'?'clover-inspection-en-v072-state':'clover-inspeccion-v07-state';
+const DB_NAME=LANG==='en'?'clover-inspection-en-v072':'clover-inspeccion-v07';
+const DB_VERSION=3;
+const MEDIA='media', STATE_STORE='state';
+const IDLE_SECONDS=10*60;
+const MAX_FILES_PER_PICK=3;
 const $=s=>document.querySelector(s);
-const $$=(root,selector)=>{
-  if(typeof root==='string' && selector===undefined) return [...document.querySelectorAll(root)];
-  return [...root.querySelectorAll(selector)];
+const $$=(root,selector)=>typeof root==='string'&&selector===undefined?[...document.querySelectorAll(root)]:[...root.querySelectorAll(selector)];
+const t=(es,en)=>LANG==='es'?es:en;
+const uid=()=>crypto.randomUUID?crypto.randomUUID():'u-'+Date.now()+'-'+Math.random().toString(36).slice(2);
+const nowIso=()=>new Date().toISOString();
+const nowTime=()=>new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+
+const UI={
+  headerTitle:t('Inspección de Condición Base y Planeación de Servicio','Baseline Condition & Service Planning Inspection'),
+  headerSub:t('Aplicación de campo · Móvil · Offline · Guardado automático','Field app · Mobile · Offline · Automatic saving'),
+  version:t('Piloto v0.7.2','Pilot v0.7.2'),
+  pilot:t('<b>Objetivo del piloto:</b> documentar la condición real de cada montacargas, necesidades inmediatas, mantenimiento diferido y exposición probable de servicio sin pedir al técnico que determine precio o riesgo comercial.','<b>Pilot objective:</b> document each forklift’s actual condition, immediate needs, deferred maintenance and likely service exposure without asking the technician to determine pricing or commercial risk.'),
+  feedback:t('<b>Retroalimentación de campo:</b> confirma si el orden coincide con la inspección real, qué sobra o falta, qué debería resolverse con un toque y qué requiere herramientas adicionales.','<b>Field feedback:</b> confirm whether the order matches the real inspection, what is missing or redundant, what should take one tap, and what requires additional tools.'),
+  sessionHeading:t('Sesión de inspección','Inspection session'), client:t('Cliente / empresa','Client / company'), location:t('Ubicación','Location'), tech:t('Técnico','Technician'), date:t('Fecha','Date'), sessionNotes:t('Notas de la sesión','Session notes'),
+  addUnit:t('+ Agregar montacargas','+ Add forklift'), addUnitBottom:t('+ Agregar otro montacargas','+ Add another forklift'), addHelp:t('La misma sesión puede incluir cualquier cantidad de unidades.','One session can include any number of units.'), unitsHeading:t('Unidades de la sesión','Session units'),
+  reviewHeading:t('Revisión de faltantes','Missing-items review'), closeHeading:t('Cierre de la sesión','Close inspection session'), finishSession:t('✓ Finalizar inspección de flota','✓ Finalize fleet inspection'),
+  backup:t('Descargar respaldo JSON','Download JSON backup'), csv:t('Exportar hallazgos CSV','Export findings CSV'), pdf:t('Generar reporte PDF','Generate PDF report'), clear:t('Borrar sesión','Clear session'),
+  persist:t('Proteger almacenamiento','Protect storage'), import:t('Importar respaldo','Import backup'),
+  pdfTitle:t('Generar reporte PDF','Generate PDF report'), pdfHelp:t('Selecciona las unidades que deben incluirse. Si incluyes toda la sesión y todas las unidades están completas, la generación del reporte registra el cierre de la sesión.','Select the units to include. If the full session is selected and every unit is complete, generating the report records the session completion timestamp.'), pdfCancel:t('Cancelar','Cancel'), pdfGenerate:t('Generar PDF','Generate PDF'),
+  optional:t('Opcional','Optional'), select:t('Seleccionar','Select'), more:t('Más opciones','More options'),
+  observation:t('Observación / medición','Observation / measurement'), action:t('Acción / clasificación','Action / classification'), notes:t('Notas','Notes'), unableReason:t('Motivo','Reason'), evidence:t('Evidencia del hallazgo','Finding evidence'), addEvidence:t('📷 Agregar hasta 3 fotos o videos','📷 Add up to 3 photos or videos'),
+  saveInit:t('Inicializando guardado…','Initializing save…'), saveInitSub:t('La app confirmará cuando el estado esté almacenado.','The app will confirm when the current state is stored.'),
+  saved:t('Guardado automático activo','Automatic saving active'), savedSub:t('Último guardado confirmado: ','Last confirmed save: '), saving:t('Guardando cambios…','Saving changes…'), savingSub:t('No cierres la app hasta confirmar el guardado.','Do not close the app until saving is confirmed.'), saveError:t('Error de guardado local','Local save error'), saveErrorSub:t('No se pudo guardar la inspección. Toca “Reintentar guardar”.','The inspection could not be saved. Tap “Retry save”.'),
+  retry:t('⚠ Reintentar guardar','⚠ Retry save'), savedFloat:t('✓ Guardado','✓ Saved'), savingFloat:t('Guardando…','Saving…'),
+  continue:t('Continuar','Continue'), markNormal:t('✓ Marcar pendientes como Normal','✓ Mark remaining Normal'), markNoObserved:t('✓ Marcar pendientes como No observado','✓ Mark remaining Not observed'), markNormalResults:t('✓ Completar pendientes con resultados normales','✓ Complete remaining with normal results'),
+  reviewMissing:t('Revisar faltantes','Review missing'), finishUnit:t('✓ Finalizar inspección de esta unidad','✓ Finalize this unit inspection'), finalized:t('✓ Inspección finalizada','✓ Inspection finalized'),
+  noFindings:t('Sin hallazgos anormales registrados.','No abnormal findings recorded.'),
+  internalTime:t('Los tiempos se registran automáticamente para análisis interno. No se muestra una duración al técnico ni en el reporte.','Timing is recorded automatically for internal analysis. No duration is shown to the technician or in the report.'),
 };
-function uid(){return crypto.randomUUID?crypto.randomUUID():'u-'+Date.now()+'-'+Math.random().toString(36).slice(2)}
-function nowTime(){return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
+
+const STATUS_LABELS={
+ normal:t('Normal','Normal'), monitor:t('Monitor','Monitor'), repair:t('Reparar','Repair'), major:t('Preocupación mayor','Major concern'), na:t('N/A','N/A'), not_inspected:t('No inspeccionado','Not inspected'), unable_inspect:t('No se pudo inspeccionar','Unable to inspect'),
+ not_observed:t('No observado','Not observed'), observed:t('Observado','Observed'), unable_determine:t('No se pudo determinar','Unable to determine'),
+ function_normal:t('Funciona normal','Functions normally'), function_abnormal:t('Funciona con anomalía','Functions with abnormality'), not_functioning:t('No funciona','Does not function'), not_tested:t('No probado','Not tested'), unable_test:t('No se pudo probar','Unable to test'),
+ records_complete:t('Sí, completos','Yes, complete'), records_partial:t('Sí, parciales','Yes, partial'), records_none:t('No disponibles','Not available'), records_unconfirmed:t('No se pudo confirmar','Could not confirm'),
+ available_yes:t('Sí','Yes'), available_no:t('No','No'), available_unconfirmed:t('No se pudo confirmar','Could not confirm'),
+ compatible:t('Compatible','Compatible'), incompatible:t('Incompatible','Incompatible'), unable_verify:t('No se pudo verificar','Could not verify')
+};
+const TYPE_CONFIG={
+ condition:{primary:'normal',options:['monitor','repair','major','na','not_inspected','unable_inspect'],mark:'normal'},
+ indicator:{primary:'not_observed',options:['observed','unable_determine'],mark:'not_observed'},
+ functional:{primary:'function_normal',options:['function_abnormal','not_functioning','not_tested','unable_test','na'],mark:'function_normal'}
+};
+const ACTION_LABELS={
+ baseline_repair:t('Reparación inmediata / línea base','Immediate / baseline repair'), initial_rehab:t('Rehabilitación inicial recomendada','Recommended initial rehabilitation'), monitor:t('Monitorear','Monitor'), major_eval:t('Componente mayor / evaluación separada','Major component / separate evaluation'), repair_replace:t('Evaluar reparar vs reemplazar','Repair-vs-replacement review'),
+ initial_pm:t('Incluir en PM inicial','Include in initial PM'), repair_before_operation:t('Reparar antes de operar','Repair before operation'), additional_eval:t('Evaluación adicional','Additional evaluation')
+};
+const ACTION_SETS={condition:['baseline_repair','initial_rehab','monitor','major_eval','repair_replace'],indicator:['monitor','initial_pm','initial_rehab','repair_before_operation','additional_eval'],functional:['baseline_repair','initial_rehab','monitor','major_eval','additional_eval']};
+const UNABLE_REASONS={unit_not_operable:t('Unidad no operable','Unit not operable'),no_access:t('Acceso no disponible','Access unavailable'),tool_required:t('Herramienta requerida','Tool required'),client_restriction:t('Restricción del cliente','Client restriction'),unsafe:t('Condición insegura para probar','Unsafe to test'),other:t('Otro','Other')};
+
+const SELECTS={
+ power:[['',''],['lp',t('LP','LP')],['gasoline',t('Gasolina','Gasoline')],['diesel',t('Diesel','Diesel')],['electric',t('Eléctrico','Electric')],['other',t('Otro','Other')]],
+ tires:[['',''],['cushion','Cushion'],['solid_pneumatic',t('Sólida neumática','Solid pneumatic')],['air_pneumatic',t('Neumática de aire','Air pneumatic')],['polyurethane',t('Poliuretano','Polyurethane')],['other_unknown',t('Otro / desconocido','Other / unknown')]],
+ mast:[['',''],['duplex',t('2 etapas / Duplex','2-stage / Duplex')],['triplex',t('3 etapas / Triplex','3-stage / Triplex')],['quad',t('4 etapas / Quad','4-stage / Quad')],['simplex','Simplex'],['full_free_lift','Full free lift'],['unknown',t('Desconocido','Unknown')],['other',t('Otro','Other')]],
+ attachment:[['',''],['none',t('Ninguno','None')],['sideshifter',t('Desplazador lateral','Sideshifter')],['fork_positioner',t('Posicionador de horquillas','Fork positioner')],['clamp',t('Pinza / Clamp','Clamp')],['paper_roll_clamp',t('Pinza para rollos de papel','Paper roll clamp')],['carton_clamp',t('Pinza para cajas / cartón','Carton clamp')],['rotator',t('Rotador','Rotator')],['push_pull',t('Push/Pull — Empuje / arrastre','Push/Pull')],['bale_clamp',t('Pinza para pacas','Bale clamp')],['multiple_load_handler',t('Manipulador de cargas múltiples','Multiple load handler')],['other',t('Otro','Other')]],
+ forkLength:[['',''],['36','36"'],['42','42"'],['48','48"'],['54','54"'],['60','60"'],['72','72"'],['84','84"'],['96','96"'],['other',t('Otro','Other')]],
+ operational:[['',''],['operating',t('Operando','Operating')],['operating_issue',t('Operando con problema reportado','Operating with reported issue')],['limited',t('Operación limitada','Limited operation')],['out_of_service',t('Fuera de servicio','Out of service')],['not_tested',t('No probado / desconocido','Not tested / unknown')]]
+};
+const selectOptions=(arr,placeholder=true)=>arr.map(([v,l],i)=>`<option value="${escapeHtml(v)}">${escapeHtml(i===0&&placeholder?UI.select:l)}</option>`).join('');
+const optionLabel=(arr,value)=>arr.find(x=>x[0]===value)?.[1]||value||'';
+
+const MAKES=['Toyota','Crown','Hyster','Yale','Hyundai','UniCarriers','Nissan','Mitsubishi','CAT','Clark','Komatsu','Doosan','Bobcat','Raymond','Jungheinrich','Linde','Hangcha','Heli','TCM','Manitou','Baoli','Still','Kalmar'];
+const CONCERNS=[['starting',t('Arranque','Starting')],['low_power',t('Baja potencia','Low power')],['travel_transmission',t('Traslado / transmisión','Travel / transmission')],['steering',t('Dirección','Steering')],['braking',t('Frenado','Braking')],['hydraulics_mast',t('Hidráulicos / mástil','Hydraulics / mast')],['attachment',t('Aditamento','Attachment')],['noise_vibration',t('Ruido / vibración','Noise / vibration')],['leak',t('Fuga','Leak')],['warning_code',t('Alerta / código','Warning / code')],['tire_wheel',t('Llanta / rueda','Tire / wheel')],['battery_runtime',t('Batería / autonomía','Battery / runtime')],['controls_operator',t('Controles / operador','Controls / operator')],['other',t('Otro','Other')]];
+const OCCURRENCE=[['constant',t('Constante','Constant')],['intermittent',t('Intermitente','Intermittent')],['cold',t('En frío','Cold')],['hot',t('En caliente','Hot')],['startup',t('Al arrancar','At startup')],['under_load',t('Bajo carga','Under load')],['prolonged',t('Después de uso prolongado','After prolonged use')],['unknown',t('Desconocido','Unknown')]];
+
+function q(id,es,en,type='condition',opts={}){return{id,label:t(es,en),type,...opts}}
+function evidenceKey(section,index){return`finding-${section}-${index}`}
+const SECTIONS=[
+ {num:'3',title:t('Seguridad','Safety'),items:[
+  q('3-A','Freno de servicio','Service brake','condition',{legacyItem:'Freno de servicio',ev:[evidenceKey('3',0)]}),
+  q('3-B','Freno de estacionamiento','Parking brake','condition',{legacyItem:'Freno de estacionamiento',ev:[evidenceKey('3',1)]}),
+  q('3-C','Dirección / seguridad','Steering / safety','condition',{legacyItem:'Dirección / seguridad',ev:[evidenceKey('3',2)]}),
+  q('3-D','Claxon','Horn','condition',{legacyItem:'Claxon',ev:[evidenceKey('3',3)]}),
+  q('3-E','Luces','Lights','condition',{legacyItem:'Luces',ev:[evidenceKey('3',4)]}),
+  q('3-F','Alarma de reversa (si está equipada)','Backup alarm (if equipped)','condition',{legacyItem:'Alarma de reversa (si está equipada)',ev:[evidenceKey('3',5)]}),
+  q('3-G','Asiento / sistema de retención','Seat / restraint system','condition',{legacyItem:'Asiento / sistema de retención',ev:[evidenceKey('3',6)]}),
+  q('3-H','Sistema de presencia / seguridad del operador','Operator-presence / safety system','condition',{legacyItem:'Sistema de presencia / seguridad del operador',ev:[evidenceKey('3',7)]}),
+  q('3-I','Techo protector','Overhead guard','condition',{legacyItem:'Techo protector',ev:[evidenceKey('3',8)]}),
+  q('3-J','Calcomanías de seguridad','Safety decals','condition',{legacyItem:'Calcomanías de seguridad',ev:[evidenceKey('3',9)]}),
+  q('3-K','Daño estructural evidente','Obvious structural damage','condition',{legacyItem:'Daño estructural evidente',ev:[evidenceKey('3',10)]})]},
+ {num:'4',title:t('Horquillas / mástil / sistema de carga','Forks / mast / load system'),items:[
+  q('4-A','Desgaste / daño de horquillas','Fork wear / damage','condition',{legacyItem:'Desgaste / daño de horquillas',ev:[evidenceKey('4',0)]}),q('4-B','Talón de horquillas','Fork heel','condition',{legacyItem:'Talón de horquillas',ev:[evidenceKey('4',1)]}),q('4-C','Seguro de horquillas','Fork locks','condition',{legacyItem:'Seguro de horquillas',ev:[evidenceKey('4',2)]}),q('4-D','Condición de cadenas','Chain condition','condition',{legacyItem:'Condición de cadenas',ev:[evidenceKey('4',3)]}),q('4-E','Elongación de cadenas (cuando sea práctico)','Chain elongation (when practical)','condition',{legacyItem:'Elongación de cadenas (cuando sea práctico)',ev:[evidenceKey('4',4)]}),q('4-F','Rodillos / rodamientos','Rollers / bearings','condition',{legacyItem:'Rodillos / rodamientos',ev:[evidenceKey('4',5)]}),q('4-G','Carro','Carriage','condition',{legacyItem:'Carro',ev:[evidenceKey('4',6)]}),q('4-H','Canales del mástil','Mast channels','condition',{legacyItem:'Canales del mástil',ev:[evidenceKey('4',7)]}),q('4-I','Cilindros de elevación / inclinación','Lift / tilt cylinders','condition',{legacyItem:'Cilindros de elevación / inclinación',ev:[evidenceKey('4',8)]}),q('4-J','Mangueras del mástil','Mast hoses','condition',{legacyItem:'Mangueras del mástil',ev:[evidenceKey('4',9)]}),q('4-K','Condición del aditamento','Attachment condition','condition',{legacyItem:'Condición del aditamento',ev:[evidenceKey('4',10)]}),q('4-L','Juego excesivo','Excessive play','condition',{legacyItem:'Juego excesivo',ev:[evidenceKey('4',11)]})]},
+ {num:'5',title:t('Dirección / chasis','Steering / chassis'),items:[
+  q('5-A','Eje de dirección','Steer axle','condition',{legacyItem:'Eje de dirección',ev:[evidenceKey('5',0)]}),q('5-B','Kingpins / articulaciones','Kingpins / joints','condition',{legacyItem:'Kingpins / articulaciones',ev:[evidenceKey('5',1)]}),q('5-C','Cilindro de dirección','Steering cylinder','condition',{legacyItem:'Cilindro de dirección',ev:[evidenceKey('5',2)]}),q('5-D','Rodamientos de rueda','Wheel bearings','condition',{legacyItem:'Rodamientos de rueda',ev:[evidenceKey('5',3)]}),q('5-E','Bastidor','Frame','condition',{legacyItem:'Bastidor',ev:[evidenceKey('5',4)]}),q('5-F','Contrapeso','Counterweight','condition',{legacyItem:'Contrapeso',ev:[evidenceKey('5',5)]}),q('5-G','Puntos de montaje','Mounting points','condition',{legacyItem:'Puntos de montaje',ev:[evidenceKey('5',6)]}),q('5-H','Evidencia de impactos','Impact evidence','condition',{legacyItem:'Evidencia de impactos',ev:[evidenceKey('5',7)]})]},
+ {num:'6',title:t('Sistema hidráulico','Hydraulic system'),items:[
+  q('6-A','Operación de bomba','Pump operation','condition',{legacyItem:'Operación de bomba',ev:[evidenceKey('6',0)]}),q('6-B','Ruido hidráulico','Hydraulic noise','condition',{legacyItem:'Ruido hidráulico',ev:[evidenceKey('6',1)]}),q('6-C','Mangueras','Hoses','condition',{legacyItem:'Mangueras',ev:[evidenceKey('6',2)]}),q('6-D','Conexiones','Fittings / connections','condition',{legacyItem:'Conexiones',ev:[evidenceKey('6',3)]}),q('6-E','Cilindros','Cylinders','condition',{legacyItem:'Cilindros',ev:[evidenceKey('6',4)]}),q('6-F','Fugas','Leaks','condition',{legacyItem:'Fugas',ev:[evidenceKey('6',5)]}),q('6-G','Nivel de aceite hidráulico','Hydraulic oil level','condition',{legacyItem:'Nivel de aceite hidráulico',ev:[evidenceKey('6',6)]}),q('6-H','Condición de aceite hidráulico','Hydraulic oil condition','condition',{legacyItem:'Condición de aceite hidráulico',ev:[evidenceKey('6',7)]}),q('6-I','Operación elevación / inclinación / aditamento','Lift / tilt / attachment operation','condition',{legacyItem:'Operación elevación / inclinación / aditamento',ev:[evidenceKey('6',8)]})]},
+ {num:'7',variant:'ic',title:t('Tren motriz IC / LP','IC / LP powertrain'),items:[
+  q('7-IC-A','Condición general del motor','General engine condition','condition',{legacyItem:'Condición general del motor',ev:[evidenceKey('7A',0)]}),q('7-IC-B','Arranque','Starting','condition',{legacyItem:'Arranque',ev:[evidenceKey('7A',1)]}),q('7-IC-C','Calidad de ralentí','Idle quality','condition',{legacyItem:'Calidad de ralentí',ev:[evidenceKey('7A',2)]}),q('7-IC-D','Humo / escape','Smoke / exhaust','condition',{legacyItem:'Humo / escape',ev:[evidenceKey('7A',3)]}),q('7-IC-E','Fugas de motor','Engine leaks','condition',{legacyItem:'Fugas de motor',ev:[evidenceKey('7A',4)]}),q('7-IC-F','Ruido anormal de motor','Abnormal engine noise','condition',{legacyItem:'Ruido anormal de motor',ev:[evidenceKey('7A',5)]}),q('7-IC-G','Sistema de enfriamiento','Cooling system','condition',{legacyItem:'Sistema de enfriamiento',ev:[evidenceKey('7A',9)]}),q('7-IC-H','Radiador','Radiator','condition',{legacyItem:'Radiador',ev:[evidenceKey('7A',10)]}),q('7-IC-I','Bandas / mangueras','Belts / hoses','condition',{legacyItem:'Bandas / mangueras',ev:[evidenceKey('7A',11)]}),q('7-IC-J','Sistema LP / combustible','LP / fuel system','condition',{legacyItem:'Sistema LP / combustible',ev:[evidenceKey('7A',12)]}),q('7-IC-K','Sistema de encendido','Ignition system','condition',{legacyItem:'Sistema de encendido',ev:[evidenceKey('7A',13)]}),q('7-IC-L','Operación de transmisión','Transmission operation','condition',{legacyItem:'Operación de transmisión',ev:[evidenceKey('7A',6)]}),q('7-IC-M','Enganche adelante / reversa','Forward / reverse engagement','condition',{legacyItem:'Enganche adelante / reversa',ev:[evidenceKey('7A',7)]}),q('7-IC-N','Indicadores de diferencial / mando final','Differential / final-drive indicators','condition',{legacyItem:'Indicadores de diferencial / mando final',ev:[evidenceKey('7A',8)]})]},
+ {num:'7',variant:'electric',title:t('Sistema eléctrico / batería / cargador','Electric / battery / charger system'),items:[
+  q('7-E-A','Condición física de batería','Battery physical condition','condition',{legacyItem:'Condición física de batería',ev:[evidenceKey('7B',8)]}),q('7-E-B','Corrosión','Corrosion','condition',{legacyItem:'Corrosión',ev:[evidenceKey('7B',9)]}),q('7-E-C','Cables / conectores de batería','Battery cables / connectors','condition',{legacyItem:'Cables / conectores de batería',ev:[evidenceKey('7B',10)]}),q('7-E-D','Condición de celdas','Cell condition','condition',{legacyItem:'Condición de celdas',ev:[evidenceKey('7B',11)]}),q('7-E-E','Nivel / mantenimiento de agua (si aplica)','Water level / maintenance (if applicable)','condition',{legacyItem:'Nivel / mantenimiento de agua (si aplica)',ev:[evidenceKey('7B',12)]}),q('7-E-F','Resultado de prueba de batería (si hay equipo)','Battery test result (if equipment is available)','condition',{legacyItem:'Resultado de prueba de batería (si hay equipo)',ev:[evidenceKey('7B',13)]}),
+  q('7-E-G','Cargador disponible para esta unidad','Charger available for this unit','choice',{choices:['available_yes','available_no','available_unconfirmed'],choiceKind:'charger',ev:['finding-7E-charger-available']}),
+  q('7-E-H','Compatibilidad de cargador, voltaje y tipo de batería','Charger, voltage and battery-type compatibility','choice',{choices:['compatible','incompatible','unable_verify','na'],choiceKind:'compatibility',ev:['finding-7E-charger-compatibility']}),
+  q('7-E-I','Cable y conector del cargador','Charger cable and connector','condition',{ev:['finding-7E-charger-cable']}),q('7-E-J','Operación de carga verificada','Charging operation verified','functional',{ev:['finding-7E-charger-operation']}),q('7-E-K','Daño, sobrecalentamiento, alertas o códigos del cargador','Charger damage, overheating, warnings or codes','indicator',{ev:['finding-7E-charger-condition']}),
+  q('7-E-L','Comportamiento motor de tracción','Traction motor behavior','condition',{legacyItem:'Comportamiento motor de tracción',ev:[evidenceKey('7B',0)]}),q('7-E-M','Comportamiento motor hidráulico','Hydraulic motor behavior','condition',{legacyItem:'Comportamiento motor hidráulico',ev:[evidenceKey('7B',1)]}),q('7-E-N','Controladores','Controllers','condition',{legacyItem:'Controladores',ev:[evidenceKey('7B',2)]}),q('7-E-O','Contactores','Contactors','condition',{legacyItem:'Contactores',ev:[evidenceKey('7B',3)]}),q('7-E-P','Cableado','Wiring','condition',{legacyItem:'Cableado',ev:[evidenceKey('7B',4)]}),q('7-E-Q','Conectores','Connectors','condition',{legacyItem:'Conectores',ev:[evidenceKey('7B',5)]}),q('7-E-R','Códigos de error','Error codes','condition',{legacyItem:'Códigos de error',ev:[evidenceKey('7B',6)]}),q('7-E-S','Ruido / calor anormal','Abnormal noise / heat','condition',{legacyItem:'Ruido / calor anormal',ev:[evidenceKey('7B',7)]})]},
+ {num:'8',title:t('Llantas','Tires'),items:[
+  q('8-A','Cortes / chunking — tracción','Cuts / chunking — drive','condition',{legacyItem:'Cortes / chunking — tracción',ev:[evidenceKey('8',0)]}),q('8-B','Desgaste irregular — tracción','Irregular wear — drive','condition',{legacyItem:'Desgaste irregular — tracción',ev:[evidenceKey('8',1)]}),q('8-C','Daño — tracción','Damage — drive','condition',{legacyItem:'Daño — tracción',ev:[evidenceKey('8',2)]}),q('8-D','Cortes / chunking — dirección','Cuts / chunking — steer','condition',{legacyItem:'Cortes / chunking — dirección',ev:[evidenceKey('8',3)]}),q('8-E','Desgaste irregular — dirección','Irregular wear — steer','condition',{legacyItem:'Desgaste irregular — dirección',ev:[evidenceKey('8',4)]}),q('8-F','Daño — dirección','Damage — steer','condition',{legacyItem:'Daño — dirección',ev:[evidenceKey('8',5)]}),q('8-G','Condición rueda / rin','Wheel / rim condition','condition',{legacyItem:'Condición rueda / rin',ev:[evidenceKey('8',6)]}),q('8-H','Necesidad estimada de reemplazo','Estimated replacement need','condition',{legacyItem:'Necesidad estimada de reemplazo',ev:[evidenceKey('8',7)]})]},
+ {num:'9',title:t('PM / mantenimiento diferido','PM / deferred maintenance'),subtitle:t('Indicadores de historial y mantenimiento diferido','Maintenance history and deferred-maintenance indicators'),items:[
+  q('9-A','Historial de servicio disponible','Service history available','choice',{choices:['records_complete','records_partial','records_none','records_unconfirmed'],choiceKind:'history',ev:['finding-9-history']}),
+  q('9-B','Evidencia de PM vencido o historial insuficiente','Evidence of overdue PM or insufficient history','indicator',{legacyItem:'Evidencia de PM vencido',ev:[evidenceKey('9',0)]}),q('9-C','Fluidos viejos, degradados o contaminados','Old, degraded or contaminated fluids','indicator',{legacyItem:'Fluidos viejos / contaminados',ev:[evidenceKey('9',1)]}),q('9-D','Filtros vencidos, saturados o descuidados','Overdue, saturated or neglected filters','indicator',{legacyItem:'Filtros descuidados',ev:[evidenceKey('9',2)]}),q('9-E','Deficiencias de lubricación','Lubrication deficiencies','indicator',{legacyItem:'Deficiencias de lubricación',ev:[evidenceKey('9',3)]}),q('9-F','Fugas antiguas / diferidas','Long-standing / deferred leaks','indicator',{legacyItem:'Fugas diferidas',ev:[evidenceKey('9',4)]}),q('9-G','Reparaciones previas deficientes','Poor prior repairs','indicator',{legacyItem:'Reparaciones previas deficientes',ev:[evidenceKey('9',6)]}),q('9-H','Reparaciones temporales','Temporary repairs','indicator',{legacyItem:'Reparaciones temporales',ev:[evidenceKey('9',7)]})]},
+ {num:'10',title:t('Condición general / indicadores de abuso','General condition / abuse indicators'),items:[
+  q('10-A','Evidencia de colisión o impacto','Collision or impact evidence','indicator',{legacyItem:'Evidencia de colisión',ev:[evidenceKey('10',0)]}),q('10-B','Daño asociado a operación / uso','Damage associated with operation / use','indicator',{legacyItem:'Daño de operador',ev:[evidenceKey('10',1)]}),q('10-C','Componentes doblados / deformados','Bent / deformed components','indicator',{legacyItem:'Componentes doblados',ev:[evidenceKey('10',2)]}),q('10-D','Modificaciones no originales o no documentadas','Non-original or undocumented modifications','indicator',{legacyItem:'Modificaciones inusuales',legacyAliases:['Reparaciones / modificaciones no autorizadas','Modificaciones no OEM'],ev:[evidenceKey('10',3),evidenceKey('10',6),evidenceKey('9',8)]}),q('10-E','Indicadores de uso severo o prácticas inadecuadas','Indicators of severe use or improper practices','indicator',{legacyItem:'Indicadores de mal uso',ev:[evidenceKey('10',4)]}),q('10-F','Corrosión / daño ambiental','Corrosion / environmental damage','indicator',{legacyItem:'Corrosión / daño ambiental',ev:[evidenceKey('10',5)]})]},
+ {num:'11',title:t('Prueba funcional y evidencia en video','Functional test & video evidence'),items:[
+  q('11-A','Arranca / energiza','Starts / energizes','functional',{legacyItem:'Arranca / energiza',ev:[evidenceKey('11',0)]}),
+  q('11-B','Pantalla / instrumentos','Display / instruments','functional',{legacyItem:'Estado de pantalla / códigos',ev:[evidenceKey('11',1)]}),
+  q('11-C','Códigos o alertas activas','Active codes or warnings','indicator',{ev:['finding-11-codes']}),
+  q('11-D','Traslado hacia adelante','Forward travel','functional',{legacyItem:'Traslado hacia adelante',ev:[evidenceKey('11',2)]}),q('11-E','Traslado en reversa','Reverse travel','functional',{legacyItem:'Traslado en reversa',ev:[evidenceKey('11',3)]}),q('11-F','Aceleración / respuesta de tracción','Acceleration / traction response','functional',{legacyItem:'Aceleración',ev:[evidenceKey('11',4)]}),q('11-G','Freno de servicio','Service brake','functional',{legacyItem:'Freno de servicio',ev:[evidenceKey('11',5)]}),q('11-H','Freno de estacionamiento','Parking brake','functional',{legacyItem:'Freno de estacionamiento',ev:[evidenceKey('11',6)]}),q('11-I','Dirección en rango completo','Full-range steering','functional',{legacyItem:'Dirección en rango completo',ev:[evidenceKey('11',7)]}),q('11-J','Elevación','Lift','functional',{legacyItem:'Elevación',ev:[evidenceKey('11',8)]}),q('11-K','Descenso','Lowering','functional',{legacyItem:'Descenso',ev:[evidenceKey('11',9)]}),q('11-L','Inclinación adelante / atrás','Forward / back tilt','functional',{legacyItem:'Inclinación adelante / atrás',ev:[evidenceKey('11',10)]}),q('11-M','Función hidráulica auxiliar / aditamento','Auxiliary hydraulic / attachment function','functional',{legacyItem:'Función hidráulica auxiliar / aditamento',ev:[evidenceKey('11',11)]}),q('11-N','Ruido / vibración anormal durante la prueba','Abnormal noise / vibration during test','indicator',{legacyItem:'Ruido / vibración anormal',ev:[evidenceKey('11',12)]}),q('11-O','Fugas nuevas o activas después de operar','New or active leaks after operation','indicator',{legacyItem:'Revisión de fugas después de operar',ev:[evidenceKey('11',13)]})]}
+];
+const ALL_ITEMS=SECTIONS.flatMap(s=>s.items.map(i=>({...i,sectionNum:s.num,sectionTitle:s.title,variant:s.variant||''})));
+const ITEM_BY_ID=new Map(ALL_ITEMS.map(i=>[i.id,i]));
+const LEGACY_GROUP_BY_SECTION={'3':'Seguridad','4':'Horquillas / mástil / sistema de carga','5':'Dirección / chasis','6':'Sistema hidráulico','7-ic':'Tren motriz IC / LP','7-electric':'Sistema eléctrico / batería','8':'Llantas','9':'PM / mantenimiento diferido','10':'Condición general / indicadores de abuso','11':'Prueba funcional y evidencia en video'};
+
+const BASE_EVIDENCE=[
+ ['2-A','foto1',t('Frente / lado derecho','Front / right view'),t('Unidad completa, incluyendo contrapeso y techo protector.','Full unit, including counterweight and overhead guard.')],
+ ['2-B','foto2',t('Parte trasera / lado izquierdo','Rear / left view'),t('Documentar carrocería, contrapeso y golpes existentes.','Document bodywork, counterweight and existing impacts.')],
+ ['2-C','placa',t('Placa de datos','Data plate'),t('La información debe ser legible.','Information should be readable.')],
+ ['2-D','horometro',t('Horómetro / pantalla','Hour meter / display'),t('Capturar horas y alertas visibles.','Capture hours and visible warnings.')],
+ ['2-E','mastil',t('Mástil / carro / horquillas','Mast / carriage / forks'),t('Capturar el conjunto completo.','Capture the full assembly.')],
+ ['2-F','llantas',t('Llantas / ruedas','Tires / wheels'),t('Capturar tracción y dirección.','Capture drive and steer positions.')],
+ ['2-G','motor',t('Compartimiento motor o batería','Engine or battery compartment'),t('Capturar el compartimiento abierto.','Capture the open compartment.')]
+];
+
+const LEGACY_STATUS={
+ 'Normal':'normal','Monitor':'monitor','Reparar':'repair','Preocupación mayor':'major','N/A':'na','No inspeccionado':'not_inspected','No se pudo inspeccionar':'unable_inspect',
+ 'Not observed':'not_observed','Observed':'observed','Unable to determine':'unable_determine','Functions normally':'function_normal','Functions with abnormality':'function_abnormal','Does not function':'not_functioning','Not tested':'not_tested','Unable to test':'unable_test'
+};
+const LEGACY_ACTION={
+ 'Reparación inmediata / línea base':'baseline_repair','Rehabilitación inicial recomendada':'initial_rehab','Monitorear':'monitor','Componente mayor / evaluación separada':'major_eval','Evaluar reparar vs reemplazar':'repair_replace'
+};
+const LEGACY_FIELD_MAP={
+ power:{'LP':'lp','Gasolina':'gasoline','Diesel':'diesel','Eléctrico':'electric','Otro':'other'},tires:{'Cushion':'cushion','Sólida neumática':'solid_pneumatic','Neumática de aire':'air_pneumatic','Poliuretano':'polyurethane','Otro / desconocido':'other_unknown'},mast:{'2 etapas / Duplex':'duplex','3 etapas / Triplex':'triplex','4 etapas / Quad':'quad','Simplex':'simplex','Full free lift':'full_free_lift','Desconocido':'unknown','Otro':'other'},attachment:{'Ninguno':'none','Desplazador lateral':'sideshifter','Posicionador de horquillas':'fork_positioner','Clamp':'clamp','Paper roll clamp':'paper_roll_clamp','Carton clamp':'carton_clamp','Rotator':'rotator','Push/Pull':'push_pull','Bale clamp':'bale_clamp','Multiple load handler':'multiple_load_handler','Otro':'other'},operational:{'Operando':'operating','Operando con problema reportado':'operating_issue','Operación limitada':'limited','Fuera de servicio':'out_of_service','No probado / desconocido':'not_tested'},forkLength:{'36"':'36','42"':'42','48"':'48','54"':'54','60"':'60','72"':'72','84"':'84','96"':'96','Otro':'other'}};
+const LEGACY_CONCERNS=Object.fromEntries(CONCERNS.map(([code,label])=>[label,code]));
+Object.assign(LEGACY_CONCERNS,{'Arranque':'starting','Baja potencia':'low_power','Traslado / transmisión':'travel_transmission','Dirección':'steering','Frenado':'braking','Hidráulicos / mástil':'hydraulics_mast','Aditamento':'attachment','Ruido / vibración':'noise_vibration','Fuga':'leak','Alerta / código':'warning_code','Llanta / rueda':'tire_wheel','Batería / autonomía':'battery_runtime','Controles / operador':'controls_operator','Otro':'other'});
+const LEGACY_OCC=Object.fromEntries(OCCURRENCE.map(([code,label])=>[label,code]));
+Object.assign(LEGACY_OCC,{'Constante':'constant','Intermitente':'intermittent','En frío':'cold','En caliente':'hot','Al arrancar':'startup','Bajo carga':'under_load','Después de uso prolongado':'prolonged','Desconocido':'unknown'});
+
+let state={schemaVersion:VERSION,session:{meta:{}},units:[],reports:[]}, saveTimer=null, dbPromise=null, sessionMeta={};
+
+function applyStaticI18n(){
+  document.documentElement.lang=LANG==='es'?'es-MX':'en-US';
+  document.title=UI.headerTitle+' — v'+VERSION;
+  const map={headerTitle:UI.headerTitle,headerSub:UI.headerSub,versionChip:UI.version,pilotNotice:UI.pilot,feedbackBox:UI.feedback,sessionHeading:UI.sessionHeading,clientLabel:UI.client,locationLabel:UI.location,techLabel:UI.tech,dateLabel:UI.date,sessionNotesLabel:UI.sessionNotes,addUnit:UI.addUnit,addUnitBottom:UI.addUnitBottom,addUnitHelp:UI.addHelp,unitsHeading:UI.unitsHeading,reviewHeading:UI.reviewHeading,closeHeading:UI.closeHeading,finishSessionBtn:UI.finishSession,backupBtn:UI.backup,findingsCsvBtn:UI.csv,pdfBtn:UI.pdf,clearBtn:UI.clear,persistBtn:UI.persist,importBtn:UI.import,pdfDialogTitle:UI.pdfTitle,pdfDialogHelp:UI.pdfHelp,pdfCancelBtn:UI.pdfCancel,pdfGenerateBtn:UI.pdfGenerate};
+  for(const [id,val] of Object.entries(map)){const el=$('#'+id);if(el)el.innerHTML=val}
+  $('#location').placeholder=t('Planta / ciudad','Plant / city');$('#sessionNotes').placeholder=UI.optional;
+  setSave('idle',UI.saveInit,UI.saveInitSub);
+}
+
+function combineLegacyTime(date,time){if(!date||!time)return'';const d=new Date(`${date}T${time}:00`);return isNaN(d)?'':d.toISOString()}
+function findLegacyItem(group,item){
+  return ALL_ITEMS.find(x=>{
+    const sectionKey=x.variant?`${x.sectionNum}-${x.variant}`:x.sectionNum;
+    const legacyGroup=LEGACY_GROUP_BY_SECTION[sectionKey]||x.sectionTitle;
+    const names=[x.legacyItem,...(x.legacyAliases||[])].filter(Boolean);
+    return legacyGroup===group&&names.includes(item);
+  }) || ALL_ITEMS.find(x=>[x.legacyItem,...(x.legacyAliases||[])].filter(Boolean).includes(item));
+}
+function normalizeMigratedStatus(item,code){
+  if(!code)return'';
+  if(item.type==='indicator'){
+    if(['normal','not_observed'].includes(code))return'not_observed';
+    if(['monitor','repair','major','observed'].includes(code))return'observed';
+    if(['not_inspected','unable_inspect','unable_determine','na'].includes(code))return'unable_determine';
+  }
+  if(item.type==='functional'){
+    if(['normal','function_normal'].includes(code))return'function_normal';
+    if(['monitor','repair','major','function_abnormal'].includes(code))return'function_abnormal';
+    if(['not_inspected','not_tested'].includes(code))return'not_tested';
+    if(['unable_inspect','unable_test'].includes(code))return'unable_test';
+  }
+  return code;
+}
+function migratedStatusRank(code){return({major:100,not_functioning:95,repair:90,function_abnormal:85,observed:80,monitor:70,unable_inspect:65,unable_test:65,unable_determine:65,not_inspected:55,not_tested:55,records_none:50,records_partial:45,incompatible:90,unable_verify:60,na:30,normal:10,not_observed:10,function_normal:10,records_complete:10,available_yes:10,compatible:10}[code]||20)}
+function combineMigratedText(a,b){a=String(a||'').trim();b=String(b||'').trim();if(!a)return b;if(!b||a===b)return a;return a+'\n'+b}
+function mergeMigratedCheck(a,b){
+  if(!a)return b;
+  const status=migratedStatusRank(b.statusCode)>migratedStatusRank(a.statusCode)?b.statusCode:a.statusCode;
+  return{...a,statusCode:status,observation:combineMigratedText(a.observation,b.observation),classificationCode:a.classificationCode||b.classificationCode||'',notes:combineMigratedText(a.notes,b.notes),unableReasonCode:a.unableReasonCode||b.unableReasonCode||'',extra:{...(a.extra||{}),...(b.extra||{})},applicable:a.applicable!==false||b.applicable!==false};
+}
+function migrateState(raw){
+  const s=raw&&typeof raw==='object'?raw:{};const out={schemaVersion:VERSION,session:{},units:[],reports:Array.isArray(s.reports)?s.reports:[]};
+  const sess=s.session||{};out.session={client:sess.client||'',location:sess.location||'',tech:sess.tech||'',date:sess.date||new Date().toISOString().slice(0,10),notes:sess.notes||'',meta:{...(sess.meta||{})}};
+  out.units=(Array.isArray(s.units)?s.units:[]).map(u=>{
+    const fields={...(u.fields||{})};for(const [k,map] of Object.entries(LEGACY_FIELD_MAP))if(fields[k]&&map[fields[k]])fields[k]=map[fields[k]];
+    if(fields.forkLength&&/^\d+"$/.test(fields.forkLength))fields.forkLength=fields.forkLength.replace('"','');
+    const meta={...(u.meta||{})};if(!meta.startedAt&&fields.startTime)meta.startedAt=combineLegacyTime(out.session.date,fields.startTime);if(!meta.completedAt&&fields.finishTime)meta.completedAt=combineLegacyTime(out.session.date,fields.finishTime);delete fields.startTime;delete fields.finishTime;
+    const checksById=new Map(),legacyChecks=[...(u.legacyChecks||[])];
+    for(const c of (u.checks||[])){
+      let item=c.questionId?ITEM_BY_ID.get(c.questionId):findLegacyItem(c.group,c.item);
+      if(!item){const hasLegacyData=!!(c.status||c.statusCode||c.observation||c.classification||c.classificationCode||c.notes||c.unableReason||c.unableReasonCode);if((c.group||c.item)&&hasLegacyData)legacyChecks.push({...c});continue}
+      let statusCode=normalizeMigratedStatus(item,c.statusCode||LEGACY_STATUS[c.status]||'');
+      const next={questionId:item.id,statusCode,observation:c.observation||'',classificationCode:c.classificationCode||LEGACY_ACTION[c.classification]||'',notes:c.notes||'',unableReasonCode:c.unableReasonCode||'',extra:{...(c.extra||{})},applicable:c.applicable!==false};
+      checksById.set(item.id,mergeMigratedCheck(checksById.get(item.id),next));
+    }
+    const checks=[...checksById.values()];
+    return{id:u.id||uid(),fields,concerns:(u.concerns||[]).map(v=>LEGACY_CONCERNS[v]||v),occurrence:(u.occurrence||[]).map(v=>LEGACY_OCC[v]||v),checks,legacyChecks,meta};
+  });
+  return out;
+}
+
 function setSave(kind,title,sub){
-  const panel=document.querySelector('.save-panel'),dot=$('#saveDot'),t=$('#saveTitle'),s=$('#saveSub'),f=$('#floatSave');
+  const panel=$('.save-panel'),dot=$('#saveDot'),f=$('#floatSave');
   if(panel){panel.classList.toggle('error-state',kind==='bad');panel.classList.toggle('ok-state',kind==='ok')}
   if(dot)dot.className='dot '+(kind==='ok'?'ok':kind==='bad'?'bad':'');
-  if(t)t.textContent=title;if(s)s.textContent=sub||'';
-  if(f){f.className='float-save screen '+(kind==='saving'?'saving':kind==='bad'?'error':'');f.textContent=kind==='saving'?'Guardando…':kind==='bad'?'⚠ Reintentar guardar':'✓ Guardado '+nowTime()}
+  $('#saveTitle').textContent=title;$('#saveSub').textContent=sub||'';
+  if(f){f.className='float-save screen '+(kind==='saving'?'saving':kind==='bad'?'error':'');f.textContent=kind==='saving'?UI.savingFloat:kind==='bad'?UI.retry:UI.savedFloat+' '+nowTime()}
 }
-function scheduleSave(){setSave('saving','Guardando cambios…','No cierres la app hasta confirmar el guardado.');clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,500)}
-function serializeDom(){
-  syncStateFromDom();
-  return JSON.stringify(state);
-}
-async function saveNow(){
-  try{
-    const raw=serializeDom();
-    let saved=false;
-    try{await idbPut(STATE_STORE,{key:'latest',raw,savedAt:new Date().toISOString()});saved=true}catch(e){console.warn('IndexedDB save failed',e)}
-    try{localStorage.setItem(STATE_KEY,raw);saved=true}catch(e){console.warn('localStorage save failed',e)}
-    if(!saved)throw new Error('No local storage backend available');
-    setSave('ok','Guardado automático activo','Último guardado confirmado: '+nowTime());
-  }catch(e){console.error(e);setSave('bad','Error de guardado local','No se pudo guardar la inspección. Toca “Reintentar guardar”.')}
-}
-function openDB(){
-  if(dbPromise)return dbPromise;
-  dbPromise=new Promise((resolve,reject)=>{
-    const req=indexedDB.open(DB_NAME,DB_VERSION);
-    req.onupgradeneeded=()=>{
-      const db=req.result;
-      if(!db.objectStoreNames.contains(MEDIA))db.createObjectStore(MEDIA,{keyPath:'id'});
-      if(!db.objectStoreNames.contains(STATE_STORE))db.createObjectStore(STATE_STORE,{keyPath:'key'});
-    };
-    req.onsuccess=()=>resolve(req.result);
-    req.onerror=()=>reject(req.error);
-  });
-  return dbPromise
-}
+function scheduleSave(){setSave('saving',UI.saving,UI.savingSub);clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,450)}
+function openDB(){if(dbPromise)return dbPromise;dbPromise=new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(MEDIA))db.createObjectStore(MEDIA,{keyPath:'id'});if(!db.objectStoreNames.contains(STATE_STORE))db.createObjectStore(STATE_STORE,{keyPath:'key'})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});return dbPromise}
 async function idbPut(store,value){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).put(value);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
 async function idbGet(store,key){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readonly');const rq=tx.objectStore(store).get(key);rq.onsuccess=()=>resolve(rq.result||null);rq.onerror=()=>reject(rq.error)})}
 async function idbGetAllMedia(){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(MEDIA,'readonly');const rq=tx.objectStore(MEDIA).getAll();rq.onsuccess=()=>resolve(rq.result||[]);rq.onerror=()=>reject(rq.error)})}
 async function idbDeleteMedia(id){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(MEDIA,'readwrite');tx.objectStore(MEDIA).delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
-async function saveMedia(input){
-  const files=[...(input.files||[])];if(!files.length)return;
-  const unit=input.closest('.unit'),unitId=unit.dataset.unitId,key=input.dataset.evidence;
-  setSave('saving','Guardando evidencia…',files.length+' archivo(s).');
-  try{
-    for(const file of files)await idbPut(MEDIA,{id:uid(),unitId,key,name:file.name||'evidencia',type:file.type||'',size:file.size||0,createdAt:new Date().toISOString(),blob:file});
-    input.value='';
-    await renderMediaSlot(unit,key);
-    await saveNow();updateAll(unit);
-  }catch(e){console.error(e);setSave('bad','Error guardando evidencia','La información escrita sigue disponible; intenta agregar la foto nuevamente.')}
+async function idbClearStore(store){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
+async function deleteMediaForUnit(unitId){const all=await idbGetAllMedia();for(const r of all.filter(x=>x.unitId===unitId))await idbDeleteMedia(r.id)}
+
+function touchSession(){
+  const now=new Date();const iso=now.toISOString();if(!sessionMeta.startedAt)sessionMeta.startedAt=iso;
+  if(sessionMeta.lastActivityAt){const d=(now-new Date(sessionMeta.lastActivityAt))/1000;if(d>0&&d<=IDLE_SECONDS)sessionMeta.activeSeconds=(sessionMeta.activeSeconds||0)+Math.round(d)}
+  sessionMeta.lastActivityAt=iso;
 }
-async function restoreMediaPreviews(unit){
-  try{const all=await idbGetAllMedia();const keys=[...new Set(all.filter(r=>r.unitId===unit.dataset.unitId).map(r=>r.key))];for(const key of keys)await renderMediaSlot(unit,key);updateAll(unit)}catch(e){console.warn(e)}
+function touchUnit(unit,{reopen=true}={}){
+  touchSession();const meta=unit._meta||(unit._meta={});const now=new Date(),iso=now.toISOString();if(!meta.startedAt)meta.startedAt=iso;
+  if(meta.lastActivityAt){const d=(now-new Date(meta.lastActivityAt))/1000;if(d>0&&d<=IDLE_SECONDS)meta.activeSeconds=(meta.activeSeconds||0)+Math.round(d)}
+  meta.lastActivityAt=iso;
+  if(reopen&&meta.completedAt){meta.reopenedAt=iso;meta.completedAt='';sessionMeta.completedAt=''}
 }
-async function renderMediaSlot(unit,key){
-  const grid=unit.querySelector('[data-preview="'+CSS.escape(key)+'"]');if(!grid)return;
-  const all=(await idbGetAllMedia()).filter(r=>r.unitId===unit.dataset.unitId&&r.key===key);
-  grid.innerHTML='';
-  for(const rec of all){
-    const card=document.createElement('div');card.className='photo-preview';
-    const url=rec.type.startsWith('image/')?URL.createObjectURL(rec.blob):'';
-    card.innerHTML=(url?`<img src="${url}" alt="">`:`<div class="file-meta">🎥 ${rec.name}</div>`)+`<button type="button" class="delete-media">×</button><div class="file-meta">${rec.name}</div>`;
-    card.querySelector('.delete-media').onclick=async()=>{if(confirm('¿Eliminar esta evidencia?')){await idbDeleteMedia(rec.id);if(url)URL.revokeObjectURL(url);await renderMediaSlot(unit,key);updateAll(unit);scheduleSave()}};
-    grid.appendChild(card);
-  }
-}
-function sessionFromDom(){return{client:$('#client').value,location:$('#location').value,tech:$('#tech').value,date:$('#date').value,notes:$('#sessionNotes').value}}
+
+function sessionFromDom(){return{client:$('#client').value,location:$('#location').value,tech:$('#tech').value,date:$('#date').value,notes:$('#sessionNotes').value,meta:{...sessionMeta}}}
 function unitFromDom(unit){
- const fields={}; $$(unit,'[data-k]').forEach(el=>fields[el.dataset.k]=el.value);
- const concernsVals=$$(unit,'.concerns input:checked').map(x=>x.value),occVals=$$(unit,'.occurrence input:checked').map(x=>x.value);
- const checks=$$(unit,'.item').map(i=>{const r=i.querySelector('input[type=radio]:checked');return{group:i.dataset.group,item:i.dataset.item,status:r?r.value:'',observation:i.querySelector('.obs')?.value||'',classification:i.querySelector('.classification')?.value||'',notes:i.querySelector('.notes')?.value||'',unableReason:i.querySelector('.unableReason')?.value||''}});
- return{id:unit.dataset.unitId,fields,concerns:concernsVals,occurrence:occVals,checks};
+  const fields={};$$(unit,'[data-k]').forEach(el=>fields[el.dataset.k]=el.value);
+  const checks=$$(unit,'.check-item').map(el=>({questionId:el.dataset.qid,statusCode:el.querySelector('.status-value')?.value||el.querySelector('.status-choice')?.value||'',observation:el.querySelector('.obs')?.value||'',classificationCode:el.querySelector('.classification')?.value||'',notes:el.querySelector('.notes')?.value||'',unableReasonCode:el.querySelector('.unableReason')?.value||'',extra:Object.fromEntries($$(el,'[data-extra]').map(x=>[x.dataset.extra,x.value])),applicable:!el.closest('.step').classList.contains('hidden')}));
+  return{id:unit.dataset.unitId,fields,concerns:$$(unit,'.concerns input:checked').map(x=>x.value),occurrence:$$(unit,'.occurrence input:checked').map(x=>x.value),checks,legacyChecks:[...(unit._legacyChecks||[])],meta:{...(unit._meta||{})}};
 }
-function syncStateFromDom(){state.session=sessionFromDom();state.units=$$('#units .unit').map(unitFromDom)}
-function applyState(){
- $('#client').value=state.session.client||'';$('#location').value=state.session.location||'';$('#tech').value=state.session.tech||'';$('#date').value=state.session.date||new Date().toISOString().slice(0,10);$('#sessionNotes').value=state.session.notes||'';
- $('#units').innerHTML=''; if(!state.units.length)addUnit(); else state.units.forEach(u=>addUnit(u)); renderDashboard();renderMissing();
-}
-function createChip(name,value,label,checked=false){return`<label class="chip"><input type="checkbox" name="${name}" value="${value}" ${checked?'checked':''}><span>${label}</span></label>`}
-function createRadio(name,value,label){return`<label class="chip"><input type="radio" name="${name}" value="${value}"><span>${label}</span></label>`}
-function createItem(group,item,index){
- const n='r-'+uid();
- return`<div class="item" data-group="${group}" data-item="${item}"><div class="item-name">${item}</div><div class="quick">${['Normal','Monitor','Reparar','Preocupación mayor','N/A','No inspeccionado','No se pudo inspeccionar'].map(v=>createRadio(n,v,v)).join('')}</div><div class="detail"><div class="grid2"><div><label>Observación / medición</label><input class="obs"></div><div><label>Clasificación</label><select class="classification"><option value="">Seleccionar</option><option>Reparación inmediata / línea base</option><option>Rehabilitación inicial recomendada</option><option>Monitorear</option><option>Componente mayor / evaluación separada</option><option>Evaluar reparar vs reemplazar</option></select></div></div><label>Notas</label><textarea class="notes"></textarea><label>Motivo si no se pudo inspeccionar</label><select class="unableReason"><option value="">Seleccionar</option><option>Unidad no operable</option><option>Acceso no disponible</option><option>Herramienta requerida</option><option>Restricción del cliente</option><option>Otro</option></select><div class="evidence-slot"><h4>Evidencia del hallazgo</h4><label class="ev-label single">📷 Agregar foto o video (cámara o biblioteca)<input type="file" accept="image/*,video/*" data-evidence="finding-${index}"></label><div class="photo-preview-grid" data-preview="finding-${index}"></div></div></div></div>`
-}
-function buildDynamicSteps(unit){
- const host=unit.querySelector('.dynamicSteps');host.innerHTML='';
- Object.entries(GROUPS).forEach(([key,items])=>{
-  const [num,title]=key.split('|'); const isIC=num==='7A',isE=num==='7B';
-  const d=document.createElement('details');d.className='step'+(isIC?' ic-step':'')+(isE?' electric-step hidden':'');d.dataset.step=num;d.innerHTML=`<summary><span class="num">${num.replace(/[AB]/,'')}</span><span><span class="step-title">${title}</span><span class="step-status">0/${items.length}</span></span></summary><div class="step-body"><div class="itemList">${items.map((it,i)=>createItem(title,it,num+'-'+i)).join('')}</div><button type="button" class="mark-normal">✓ Marcar pendientes como Normal</button><button type="button" class="continue">Continuar</button></div>`;host.appendChild(d);
- });
-}
-function buildEvidence(unit){
- const a=unit.querySelector('.evidenceArea');
- const slot=(key,title,help,multi=false)=>`<div class="evidence-slot"><h4>${title}</h4><p>${help}</p><label class="ev-label single">📷 Agregar ${multi?'fotos':'foto'} (cámara o biblioteca)<input type="file" accept="image/*" ${multi?'multiple':''} data-evidence="${key}"></label><div class="photo-preview-grid" data-preview="${key}"></div></div>`;
- a.innerHTML=`<div class="small"><b>Objetivo:</b> crear una línea base visual confiable. En iPhone el botón permite tomar foto, usar la biblioteca o elegir archivo.</div>${slot('foto1','Foto 1 — Frente / lado derecho','Unidad completa, incluyendo contrapeso y techo protector.')}${slot('foto2','Foto 2 — Parte trasera / lado izquierdo','Documentar carrocería, contrapeso y golpes existentes.')}${slot('placa','Placa de datos','La información debe ser legible.')}${slot('horometro','Horómetro / pantalla','Capturar horas y alertas visibles.')}${slot('mastil','Mástil / carro / horquillas','Capturar el conjunto completo.',true)}${slot('llantas','Llantas / ruedas','Capturar tracción y dirección.',true)}${slot('motor','Compartimiento motor o batería','Capturar el compartimiento abierto.',true)}<button type="button" class="continue">Continuar</button>`;
-}
-function addUnit(data=null){
- const frag=$('#unitTemplate').content.cloneNode(true),unit=frag.querySelector('.unit');unit.dataset.unitId=data?.id||uid();$('#units').appendChild(unit);buildDynamicSteps(unit);buildEvidence(unit);
- unit.querySelector('.concerns').innerHTML=concerns.map(v=>createChip('c-'+unit.dataset.unitId,v,v,data?.concerns?.includes(v))).join('');
- unit.querySelector('.occurrence').innerHTML=occurrence.map(v=>createChip('o-'+unit.dataset.unitId,v,v,data?.occurrence?.includes(v))).join('');
- if(data){Object.entries(data.fields||{}).forEach(([k,v])=>{const el=unit.querySelector('[data-k="'+k+'"]');if(el)el.value=v});(data.checks||[]).forEach(c=>{const item=$$(unit,'.item').find(i=>i.dataset.group===c.group&&i.dataset.item===c.item);if(!item)return;const r=$$(item,'input[type=radio]').find(x=>x.value===c.status);if(r)r.checked=true; if(item.querySelector('.obs'))item.querySelector('.obs').value=c.observation||'';if(item.querySelector('.classification'))item.querySelector('.classification').value=c.classification||'';if(item.querySelector('.notes'))item.querySelector('.notes').value=c.notes||'';if(item.querySelector('.unableReason'))item.querySelector('.unableReason').value=c.unableReason||''})}
- if(!unit.querySelector('[data-k="startTime"]').value)unit.querySelector('[data-k="startTime"]').value=new Date().toTimeString().slice(0,5);
- bindUnit(unit);renumber();updateAll(unit);restoreMediaPreviews(unit);return unit
-}
-function bindUnit(unit){
- unit.querySelector('.remove').addEventListener('click',()=>{if(confirm('¿Eliminar esta unidad?')){unit.remove();renumber();scheduleSave();renderDashboard();renderMissing()}});
- unit.addEventListener('input',e=>{if(e.target.classList.contains('makeSearch'))showMakeSuggestions(e.target);scheduleSave();updateAll(unit)},true);
- unit.addEventListener('change',e=>{if(e.target.type==='file')saveMedia(e.target);if(e.target.matches('input[type=radio]')){const item=e.target.closest('.item');item.classList.toggle('abnormal',!['Normal','N/A','No inspeccionado'].includes(e.target.value));item.classList.toggle('unable',e.target.value==='No se pudo inspeccionar')}conditional(unit);scheduleSave();updateAll(unit)},true);
- unit.addEventListener('click',e=>{
-  const cap=e.target.closest('[data-capacity-toggle] button');
-  if(cap){
-    const hidden=unit.querySelector('[data-k="capacityUnit"]');
-    if(hidden){hidden.value=cap.dataset.unit;syncCapacityToggle(unit);scheduleSave();updateAll(unit)}
-    return;
+function syncStateFromDom(){state.schemaVersion=VERSION;state.session=sessionFromDom();state.units=$$('#units .unit').map(unitFromDom);if(!Array.isArray(state.reports))state.reports=[]}
+async function saveNow(){try{syncStateFromDom();const raw=JSON.stringify(state);let saved=false;try{await idbPut(STATE_STORE,{key:'latest',raw,savedAt:nowIso()});saved=true}catch(e){console.warn('IndexedDB save failed',e)}try{localStorage.setItem(STATE_KEY,raw);saved=true}catch(e){console.warn('localStorage save failed',e)}if(!saved)throw new Error('No local storage backend');setSave('ok',UI.saved,UI.savedSub+nowTime())}catch(e){console.error(e);setSave('bad',UI.saveError,UI.saveErrorSub)}}
+
+function createChip(name,code,label,checked){return`<label class="chip"><input type="checkbox" name="${escapeHtml(name)}" value="${escapeHtml(code)}" ${checked?'checked':''}><span>${escapeHtml(label)}</span></label>`}
+function qLabel(id,label,optional=false){return`<span class="qid">${escapeHtml(id)}</span><span>${escapeHtml(label)}</span>${optional?`<span class="optional-tag">${UI.optional}</span>`:''}`}
+function fieldLabel(id,label,optional=false){return`<label class="q-label">${qLabel(id,label,optional)}</label>`}
+function actionOptions(set){return`<option value="">${UI.select}</option>${(ACTION_SETS[set]||ACTION_SETS.condition).map(c=>`<option value="${c}">${escapeHtml(ACTION_LABELS[c])}</option>`).join('')}`}
+function unableOptions(){return`<option value="">${UI.select}</option>${Object.entries(UNABLE_REASONS).map(([c,l])=>`<option value="${c}">${escapeHtml(l)}</option>`).join('')}`}
+function statusClass(code){if(code==='monitor')return'monitor-selected';if(code==='repair')return'repair-selected';if(code==='major')return'major-selected';if(['observed','unable_determine'].includes(code))return'observed-selected';if(['function_abnormal','not_functioning','unable_test'].includes(code))return'functional-selected';return code?'neutral-selected':''}
+function isActionable(code){return['monitor','repair','major','observed','function_abnormal','not_functioning','incompatible'].includes(code)}
+function isUnable(code){return['unable_inspect','unable_determine','unable_test','unable_verify','available_unconfirmed','records_unconfirmed'].includes(code)}
+function isFindingCode(code){return['monitor','repair','major','not_inspected','unable_inspect','observed','unable_determine','function_abnormal','not_functioning','unable_test','not_tested','records_partial','records_none','records_unconfirmed','available_no','available_unconfirmed','incompatible','unable_verify'].includes(code)}
+function primaryFor(type){return TYPE_CONFIG[type]?.primary||''}
+
+function createItem(section,item){
+  const ev=item.ev?.length?item.ev:[`finding-${item.id}`];
+  let statusHtml='';
+  if(TYPE_CONFIG[item.type]){
+    const cfg=TYPE_CONFIG[item.type];statusHtml=`<input class="status-value" type="hidden"><div class="status-control"><button type="button" class="status-primary" data-status="${cfg.primary}">${escapeHtml(STATUS_LABELS[cfg.primary])}</button><select class="status-more"><option value="">${UI.more}</option>${cfg.options.map(c=>`<option value="${c}">${escapeHtml(STATUS_LABELS[c])}</option>`).join('')}</select></div>`;
+  }else if(item.type==='choice'){
+    statusHtml=`<select class="status-choice"><option value="">${UI.select}</option>${item.choices.map(c=>`<option value="${c}">${escapeHtml(STATUS_LABELS[c])}</option>`).join('')}</select>`;
   }
-  if(e.target.classList.contains('continue')){const step=e.target.closest('.step');step.open=false;const steps=$$(unit,'.step').filter(s=>!s.classList.contains('hidden'));const idx=steps.indexOf(step);if(steps[idx+1]){steps[idx+1].open=true;steps[idx+1].scrollIntoView({behavior:'smooth',block:'start'})}updateAll(unit)} if(e.target.classList.contains('mark-normal')){const step=e.target.closest('.step');$$(step,'.item').forEach(i=>{if(i.querySelector('input[type=radio]:checked'))return;const r=$$(i,'input[type=radio]').find(x=>x.value==='Normal');if(r)r.checked=true});scheduleSave();updateAll(unit)}},true);
- conditional(unit);syncCapacityToggle(unit);setupSearch(unit)
+  const choiceExtra=item.choiceKind==='history'?`<div class="history-extra"><div class="grid2"><div>${fieldLabel('9-A.1',t('Fecha del último PM / servicio','Last PM / service date'),true)}<input type="date" data-extra="lastServiceDate"></div><div>${fieldLabel('9-A.2',t('Horómetro del último PM / servicio','Hour meter at last PM / service'),true)}<input inputmode="decimal" data-extra="lastServiceHours"></div><div>${fieldLabel('9-A.3',t('Proveedor / taller','Service provider / shop'),true)}<input data-extra="serviceProvider"></div><div>${fieldLabel('9-A.4',t('Referencia / tipo de servicio','Service reference / type'),true)}<input data-extra="serviceType"></div></div></div>`:item.choiceKind==='charger'?`<div class="history-extra"><div class="grid3"><div>${fieldLabel(item.id+'.1',t('Marca del cargador','Charger make'),true)}<input data-extra="chargerMake"></div><div>${fieldLabel(item.id+'.2',t('Modelo del cargador','Charger model'),true)}<input data-extra="chargerModel"></div><div>${fieldLabel(item.id+'.3',t('Voltaje nominal','Rated voltage'),true)}<input inputmode="numeric" data-extra="chargerVoltage"></div></div></div>`:'';
+  return`<div class="check-item" data-qid="${escapeHtml(item.id)}" data-type="${escapeHtml(item.type)}" data-evidence-primary="${escapeHtml(ev[0])}" data-evidence-keys="${escapeHtml(ev.join('|'))}"><div class="item-name">${qLabel(item.id,item.label)}</div>${item.help?`<div class="item-help">${escapeHtml(item.help)}</div>`:''}${statusHtml}${choiceExtra}<div class="detail"><div class="grid2"><div><label>${UI.observation}</label><input class="obs"></div><div class="classification-wrap"><label>${UI.action}</label><select class="classification">${actionOptions(item.type==='indicator'?'indicator':item.type==='functional'?'functional':'condition')}</select></div></div><label>${UI.notes}</label><textarea class="notes"></textarea><div class="unable-wrap"><label>${UI.unableReason}</label><select class="unableReason">${unableOptions()}</select></div><div class="evidence-slot"><h4>${UI.evidence}</h4><label class="ev-label">${UI.addEvidence}<input type="file" accept="image/*,video/*" multiple data-evidence="${escapeHtml(ev[0])}"></label><div class="photo-preview-grid" data-preview-keys="${escapeHtml(ev.join('|'))}"></div></div></div></div>`;
 }
-function setupSearch(unit){const inp=unit.querySelector('.makeSearch'),box=inp.parentElement.querySelector('.suggest');inp.addEventListener('focus',()=>showMakeSuggestions(inp));inp.addEventListener('blur',()=>setTimeout(()=>box.classList.add('hidden'),180))}
-function showMakeSuggestions(inp){const box=inp.parentElement.querySelector('.suggest'),v=inp.value.trim().toLowerCase();if(!v){box.classList.add('hidden');return}const matches=MAKES.filter(m=>m.toLowerCase().includes(v)).slice(0,8);box.innerHTML=matches.map(m=>`<button type="button">${m}</button>`).join('')+'<button type="button">Otra / no listada</button>';box.classList.remove('hidden');$$(box,'button').forEach(b=>b.onclick=()=>{inp.value=b.textContent.startsWith('Otra')?'':b.textContent;box.classList.add('hidden');inp.dispatchEvent(new Event('change',{bubbles:true}))})}
-function conditional(unit){
- const power=unit.querySelector('[data-k="power"]').value;
- unit.querySelector('.electric-step').classList.toggle('hidden',power!=='Eléctrico');
- unit.querySelector('.ic-step').classList.toggle('hidden',power==='Eléctrico');
- [['mast','mastOther'],['attachment','attachmentOther'],['forkLength','forkLengthOther']].forEach(([a,b])=>unit.querySelector('[data-k="'+b+'"]').classList.toggle('hidden',unit.querySelector('[data-k="'+a+'"]').value!=='Otro'));
- const attachment=unit.querySelector('[data-k="attachment"]').value;
- const forkEligible=['Ninguno','Desplazador lateral','Posicionador de horquillas','Push/Pull','Multiple load handler'];
- unit.querySelector('.fork-length-wrap').classList.toggle('hidden',!forkEligible.includes(attachment));
+function dynamicStepHtml(section){
+  const className=section.variant?` ${section.variant}-step hidden`:'';const mark=section.num==='9'||section.num==='10'?UI.markNoObserved:section.num==='11'?UI.markNormalResults:UI.markNormal;
+  return`<details class="step${className}" data-step="${section.variant?section.num+'-'+section.variant:section.num}" data-section="${section.num}"><summary><span class="num">${section.num}</span><span><span class="step-title">${escapeHtml(section.title)}</span>${section.subtitle?`<span class="step-subtitle">${escapeHtml(section.subtitle)}</span>`:''}<span class="step-status"></span></span></summary><div class="step-body"><div class="itemList">${section.items.map(i=>createItem(section,i)).join('')}</div>${section.num==='11'?`<div class="evidence-slot"><h4>${qLabel('11-P',t('Video general de prueba funcional','Overall functional-test video'),true)}</h4><p>${escapeHtml(t('Opcional. Los videos se conservan como evidencia; el PDF mostrará que existe un archivo de video, pero no incrusta el video.','Optional. Videos are retained as evidence; the PDF notes that video exists but does not embed the video.'))}</p><label class="ev-label">${escapeHtml(t('🎥 Agregar hasta 3 videos','🎥 Add up to 3 videos'))}<input type="file" accept="video/*" multiple data-evidence="functional-video"></label><div class="photo-preview-grid" data-preview-keys="functional-video"></div></div>`:''}<button type="button" class="mark-normal">${mark}</button><button type="button" class="continue">${UI.continue}</button></div></details>`;
 }
-function syncCapacityToggle(unit){
- const v=unit.querySelector('[data-k="capacityUnit"]')?.value||'lb';
- $$(unit,'[data-capacity-toggle] button').forEach(b=>b.classList.toggle('active',b.dataset.unit===v));
+function evidenceSlot([qid,key,title,help]){return`<div class="evidence-slot"><h4>${qLabel(qid,title)}</h4><p>${escapeHtml(help)}</p><label class="ev-label">${escapeHtml(t('📷 Agregar hasta 3 fotos','📷 Add up to 3 photos'))}<input type="file" accept="image/*" multiple data-evidence="${key}"></label><div class="photo-preview-grid" data-preview-keys="${key}" data-required="true" data-evidence-title="${escapeHtml(title)}"></div></div>`}
+function unitHtml(id){
+  return`<article class="unit-card unit" data-unit-id="${escapeHtml(id)}"><div class="unit-head"><div><div class="unit-title">${t('Montacargas','Forklift')} <span class="unitIndex"></span></div><div class="unitSubtitle small">${t('Unidad nueva','New unit')}</div><div><span class="badge finding findingBadge">${t('Hallazgos','Findings')}: 0</span><span class="badge complete completeBadge">0/0</span><span class="badge finalized finalizedBadge hidden">${UI.finalized}</span></div></div><button type="button" class="remove danger">${t('Eliminar','Delete')}</button></div><div class="steps">
+  <details class="step" data-step="1" data-section="1" open><summary><span class="num">1</span><span><span class="step-title">${t('Identificación y estado actual','Identification & current status')}</span><span class="step-status"></span></span></summary><div class="step-body"><div class="grid3">
+   <div>${fieldLabel('1-A',t('Número de unidad del cliente','Client unit number'))}<input data-k="clientUnit" data-required="true" autocomplete="off"></div>
+   <div>${fieldLabel('1-B',t('Marca','Make'))}<div class="search-wrap"><input data-k="make" data-required="true" class="makeSearch" autocomplete="off"><div class="suggest hidden"></div></div></div>
+   <div>${fieldLabel('1-C',t('Modelo','Model'))}<input data-k="model" data-required="true" autocomplete="off"></div>
+   <div>${fieldLabel('1-D',t('Número de serie','Serial number'))}<input data-k="serial" data-required="true" autocomplete="off"></div>
+   <div>${fieldLabel('1-E',t('Año','Year'))}<input data-k="year" data-required="true" inputmode="numeric" maxlength="4"></div>
+   <div>${fieldLabel('1-F',t('Capacidad nominal','Rated capacity'))}<div class="capacity-wrap"><input data-k="capacity" data-required="true" inputmode="decimal"><div class="unit-toggle" data-capacity-toggle><button type="button" data-unit="lb">lb</button><button type="button" data-unit="kg">kg</button></div></div><input type="hidden" data-k="capacityUnit" value="lb"></div>
+   <div>${fieldLabel('1-G',t('Horómetro','Hour meter'))}<input data-k="hours" data-required="true" inputmode="decimal"></div>
+   <div>${fieldLabel('1-H',t('Tipo de energía','Power type'))}<select data-k="power" data-required="true">${selectOptions(SELECTS.power)}</select></div>
+   <div>${fieldLabel('1-I',t('Tipo de llanta','Tire type'))}<select data-k="tires" data-required="true">${selectOptions(SELECTS.tires)}</select></div>
+   <div>${fieldLabel('1-J',t('Tipo de mástil','Mast type'))}<select data-k="mast" data-required="true">${selectOptions(SELECTS.mast)}</select><input data-k="mastOther" class="hidden other-input" placeholder="${escapeHtml(t('Otro tipo de mástil','Other mast type'))}"></div>
+   <div>${fieldLabel('1-K',t('Aditamento(s)','Attachment(s)'))}<select data-k="attachment" data-required="true">${selectOptions(SELECTS.attachment)}</select><input data-k="attachmentOther" class="hidden other-input" placeholder="${escapeHtml(t('Otro aditamento','Other attachment'))}"></div>
+   <div class="fork-length-wrap hidden">${fieldLabel('1-L',t('Largo de horquillas','Fork length'))}<select data-k="forkLength" data-required="true">${selectOptions(SELECTS.forkLength)}</select><input data-k="forkLengthOther" class="hidden other-input" placeholder="${escapeHtml(t('Otro largo','Other length'))}"></div>
+   <div>${fieldLabel('1-M',t('Estado operativo actual','Current operating status'))}<select data-k="operational" data-required="true">${selectOptions(SELECTS.operational)}</select></div>
+  </div>
+  ${fieldLabel('1-N',t('Problemas reportados por operador','Operator-reported concerns'),true)}<div class="quick concerns"></div>
+  ${fieldLabel('1-O',t('¿Cuándo ocurre?','When does it occur?'),true)}<div class="quick occurrence"></div>
+  ${fieldLabel('1-P',t('Notas del operador / problema reportado','Operator notes / reported problem'),true)}<textarea data-k="operatorNotes"></textarea>
+  <button type="button" class="continue">${UI.continue}</button></div></details>
+  <details class="step" data-step="2" data-section="2"><summary><span class="num">2</span><span><span class="step-title">${t('Fotos de línea base','Baseline photos')}</span><span class="step-status"></span></span></summary><div class="step-body"><div class="small"><b>${t('Objetivo','Objective')}:</b> ${t('crear una línea base visual confiable. Puedes seleccionar hasta 3 fotos en cada acción.','create a reliable visual baseline. You can select up to 3 photos in each action.')}</div>${BASE_EVIDENCE.map(evidenceSlot).join('')}<button type="button" class="continue">${UI.continue}</button></div></details>
+  ${SECTIONS.map(dynamicStepHtml).join('')}
+  <details class="step" data-step="12" data-section="12"><summary><span class="num">12</span><span><span class="step-title">${t('Resumen de hallazgos y planeación de servicio','Findings summary & service planning')}</span><span class="step-status"></span></span></summary><div class="step-body"><div class="findingsSummary"></div>${fieldLabel('12-A',t('Notas generales del técnico','Technician general notes'),true)}<textarea data-k="overallNotes"></textarea>${fieldLabel('12-B',t('Información / herramienta que hizo falta','Missing information / tool'),true)}<textarea data-k="missingTools"></textarea><div class="finalize-hint unit-finalize-hint"></div><button type="button" class="finish-unit">${UI.finishUnit}</button></div></details>
+  </div><div class="unit-footer"><div class="unit-progress-copy"></div><div class="actions"><button type="button" class="review-unit-missing">${UI.reviewMissing}</button><button type="button" class="add-unit-inline">${UI.addUnitBottom}</button></div></div></article>`;
 }
+
+function statusCodeForItem(el){return el.querySelector('.status-value')?.value||el.querySelector('.status-choice')?.value||''}
+function renderItemState(el){
+  const item=ITEM_BY_ID.get(el.dataset.qid);if(!item)return;const code=statusCodeForItem(el),cfg=TYPE_CONFIG[item.type];
+  if(cfg){const primary=el.querySelector('.status-primary'),more=el.querySelector('.status-more');primary.classList.toggle('active',code===cfg.primary);more.value=code&&code!==cfg.primary?code:'';more.className='status-more '+statusClass(more.value)}
+  const primary=primaryFor(item.type);const showDetail=!!code&&(!primary||code!==primary);el.classList.toggle('show-detail',showDetail);
+  const extra=el.querySelector('.history-extra');if(extra){const show=item.choiceKind==='history'?['records_complete','records_partial'].includes(code):item.choiceKind==='charger'?code==='available_yes':false;el.classList.toggle('show-history-extra',show)}
+  const cw=el.querySelector('.classification-wrap');if(cw)cw.classList.toggle('hidden',!isActionable(code));const uw=el.querySelector('.unable-wrap');if(uw)uw.classList.toggle('hidden',!isUnable(code));
+}
+function setItemStatus(el,code,{touch=true}={}){const hidden=el.querySelector('.status-value'),choice=el.querySelector('.status-choice');if(hidden)hidden.value=code;if(choice)choice.value=code;renderItemState(el);if(touch){const unit=el.closest('.unit');touchUnit(unit);scheduleSave();updateAll(unit)}}
+
+function bindItem(el){
+  const item=ITEM_BY_ID.get(el.dataset.qid);if(!item)return;
+  const primary=el.querySelector('.status-primary');if(primary)primary.addEventListener('click',()=>setItemStatus(el,primary.dataset.status));
+  const more=el.querySelector('.status-more');if(more)more.addEventListener('change',()=>{if(more.value)setItemStatus(el,more.value)});
+  const choice=el.querySelector('.status-choice');if(choice)choice.addEventListener('change',()=>setItemStatus(el,choice.value));
+}
+
+function addUnit(data=null,{scroll=false}={}){
+  const id=data?.id||uid();const wrap=document.createElement('div');wrap.innerHTML=unitHtml(id);const unit=wrap.firstElementChild;unit._meta={...(data?.meta||{})};unit._legacyChecks=[...(data?.legacyChecks||[])];$('#units').appendChild(unit);
+  unit.querySelector('.concerns').innerHTML=CONCERNS.map(([c,l])=>createChip('c-'+id,c,l,data?.concerns?.includes(c))).join('');unit.querySelector('.occurrence').innerHTML=OCCURRENCE.map(([c,l])=>createChip('o-'+id,c,l,data?.occurrence?.includes(c))).join('');
+  if(data){for(const [k,v] of Object.entries(data.fields||{})){const e=unit.querySelector(`[data-k="${CSS.escape(k)}"]`);if(e)e.value=v}
+    for(const c of (data.checks||[])){const el=unit.querySelector(`.check-item[data-qid="${CSS.escape(c.questionId)}"]`);if(!el)continue;const statusEl=el.querySelector('.status-value')||el.querySelector('.status-choice');if(statusEl)statusEl.value=c.statusCode||'';if(el.querySelector('.obs'))el.querySelector('.obs').value=c.observation||'';if(el.querySelector('.classification'))el.querySelector('.classification').value=c.classificationCode||'';if(el.querySelector('.notes'))el.querySelector('.notes').value=c.notes||'';if(el.querySelector('.unableReason'))el.querySelector('.unableReason').value=c.unableReasonCode||'';for(const [k,v] of Object.entries(c.extra||{})){const x=el.querySelector(`[data-extra="${CSS.escape(k)}"]`);if(x)x.value=v}renderItemState(el)}
+  }
+  $$(unit,'.check-item').forEach(bindItem);bindUnit(unit);renumber();conditional(unit,{clearHidden:true});syncCapacityToggle(unit);updateAll(unit);restoreMediaPreviews(unit);if(scroll)setTimeout(()=>unit.scrollIntoView({behavior:'smooth',block:'start'}),50);return unit;
+}
+function applyState(){
+  sessionMeta={...(state.session?.meta||{})};$('#client').value=state.session?.client||'';$('#location').value=state.session?.location||'';$('#tech').value=state.session?.tech||'';$('#date').value=state.session?.date||new Date().toISOString().slice(0,10);$('#sessionNotes').value=state.session?.notes||'';$('#units').innerHTML='';if(!state.units?.length)addUnit();else state.units.forEach(u=>addUnit(u));renderDashboard();renderMissing();renderSessionFinish();
+}
+
+function setupSearch(unit){const inp=unit.querySelector('.makeSearch'),box=inp.parentElement.querySelector('.suggest');const show=()=>{const v=inp.value.trim().toLowerCase();if(!v){box.classList.add('hidden');return}const matches=MAKES.filter(m=>m.toLowerCase().includes(v)).slice(0,8);box.innerHTML=matches.map(m=>`<button type="button">${m}</button>`).join('')+`<button type="button">${t('Otra / no listada','Other / unlisted')}</button>`;box.classList.remove('hidden');$$(box,'button').forEach(b=>b.onclick=()=>{inp.value=b.textContent.startsWith(t('Otra','Other'))?'':b.textContent;box.classList.add('hidden');inp.dispatchEvent(new Event('input',{bubbles:true}))})};inp.addEventListener('focus',show);inp.addEventListener('input',show);inp.addEventListener('blur',()=>setTimeout(()=>box.classList.add('hidden'),180))}
+function conditional(unit,{clearHidden=false}={}){
+  const power=unit.querySelector('[data-k="power"]').value;unit.querySelector('.electric-step').classList.toggle('hidden',power!=='electric');unit.querySelector('.ic-step').classList.toggle('hidden',!power||power==='electric');
+  const mast=unit.querySelector('[data-k="mast"]'),mastOther=unit.querySelector('[data-k="mastOther"]');mastOther.classList.toggle('hidden',mast.value!=='other');
+  const att=unit.querySelector('[data-k="attachment"]'),attOther=unit.querySelector('[data-k="attachmentOther"]');attOther.classList.toggle('hidden',att.value!=='other');
+  const forkWrap=unit.querySelector('.fork-length-wrap'),fork=unit.querySelector('[data-k="forkLength"]'),forkOther=unit.querySelector('[data-k="forkLengthOther"]');const eligible=['none','sideshifter','fork_positioner','rotator','push_pull','multiple_load_handler'].includes(att.value);forkWrap.classList.toggle('hidden',!eligible);forkOther.classList.toggle('hidden',fork.value!=='other'||!eligible);
+  if(!eligible&&(clearHidden||fork.value||forkOther.value)){fork.value='';forkOther.value=''}
+}
+function syncCapacityToggle(unit){const v=unit.querySelector('[data-k="capacityUnit"]')?.value||'lb';$$(unit,'[data-capacity-toggle] button').forEach(b=>b.classList.toggle('active',b.dataset.unit===v))}
 function renumber(){$$('#units .unit').forEach((u,i)=>u.querySelector('.unitIndex').textContent=i+1)}
+
+function bindUnit(unit){
+  unit.querySelector('.remove').onclick=async()=>{if(confirm(t('¿Eliminar esta unidad y su evidencia local?','Delete this unit and its local evidence?'))){await deleteMediaForUnit(unit.dataset.unitId);unit.remove();renumber();scheduleSave();renderDashboard();renderMissing();renderSessionFinish()}};
+  unit.addEventListener('input',e=>{if(e.target.type==='file')return;touchUnit(unit);conditional(unit);scheduleSave();updateAll(unit)},true);
+  unit.addEventListener('change',e=>{if(e.target.type==='file'){saveMedia(e.target);return}touchUnit(unit);conditional(unit,{clearHidden:true});scheduleSave();updateAll(unit)},true);
+  unit.addEventListener('click',e=>{
+    const cap=e.target.closest('[data-capacity-toggle] button');if(cap){unit.querySelector('[data-k="capacityUnit"]').value=cap.dataset.unit;touchUnit(unit);syncCapacityToggle(unit);scheduleSave();updateAll(unit);return}
+    if(e.target.classList.contains('continue')){const step=e.target.closest('.step');step.open=false;const steps=$$(unit,'.step').filter(s=>!s.classList.contains('hidden'));const idx=steps.indexOf(step);if(steps[idx+1]){steps[idx+1].open=true;steps[idx+1].scrollIntoView({behavior:'smooth',block:'start'})}updateAll(unit);return}
+    if(e.target.classList.contains('mark-normal')){const step=e.target.closest('.step');$$(step,'.check-item').forEach(el=>{if(statusCodeForItem(el))return;const item=ITEM_BY_ID.get(el.dataset.qid);const code=TYPE_CONFIG[item?.type]?.mark;if(code)setItemStatus(el,code,{touch:false})});touchUnit(unit);scheduleSave();updateAll(unit);return}
+    if(e.target.classList.contains('review-unit-missing')){jumpToFirstMissing(unit);return}
+    if(e.target.classList.contains('add-unit-inline')){addUnit(null,{scroll:true});scheduleSave();return}
+    if(e.target.classList.contains('finish-unit')){finalizeUnit(unit);return}
+  },true);
+  setupSearch(unit);conditional(unit,{clearHidden:true});syncCapacityToggle(unit)
+}
+
 function stepMetrics(step){
- const items=$$(step,'.item');if(items.length){const done=items.filter(i=>i.querySelector('input[type=radio]:checked')).length;return{done,total:items.length}}
- if(step.dataset.step==='2'){const st=$$(step,'[data-preview]');return{done:st.filter(x=>x.children.length>0).length,total:st.length}}
- const fields=$$(step,'[data-k]').filter(el=>!el.classList.contains('hidden')&&!['mastOther','attachmentOther','forkLengthOther','operatorNotes','overallNotes','missingTools','finishTime','capacityUnit'].includes(el.dataset.k));return{done:fields.filter(el=>String(el.value||'').trim()).length,total:fields.length}
+  if(step.dataset.step==='1'){const fields=$$(step,'[data-required="true"]:not(.hidden)').filter(el=>!el.closest('.hidden'));return{done:fields.filter(el=>String(el.value||'').trim()).length,total:fields.length}}
+  if(step.dataset.step==='2'){const slots=$$(step,'[data-preview-keys][data-required="true"]');return{done:slots.filter(x=>x.children.length>0).length,total:slots.length}}
+  if(step.dataset.step==='12')return{done:0,total:0};
+  const items=$$(step,'.check-item');return{done:items.filter(i=>!!statusCodeForItem(i)).length,total:items.length}
+}
+function requiredMetrics(unit){let done=0,total=0;$$(unit,'.step').filter(s=>!s.classList.contains('hidden')&&s.dataset.step!=='12').forEach(s=>{const m=stepMetrics(s);done+=m.done;total+=m.total});return{done,total,missing:total-done}}
+function missingForStep(step){
+  if(step.dataset.step==='1')return $$(step,'[data-required="true"]:not(.hidden)').filter(el=>!el.closest('.hidden')&&!String(el.value||'').trim()).map(el=>el.closest('div')?.querySelector('.q-label')?.innerText||el.dataset.k);
+  if(step.dataset.step==='2')return $$(step,'[data-preview-keys][data-required="true"]').filter(x=>x.children.length===0).map(x=>x.dataset.evidenceTitle||t('Evidencia','Evidence'));
+  if(step.dataset.step==='12')return[];
+  return $$(step,'.check-item').filter(i=>!statusCodeForItem(i)).map(i=>`${i.dataset.qid} ${ITEM_BY_ID.get(i.dataset.qid)?.label||''}`)
 }
 function updateAll(unit){
- const checks=$$(unit,'.item'),findings=checks.filter(i=>{const r=i.querySelector('input[type=radio]:checked');return r&&!['Normal','N/A','No inspeccionado'].includes(r.value)}).length;unit.querySelector('.findingBadge').textContent='Hallazgos: '+findings;
- let done=0,total=0;$$(unit,'.step').filter(s=>!s.classList.contains('hidden')).forEach(s=>{const m=stepMetrics(s);done+=m.done;total+=m.total;s.querySelector('.step-status').textContent=m.done+'/'+m.total+(m.done===m.total?' · Completo':' · Faltan '+(m.total-m.done))});
- unit.querySelector('.completeBadge').textContent=done+'/'+total;unit.dataset.done=done;unit.dataset.total=total;unit.dataset.missing=total-done;
- const f=k=>unit.querySelector('[data-k="'+k+'"]')?.value||'';unit.querySelector('.unitSubtitle').textContent=[f('clientUnit'),f('make'),f('model')].filter(Boolean).join(' · ')||'Unidad nueva';
- renderFindings(unit);renderDashboard();renderMissing()
+  conditional(unit);let done=0,total=0;
+  $$(unit,'.step').filter(s=>!s.classList.contains('hidden')&&s.dataset.step!=='12').forEach(s=>{const m=stepMetrics(s);done+=m.done;total+=m.total;const st=s.querySelector('.step-status');st.textContent=m.done+'/'+m.total+(m.done===m.total?t(' · Completo',' · Complete'):t(' · Faltan ',' · Missing ')+(m.total-m.done));st.classList.toggle('complete',m.total>0&&m.done===m.total);const c=s.querySelector('.continue');if(c)c.classList.toggle('ready',m.total>0&&m.done===m.total)});
+  const miss=total-done;unit.dataset.done=done;unit.dataset.total=total;unit.dataset.missing=miss;const step12=unit.querySelector('[data-step="12"]');step12.querySelector('.step-status').textContent=miss===0?t('Lista para finalizar','Ready to finalize'):t('Faltan ','Missing ')+miss+t(' en la unidad',' in this unit');
+  unit.querySelector('.completeBadge').textContent=done+'/'+total;unit.querySelector('.completeBadge').classList.toggle('complete',miss===0);const f=k=>unit.querySelector(`[data-k="${k}"]`)?.value||'';unit.querySelector('.unitSubtitle').textContent=[f('clientUnit'),f('make'),f('model')].filter(Boolean).join(' · ')||t('Unidad nueva','New unit');
+  const applicableChecks=$$(unit,'.check-item').filter(i=>!i.closest('.step').classList.contains('hidden'));const findings=applicableChecks.filter(i=>isFindingCode(statusCodeForItem(i))).length+(unit._legacyChecks||[]).filter(c=>c.status&&!['Normal','N/A','No inspeccionado'].includes(c.status)).length;unit.querySelector('.findingBadge').textContent=t('Hallazgos: ','Findings: ')+findings;unit.querySelector('.findingBadge').classList.toggle('hidden',findings===0);
+  const finalized=!!unit._meta?.completedAt;unit.querySelector('.finalizedBadge').classList.toggle('hidden',!finalized);const fin=unit.querySelector('.finish-unit');fin.className='finish-unit '+(finalized?'finalized':miss===0?'ready':'');fin.textContent=finalized?UI.finalized:UI.finishUnit;fin.disabled=finalized;
+  unit.querySelector('.unit-finalize-hint').textContent=finalized?t('Esta unidad está finalizada. Cualquier cambio posterior la reabrirá para nueva confirmación.','This unit is finalized. Any later change will reopen it for confirmation.'):miss===0?t('Todas las respuestas y evidencias requeridas están completas.','All required responses and evidence are complete.'):t(`Faltan ${miss} respuestas o evidencias requeridas antes de finalizar esta unidad.`,`Missing ${miss} required responses or evidence before this unit can be finalized.`);
+  unit.querySelector('.unit-progress-copy').textContent=t(`Progreso de esta unidad: ${done}/${total} · Faltan ${miss}`,`Unit progress: ${done}/${total} · Missing ${miss}`);
+  renderFindings(unit);renderDashboard();renderMissing();renderSessionFinish();
 }
-function renderFindings(unit){const box=unit.querySelector('.findingsSummary'),items=$$(unit,'.item').filter(i=>{const r=i.querySelector('input[type=radio]:checked');return r&&!['Normal','N/A','No inspeccionado'].includes(r.value)});box.innerHTML=items.length?items.map(i=>{const r=i.querySelector('input[type=radio]:checked'),o=i.querySelector('.obs')?.value||'',c=i.querySelector('.classification')?.value||'';return`<div class="item"><b>${i.dataset.group} — ${i.dataset.item}</b><div>${r.value}${c?' · '+c:''}</div>${o?'<div class="small">Observado: '+escapeHtml(o)+'</div>':''}</div>`}).join(''):'<div class="small">Sin hallazgos anormales registrados.</div>'}
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m])}
-function renderDashboard(){const box=$('#unitDashboard'),units=$$('#units .unit');box.innerHTML=units.map((u,i)=>`<button class="unit-nav" type="button" data-i="${i}"><b>Montacargas ${i+1} — ${u.querySelector('.unitSubtitle').textContent}</b><div class="small">${u.dataset.done||0}/${u.dataset.total||0} · ${u.dataset.missing==='0'?'Completa':'Faltan '+u.dataset.missing}</div></button>`).join('');$$(box,'.unit-nav').forEach(b=>b.onclick=()=>units[Number(b.dataset.i)].scrollIntoView({behavior:'smooth',block:'start'}))}
-function missingForStep(step){const items=$$(step,'.item');if(items.length)return items.filter(i=>!i.querySelector('input[type=radio]:checked')).map(i=>i.dataset.item);if(step.dataset.step==='2')return $$(step,'[data-preview]').filter(x=>x.children.length===0).map(x=>x.dataset.preview||'Evidencia');const arr=[];$$(step,'[data-k]').filter(el=>!el.classList.contains('hidden')&&!['mastOther','attachmentOther','forkLengthOther','operatorNotes','overallNotes','missingTools','finishTime','capacityUnit'].includes(el.dataset.k)).forEach(el=>{if(!String(el.value||'').trim())arr.push(el.closest('div')?.querySelector('label')?.textContent||el.dataset.k)});return arr}
-function renderMissing(){const groups=[],units=$$('#units .unit');let total=0;units.forEach((u,ui)=>$$(u,'.step').filter(s=>!s.classList.contains('hidden')).forEach(s=>{const m=missingForStep(s);if(m.length){total+=m.length;groups.push({u,ui,s,m,title:s.querySelector('.step-title').textContent})}}));$('#missingSummary').textContent=total?'Faltan '+total+' respuestas/evidencias.':'✓ No se detectan faltantes.';$('#missingGroups').innerHTML=groups.map((g,i)=>`<div class="missing-group"><b>Montacargas ${g.ui+1} · ${g.title}</b><div class="small">${g.m.slice(0,5).join(' · ')}${g.m.length>5?'…':''}</div><button class="jump" type="button" data-i="${i}">Ir a esta sección (${g.m.length})</button></div>`).join('');$$('#missingGroups .jump').forEach(b=>b.onclick=()=>{const g=groups[Number(b.dataset.i)];g.s.open=true;g.s.scrollIntoView({behavior:'smooth',block:'start'})})}
-async function shareOrDownload(name,text,type){
- const blob=new Blob([text],{type}),file=new File([blob],name,{type});
- try{if(navigator.canShare?.({files:[file]})){await navigator.share({files:[file],title:name});return true}}catch(e){if(e.name!=='AbortError')console.warn(e)}
- try{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);return true}catch(e){console.error(e);return false}
+function renderFindings(unit){const box=unit.querySelector('.findingsSummary');const rows=$$(unit,'.check-item').filter(i=>!i.closest('.step').classList.contains('hidden')&&isFindingCode(statusCodeForItem(i)));const html=rows.map(i=>{const item=ITEM_BY_ID.get(i.dataset.qid),code=statusCodeForItem(i),obs=i.querySelector('.obs')?.value||'',notes=i.querySelector('.notes')?.value||'',cls=i.querySelector('.classification')?.value||'';const k=code==='monitor'?'monitor':['not_tested','unable_test','unable_inspect','unable_determine','records_none','records_unconfirmed'].includes(code)?'neutral':'';return`<div class="summary-find ${k}"><b>${escapeHtml(item.id)} · ${escapeHtml(item.label)}</b><div>${escapeHtml(STATUS_LABELS[code]||code)}${cls?' · '+escapeHtml(ACTION_LABELS[cls]||cls):''}</div>${obs?`<div class="small">${escapeHtml(obs)}</div>`:''}${notes?`<div class="small">${escapeHtml(notes)}</div>`:''}</div>`}).join('');const legacy=(unit._legacyChecks||[]).filter(c=>c.status&&!['Normal','N/A','No inspeccionado'].includes(c.status)).map(c=>`<div class="summary-find neutral"><b>${escapeHtml(c.group||'')} · ${escapeHtml(c.item||'')}</b><div>${escapeHtml(c.status||'')}</div></div>`).join('');box.innerHTML=html+legacy||`<div class="small">${UI.noFindings}</div>`}
+function renderDashboard(){const units=$$('#units .unit'),done=units.reduce((a,u)=>a+Number(u.dataset.done||0),0),total=units.reduce((a,u)=>a+Number(u.dataset.total||0),0),complete=units.filter(u=>u.dataset.missing==='0').length,pct=total?Math.round(done/total*100):0;$('#fleetProgressBar').style.width=pct+'%';$('#fleetProgressCopy').innerHTML=`<span><b>${complete}/${units.length}</b> ${t('montacargas completos','forklifts complete')}</span><span><b>${pct}%</b> ${t('de respuestas requeridas','of required responses')}</span>`;$('#unitDashboard').innerHTML=units.map((u,i)=>`<button class="unit-nav" type="button" data-i="${i}"><b>${t('Montacargas','Forklift')} ${i+1} — ${escapeHtml(u.querySelector('.unitSubtitle').textContent)}</b><div class="small">${u.dataset.done||0}/${u.dataset.total||0} · ${u.dataset.missing==='0'?t('Completo','Complete'):t('Faltan ','Missing ')+u.dataset.missing}${u._meta?.completedAt?' · '+t('Finalizado','Finalized'):''}</div></button>`).join('');$$('#unitDashboard .unit-nav').forEach(b=>b.onclick=()=>units[Number(b.dataset.i)].scrollIntoView({behavior:'smooth',block:'start'}))}
+function renderMissing(){const units=$$('#units .unit'),totalMissing=units.reduce((a,u)=>a+Number(u.dataset.missing||0),0);$('#missingSummary').textContent=totalMissing?t(`Faltan ${totalMissing} respuestas/evidencias requeridas en la sesión.`,`Missing ${totalMissing} required responses/evidence in the session.`):t('✓ No se detectan faltantes requeridos.','✓ No required items are missing.');$('#missingGroups').innerHTML=units.map((u,ui)=>{const groups=$$(u,'.step').filter(s=>!s.classList.contains('hidden')&&s.dataset.step!=='12').map(s=>({s,m:missingForStep(s),title:s.querySelector('.step-title').textContent})).filter(x=>x.m.length);return`<details class="missing-unit" data-missing-unit="${u.dataset.unitId}" ${groups.length?'open':''}><summary>${t('Montacargas','Forklift')} ${ui+1} · ${escapeHtml(u.querySelector('.unitSubtitle').textContent)} — ${groups.length?t('Faltan ','Missing ')+u.dataset.missing:t('Completo','Complete')}</summary><div class="missing-unit-body">${groups.length?groups.map((g,gi)=>`<div class="missing-group"><b>${escapeHtml(g.title)}</b><div class="small">${g.m.slice(0,5).map(escapeHtml).join(' · ')}${g.m.length>5?'…':''}</div><button class="jump" type="button" data-ui="${ui}" data-si="${$$(u,'.step').indexOf(g.s)}">${t('Ir a esta sección','Go to this section')} (${g.m.length})</button></div>`).join(''):`<div class="small">${t('Sin faltantes requeridos.','No required items missing.')}</div>`}</div></details>`}).join('');$$('#missingGroups .jump').forEach(b=>b.onclick=()=>{const u=units[Number(b.dataset.ui)],s=$$(u,'.step')[Number(b.dataset.si)];s.open=true;s.scrollIntoView({behavior:'smooth',block:'start'})})}
+function jumpToFirstMissing(unit){const s=$$(unit,'.step').find(x=>!x.classList.contains('hidden')&&x.dataset.step!=='12'&&missingForStep(x).length);if(s){s.open=true;s.scrollIntoView({behavior:'smooth',block:'start'})}else unit.querySelector('[data-step="12"]').scrollIntoView({behavior:'smooth',block:'start'})}
+function finalizeUnit(unit){const m=requiredMetrics(unit);if(m.missing){alert(t(`Todavía faltan ${m.missing} respuestas o evidencias requeridas.`,`There are still ${m.missing} required responses or evidence items missing.`));jumpToFirstMissing(unit);return}touchUnit(unit,{reopen:false});unit._meta.completedAt=nowIso();scheduleSave();updateAll(unit)}
+function renderSessionFinish(){const units=$$('#units .unit'),allFinal=units.length&&units.every(u=>u._meta?.completedAt&&u.dataset.missing==='0');const btn=$('#finishSessionBtn');btn.disabled=!allFinal;btn.style.opacity=allFinal?'1':'.55';$('#sessionFinishStatus').textContent=sessionMeta.completedAt?t('Sesión finalizada. Los cambios posteriores reabrirán el cierre de la sesión.','Session finalized. Later changes will reopen session completion.'):allFinal?t('Todas las unidades están finalizadas. La sesión puede cerrarse.','All units are finalized. The session can be closed.'):t('Finaliza cada unidad cuando sus respuestas y evidencias requeridas estén completas.','Finalize each unit after its required responses and evidence are complete.')}
+function finishSession(){const units=$$('#units .unit');if(!units.length||!units.every(u=>u._meta?.completedAt&&u.dataset.missing==='0'))return;touchSession();sessionMeta.completedAt=nowIso();scheduleSave();renderSessionFinish()}
+
+async function saveMedia(input){let files=[...(input.files||[])];if(!files.length)return;if(files.length>MAX_FILES_PER_PICK){input.value='';alert(t('Selecciona hasta 3 archivos a la vez. No se agregó ningún archivo.','Select up to 3 files at a time. No files were added.'));return}const unit=input.closest('.unit'),key=input.dataset.evidence;touchUnit(unit);setSave('saving',t('Guardando evidencia…','Saving evidence…'),t(`${files.length} archivo(s).`,`${files.length} file(s).`));try{for(const file of files)await idbPut(MEDIA,{id:uid(),unitId:unit.dataset.unitId,key,name:file.name||t('evidencia','evidence'),type:file.type||'',size:file.size||0,createdAt:nowIso(),blob:file});input.value='';await restoreMediaPreviews(unit);await saveNow();updateAll(unit)}catch(e){console.error(e);setSave('bad',t('Error guardando evidencia','Error saving evidence'),t('La información escrita sigue disponible; intenta agregar la evidencia nuevamente.','Written information is still available; try adding the evidence again.'))}}
+async function restoreMediaPreviews(unit){try{const all=await idbGetAllMedia();for(const grid of $$(unit,'[data-preview-keys]'))renderMediaGrid(unit,grid,all);updateAll(unit)}catch(e){console.warn(e)}}
+function renderMediaGrid(unit,grid,all){const keys=(grid.dataset.previewKeys||'').split('|').filter(Boolean);const recs=all.filter(r=>r.unitId===unit.dataset.unitId&&keys.includes(r.key));grid.innerHTML='';for(const rec of recs){const card=document.createElement('div');card.className='photo-preview';let url='';if(rec.type.startsWith('image/'))url=URL.createObjectURL(rec.blob);card.innerHTML=(url?`<img src="${url}" alt="">`:`<div class="file-meta">🎥 ${escapeHtml(rec.name)}</div>`)+`<button type="button" class="delete-media">×</button><div class="file-meta">${escapeHtml(rec.name)}</div>`;card.querySelector('.delete-media').onclick=async()=>{if(confirm(t('¿Eliminar esta evidencia?','Delete this evidence?'))){await idbDeleteMedia(rec.id);if(url)URL.revokeObjectURL(url);touchUnit(unit);await restoreMediaPreviews(unit);scheduleSave()}};grid.appendChild(card)}}
+
+async function shareOrDownloadBlob(name,blob){const file=new File([blob],name,{type:blob.type||'application/octet-stream'});try{if(navigator.canShare?.({files:[file]})){await navigator.share({files:[file],title:name});return true}}catch(e){if(e.name!=='AbortError')console.warn(e)}try{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);return true}catch(e){console.error(e);return false}}
+async function shareOrDownloadText(name,text,type){return shareOrDownloadBlob(name,new Blob([text],{type}))}
+async function backup(){syncStateFromDom();await saveNow();syncStateFromDom();const ok=await shareOrDownloadText((LANG==='es'?'clover-inspeccion-':'clover-inspection-')+($('#date').value||'session')+'.json',JSON.stringify(state,null,2),'application/json');$('#bottomActionStatus').textContent=ok?t('Respaldo listo para guardar/compartir.','Backup ready to save/share.'):t('No se pudo generar el respaldo.','Could not generate backup.')}
+function displayField(key,value){if(key==='power')return optionLabel(SELECTS.power,value);if(key==='tires')return optionLabel(SELECTS.tires,value);if(key==='mast')return optionLabel(SELECTS.mast,value);if(key==='attachment')return optionLabel(SELECTS.attachment,value);if(key==='operational')return optionLabel(SELECTS.operational,value);if(key==='forkLength')return value==='other'?t('Otro','Other'):value?value+'"':'';return value||''}
+async function exportCSV(){syncStateFromDom();const rows=[[t('Cliente','Client'),t('Ubicación','Location'),t('Fecha','Date'),t('Técnico','Technician'),t('Unidad','Unit'),t('Serie','Serial'),t('Marca','Make'),t('Modelo','Model'),t('ID pregunta','Question ID'),t('Sección','Section'),t('Ítem','Item'),t('Estado','Status'),t('Observación','Observation'),t('Acción / clasificación','Action / classification'),t('Notas','Notes')]];for(const u of state.units){for(const c of u.checks.filter(c=>c.applicable!==false&&isFindingCode(c.statusCode))){const item=ITEM_BY_ID.get(c.questionId);if(!item)continue;rows.push([state.session.client||'',state.session.location||'',state.session.date||'',state.session.tech||'',u.fields.clientUnit||'',u.fields.serial||'',u.fields.make||'',u.fields.model||'',item.id,item.sectionTitle,item.label,STATUS_LABELS[c.statusCode]||c.statusCode,c.observation||'',ACTION_LABELS[c.classificationCode]||c.classificationCode||'',c.notes||''])}}
+  const csv='\ufeff'+rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');const ok=await shareOrDownloadText(LANG==='es'?'clover-hallazgos.csv':'clover-findings.csv',csv,'text/csv;charset=utf-8');$('#bottomActionStatus').textContent=ok?t('CSV listo para guardar/compartir.','CSV ready to save/share.'):t('No se pudo generar el CSV.','Could not generate CSV.')}
+
+function openPdfDialog(){syncStateFromDom();const units=$$('#units .unit');$('#pdfUnitOptions').innerHTML=units.map((u,i)=>`<label class="pdf-unit-option"><input type="checkbox" value="${u.dataset.unitId}" checked><span><b>${t('Montacargas','Forklift')} ${i+1} — ${escapeHtml(u.querySelector('.unitSubtitle').textContent)}</b><span class="small" style="display:block">${u.dataset.missing==='0'?t('Respuestas completas','Required responses complete'):t('Faltan ','Missing ')+u.dataset.missing}${u._meta?.completedAt?' · '+t('Finalizada','Finalized'):''}</span></span></label>`).join('');updatePdfDialogStatus();$$('#pdfUnitOptions input').forEach(x=>x.onchange=updatePdfDialogStatus);const d=$('#pdfDialog');if(d.showModal)d.showModal();else d.setAttribute('open','')}
+function closePdfDialog(){const d=$('#pdfDialog');if(d.close)d.close();else d.removeAttribute('open')}
+function selectedPdfIds(){return $$('#pdfUnitOptions input:checked').map(x=>x.value)}
+function updatePdfDialogStatus(){const ids=selectedPdfIds(),units=$$('#units .unit').filter(u=>ids.includes(u.dataset.unitId));const incomplete=units.filter(u=>u.dataset.missing!=='0').length;$('#pdfDialogStatus').textContent=!ids.length?t('Selecciona al menos una unidad.','Select at least one unit.'):incomplete?t(`${incomplete} unidad(es) seleccionada(s) están incompletas; el reporte se marcará PRELIMINAR.`,`${incomplete} selected unit(s) are incomplete; the report will be marked PRELIMINARY.`):t('Las unidades seleccionadas tienen todas las respuestas requeridas.','All selected units have the required responses complete.')}
+
+/* Minimal offline PDF writer: no browser print headers/footers, supports Latin-1 text and JPEG evidence. */
+const PDF_W=595.28,PDF_H=841.89;
+function latin1(s){return String(s??'').replace(/[–—]/g,'-').replace(/[“”]/g,'"').replace(/[‘’]/g,"'").replace(/…/g,'...').split('').map(ch=>ch.charCodeAt(0)<=255?ch:'?').join('')}
+function pdfEsc(s){return latin1(s).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)')}
+function bytesFromString(s){const a=new Uint8Array(s.length);for(let i=0;i<s.length;i++)a[i]=s.charCodeAt(i)&255;return a}
+class SimplePDF{
+ constructor(){this.pages=[];this.images=[]}
+ addPage(){const p={ops:[],imageIds:new Set()};this.pages.push(p);return p}
+ img(bytes,w,h){const id=this.images.length+1;this.images.push({id,bytes,w,h});return id}
+ text(p,x,y,text,size=10,bold=false,color=[26,29,34]){p.ops.push(`${(color[0]/255).toFixed(3)} ${(color[1]/255).toFixed(3)} ${(color[2]/255).toFixed(3)} rg BT /F${bold?2:1} ${size} Tf 1 0 0 1 ${x.toFixed(2)} ${(PDF_H-y).toFixed(2)} Tm (${pdfEsc(text)}) Tj ET\n`)}
+ rect(p,x,y,w,h,fill=null,stroke=null,line=1){if(fill)p.ops.push(`${(fill[0]/255).toFixed(3)} ${(fill[1]/255).toFixed(3)} ${(fill[2]/255).toFixed(3)} rg ${x.toFixed(2)} ${(PDF_H-y-h).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re f\n`);if(stroke)p.ops.push(`${(stroke[0]/255).toFixed(3)} ${(stroke[1]/255).toFixed(3)} ${(stroke[2]/255).toFixed(3)} RG ${line} w ${x.toFixed(2)} ${(PDF_H-y-h).toFixed(2)} ${w.toFixed(2)} ${h.toFixed(2)} re S\n`)}
+ line(p,x1,y1,x2,y2,color=[184,188,194],line=1){p.ops.push(`${(color[0]/255).toFixed(3)} ${(color[1]/255).toFixed(3)} ${(color[2]/255).toFixed(3)} RG ${line} w ${x1.toFixed(2)} ${(PDF_H-y1).toFixed(2)} m ${x2.toFixed(2)} ${(PDF_H-y2).toFixed(2)} l S\n`)}
+ image(p,id,x,y,w,h){p.imageIds.add(id);p.ops.push(`q ${w.toFixed(2)} 0 0 ${h.toFixed(2)} ${x.toFixed(2)} ${(PDF_H-y-h).toFixed(2)} cm /Im${id} Do Q\n`)}
+ blob(){
+  const pageCount=this.pages.length,imageBase=5,contentBase=imageBase+this.images.length,pageBase=contentBase+pageCount,totalObjects=4+this.images.length+pageCount*2;const obj=[];obj[1]=bytesFromString('<< /Type /Catalog /Pages 2 0 R >>');obj[2]=bytesFromString(`<< /Type /Pages /Count ${pageCount} /Kids [${this.pages.map((_,i)=>`${pageBase+i} 0 R`).join(' ')}] >>`);obj[3]=bytesFromString('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>');obj[4]=bytesFromString('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>');
+  this.images.forEach((im,i)=>{const head=bytesFromString(`<< /Type /XObject /Subtype /Image /Width ${im.w} /Height ${im.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${im.bytes.length} >>\nstream\n`),tail=bytesFromString('\nendstream');const b=new Uint8Array(head.length+im.bytes.length+tail.length);b.set(head,0);b.set(im.bytes,head.length);b.set(tail,head.length+im.bytes.length);obj[imageBase+i]=b});
+  this.pages.forEach((p,i)=>{const stream=bytesFromString(p.ops.join('')),head=bytesFromString(`<< /Length ${stream.length} >>\nstream\n`),tail=bytesFromString('\nendstream'),b=new Uint8Array(head.length+stream.length+tail.length);b.set(head);b.set(stream,head.length);b.set(tail,head.length+stream.length);obj[contentBase+i]=b;const xo=[...p.imageIds].map(id=>`/Im${id} ${imageBase+id-1} 0 R`).join(' ');obj[pageBase+i]=bytesFromString(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PDF_W} ${PDF_H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> /XObject << ${xo} >> >> /Contents ${contentBase+i} 0 R >>`)});
+  const chunks=[bytesFromString('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n')],offsets=new Array(totalObjects+1).fill(0);let offset=chunks[0].length;for(let i=1;i<=totalObjects;i++){offsets[i]=offset;const h=bytesFromString(`${i} 0 obj\n`),tail=bytesFromString('\nendobj\n');chunks.push(h,obj[i],tail);offset+=h.length+obj[i].length+tail.length}const xrefOffset=offset;let x=`xref\n0 ${totalObjects+1}\n0000000000 65535 f \n`;for(let i=1;i<=totalObjects;i++)x+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';x+=`trailer\n<< /Size ${totalObjects+1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;chunks.push(bytesFromString(x));return new Blob(chunks,{type:'application/pdf'})
+ }
 }
-async function backup(){syncStateFromDom();await saveNow();syncStateFromDom();const ok=await shareOrDownload('clover-inspeccion-'+($('#date').value||'sesion')+'.json',JSON.stringify(state,null,2),'application/json');$('#bottomActionStatus').textContent=ok?'Respaldo listo para guardar/compartir.':'No se pudo generar el respaldo.'}
-async function exportCSV(){
-  syncStateFromDom();
-  const rows=[['Unidad','Marca','Modelo','Grupo','Ítem','Estado','Observación','Clasificación','Notas']];
-  state.units.forEach(u=>(u.checks||[]).filter(c=>c.status&&!['Normal','N/A','No inspeccionado'].includes(c.status)).forEach(c=>rows.push([u.fields.clientUnit||'',u.fields.make||'',u.fields.model||'',c.group,c.item,c.status,c.observation,c.classification,c.notes])));
-  const csv=rows.map(r=>r.map(v=>'\"'+String(v||'').replace(/\"/g,'\"\"')+'\"').join(',')).join('\n');
-  const ok=await shareOrDownload('clover-hallazgos.csv',csv,'text/csv');
-  $('#bottomActionStatus').textContent=ok?'CSV listo para guardar/compartir.':'No se pudo generar el CSV.';
-}
-function report(){
-  try{
-    syncStateFromDom();
-    const root=$('#reportRoot');
-    if(!state.units.length){alert('No hay montacargas en la sesión para generar el reporte.');return;}root.innerHTML=state.units.map((u,i)=>{const f=u.fields||{},fs=(u.checks||[]).filter(c=>c.status&&!['Normal','N/A','No inspeccionado'].includes(c.status));return`<div class="report-page"><div class="report-head"><img src="./icon-192.png"><div><h1 style="margin:0;color:#17497d;font-size:20px">Clover — Reporte de Inspección</h1><div>${escapeHtml(state.session.client||'')} · ${escapeHtml(state.session.location||'')} · ${escapeHtml(state.session.date||'')}</div></div></div><table class="report-table"><tr><th>Unidad</th><td>${escapeHtml(f.clientUnit||String(i+1))}</td><th>Marca / Modelo</th><td>${escapeHtml((f.make||'')+' '+(f.model||''))}</td></tr><tr><th>Serie</th><td>${escapeHtml(f.serial||'')}</td><th>Horómetro</th><td>${escapeHtml(f.hours||'')}</td></tr><tr><th>Capacidad</th><td>${escapeHtml(f.capacity||'')} ${escapeHtml(f.capacityUnit||'lb')}</td><th>Energía / llantas</th><td>${escapeHtml((f.power||'')+' / '+(f.tires||''))}</td></tr></table><h2 style="color:#17497d">Hallazgos</h2>${fs.length?fs.map(c=>`<div class="report-find"><b>${escapeHtml(c.group)} — ${escapeHtml(c.item)}</b><div>${escapeHtml(c.status)}${c.classification?' · '+escapeHtml(c.classification):''}</div>${c.observation?'<div><b>Observado:</b> '+escapeHtml(c.observation)+'</div>':''}${c.notes?'<div><b>Notas:</b> '+escapeHtml(c.notes)+'</div>':''}</div>`).join(''):'<p>Sin hallazgos anormales registrados.</p>'}<h2 style="color:#17497d">Notas generales</h2><p>${escapeHtml(f.overallNotes||'—')}</p></div>`}).join('');$('#bottomActionStatus').textContent='Abriendo impresión / guardar PDF…';setTimeout(()=>window.print(),150);
-  }catch(e){
-    console.error(e);
-    const st=$('#bottomActionStatus');if(st)st.textContent='No se pudo generar el reporte PDF.';
-    alert('No se pudo generar el reporte PDF. Revisa que la inspección esté cargada e intenta nuevamente.');
+function wrapText(text,maxChars){const words=String(text||'').split(/\s+/),lines=[];let line='';for(const w of words){if(!w)continue;if((line+' '+w).trim().length>maxChars&&line){lines.push(line);line=w}else line=(line+' '+w).trim()}if(line)lines.push(line);return lines.length?lines:['']}
+async function jpegFromBlob(blob,max=1200){return new Promise((resolve,reject)=>{const url=URL.createObjectURL(blob),img=new Image();img.onload=()=>{try{let w=img.naturalWidth,h=img.naturalHeight,scale=Math.min(1,max/Math.max(w,h));w=Math.max(1,Math.round(w*scale));h=Math.max(1,Math.round(h*scale));const c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d');ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);c.toBlob(async b=>{URL.revokeObjectURL(url);if(!b)return reject(new Error('image conversion'));resolve({bytes:new Uint8Array(await b.arrayBuffer()),w,h})},'image/jpeg',.78)}catch(e){URL.revokeObjectURL(url);reject(e)}};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('image load'))};img.src=url})}
+async function loadLogoJpeg(){try{const b=await (await fetch('./icon-192.png')).blob();return await jpegFromBlob(b,300)}catch(e){return null}}
+function fmtTimestamp(iso){if(!iso)return t('En progreso','In progress');const d=new Date(iso);return isNaN(d)?iso:d.toLocaleString(LANG==='es'?'es-MX':'en-US',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
+function itemStatusFromState(u,id){return u.checks?.find(c=>c.questionId===id)}
+function reportStatusColor(code){if(code==='monitor')return[78,138,98];if(['repair','observed','function_abnormal'].includes(code))return[217,75,75];if(['major','not_functioning'].includes(code))return[169,47,58];return[95,102,112]}
+function pdfPageHeader(pdf,p,logoId,title,sub,preliminary){pdf.rect(p,0,0,PDF_W,66,[19,23,32]);pdf.rect(p,0,66,PDF_W,3,[212,175,55]);if(logoId)pdf.image(p,logoId,36,12,42,42);pdf.text(p,88,27,title,16,true,[255,255,255]);if(String(sub||'').trim())pdf.text(p,88,46,sub,9,false,[220,222,225]);if(preliminary){pdf.rect(p,390,15,168,28,[245,228,231]);pdf.text(p,405,33,t('PRELIMINAR · INCOMPLETA','PRELIMINARY · INCOMPLETE'),9,true,[169,47,58])}}
+function pdfFooter(pdf,p,index,total,generatedAt){pdf.line(p,36,806,559,806,[210,213,217]);pdf.text(p,36,824,t('Reporte generado: ','Report generated: ')+fmtTimestamp(generatedAt),8,false,[102,107,115]);pdf.text(p,520,824,`${index}/${total}`,8,false,[102,107,115])}
+async function buildPdfBlob(selectedUnits,reportMeta){
+  const pdf=new SimplePDF(),logo=await loadLogoJpeg(),logoId=logo?pdf.img(logo.bytes,logo.w,logo.h):null,media=await idbGetAllMedia();
+  for(const u of selectedUnits){const f=u.fields||{},m=requiredMetricsFromState(u),pre=reportMeta.type==='preliminary'||m.missing>0;let p=pdf.addPage();pdfPageHeader(pdf,p,logoId,t('Clover — Reporte de Inspección','Clover — Inspection Report'),[state.session.client,state.session.location].filter(Boolean).join(' · '),pre);let y=88;
+    pdf.text(p,36,y,t('Identificación de la unidad','Unit identification'),14,true,[19,23,32]);y+=12;const specs=[[t('Unidad','Unit'),f.clientUnit||'—'],[t('Marca / Modelo','Make / Model'),`${f.make||''} ${f.model||''}`.trim()||'—'],[t('Serie','Serial'),f.serial||'—'],[t('Año','Year'),f.year||'—'],[t('Horómetro','Hour meter'),f.hours||'—'],[t('Capacidad','Capacity'),`${f.capacity||'—'} ${f.capacityUnit||''}`],[t('Energía','Power'),displayField('power',f.power)||'—'],[t('Llantas','Tires'),displayField('tires',f.tires)||'—'],[t('Mástil','Mast'),displayField('mast',f.mast)||'—'],[t('Aditamento','Attachment'),displayField('attachment',f.attachment)||'—']];if(['none','sideshifter','fork_positioner','rotator','push_pull','multiple_load_handler'].includes(f.attachment)&&f.forkLength)specs.push([t('Largo de horquillas','Fork length'),displayField('forkLength',f.forkLength)]);specs.push([t('Inicio registrado','Started'),fmtTimestamp(u.meta?.startedAt)],[t('Finalización registrada','Completed'),fmtTimestamp(u.meta?.completedAt)]);
+    for(let i=0;i<specs.length;i+=2){pdf.rect(p,36,y,523,32,[247,248,248],[205,208,212]);for(let c=0;c<2;c++){const s=specs[i+c];if(!s)continue;const x=36+c*261.5;pdf.text(p,x+7,y+11,s[0],7,true,[102,107,115]);for(const [li,line] of wrapText(s[1],34).slice(0,2).entries())pdf.text(p,x+7,y+23+li*9,line,9,false,[26,29,34]);if(c===0)pdf.line(p,x+261.5,y,x+261.5,y+32,[205,208,212])}y+=32}
+    y+=15;pdf.text(p,36,y,t('Hallazgos / excepciones','Findings / exceptions'),14,true,[19,23,32]);y+=12;const finds=(u.checks||[]).filter(c=>c.applicable!==false&&isFindingCode(c.statusCode));if(!finds.length){pdf.text(p,36,y+12,UI.noFindings,10,false,[78,138,98]);y+=30}else for(const c of finds){const item=ITEM_BY_ID.get(c.questionId);if(!item)continue;const comment=[c.observation,c.notes].filter(Boolean).join(' · '),lines=wrapText(comment||t('Sin comentario adicional.','No additional comment.'),76),h=34+lines.length*10;if(y+h>785){p=pdf.addPage();pdfPageHeader(pdf,p,logoId,t('Clover — Hallazgos','Clover — Findings'),`${f.clientUnit||''} · ${f.make||''} ${f.model||''}`,pre);y=88}pdf.rect(p,36,y,523,h,[250,250,249],[205,208,212]);pdf.text(p,44,y+14,`${item.id} · ${item.label}`,9,true,[26,29,34]);pdf.text(p,420,y+14,STATUS_LABELS[c.statusCode]||c.statusCode,8,true,reportStatusColor(c.statusCode));let yy=y+28;if(c.classificationCode){pdf.text(p,44,yy,ACTION_LABELS[c.classificationCode]||c.classificationCode,8,true,[95,102,112]);yy+=10}for(const line of lines){pdf.text(p,44,yy,line,8,false,[60,64,70]);yy+=10}y+=h+7}
+    if(f.overallNotes){if(y+70>785){p=pdf.addPage();pdfPageHeader(pdf,p,logoId,t('Clover — Resumen','Clover — Summary'),f.clientUnit||'',pre);y=88}pdf.text(p,36,y,t('Notas generales del técnico','Technician general notes'),12,true,[19,23,32]);y+=14;for(const line of wrapText(f.overallNotes,90)){pdf.text(p,36,y,line,9,false,[60,64,70]);y+=11}}
+    const unitMedia=media.filter(r=>r.unitId===u.id);const baseline=BASE_EVIDENCE.map(e=>({e,recs:unitMedia.filter(r=>r.key===e[1]&&r.type.startsWith('image/'))})).filter(x=>x.recs.length);if(baseline.length){let page=pdf.addPage();pdfPageHeader(pdf,page,logoId,t('Fotos de línea base','Baseline photos'),`${f.clientUnit||''} · ${f.make||''} ${f.model||''}`,pre);let py=90,col=0;for(const slot of baseline){for(const rec of slot.recs){let im;try{im=await jpegFromBlob(rec.blob)}catch(e){continue}const id=pdf.img(im.bytes,im.w,im.h),boxW=250,boxH=178,x=36+col*273;pdf.text(page,x,py,`${slot.e[0]} · ${slot.e[2]}`,9,true,[26,29,34]);const ratio=Math.min(boxW/im.w,150/im.h),iw=im.w*ratio,ih=im.h*ratio;pdf.rect(page,x,py+8,boxW,158,[240,241,242],[205,208,212]);pdf.image(page,id,x+(boxW-iw)/2,py+12+(150-ih)/2,iw,ih);col++;if(col===2){col=0;py+=198}if(py>690){page=pdf.addPage();pdfPageHeader(pdf,page,logoId,t('Fotos de línea base','Baseline photos'),f.clientUnit||'',pre);py=90;col=0}}}}
+    const evidenceFinds=(u.checks||[]).filter(c=>c.applicable!==false&&isFindingCode(c.statusCode)).map(c=>({c,item:ITEM_BY_ID.get(c.questionId)})).filter(x=>x.item).map(x=>({...x,recs:unitMedia.filter(r=>(x.item.ev||[`finding-${x.item.id}`]).includes(r.key))})).filter(x=>x.recs.length);if(evidenceFinds.length){let page=pdf.addPage();pdfPageHeader(pdf,page,logoId,t('Evidencia de hallazgos','Finding evidence'),f.clientUnit||'',pre);let py=90;for(const row of evidenceFinds){if(py>680){page=pdf.addPage();pdfPageHeader(pdf,page,logoId,t('Evidencia de hallazgos','Finding evidence'),f.clientUnit||'',pre);py=90}pdf.text(page,36,py,`${row.item.id} · ${row.item.label} · ${STATUS_LABELS[row.c.statusCode]||row.c.statusCode}`,9,true,reportStatusColor(row.c.statusCode));py+=12;let col=0;for(const rec of row.recs.slice(0,6)){if(rec.type.startsWith('image/')){let im;try{im=await jpegFromBlob(rec.blob)}catch(e){continue}const id=pdf.img(im.bytes,im.w,im.h),boxW=245,boxH=130,x=36+col*265,ratio=Math.min(boxW/im.w,boxH/im.h),iw=im.w*ratio,ih=im.h*ratio;pdf.rect(page,x,py,boxW,boxH,[240,241,242],[205,208,212]);pdf.image(page,id,x+(boxW-iw)/2,py+(boxH-ih)/2,iw,ih);col++;if(col===2){col=0;py+=140}}else{pdf.text(page,36,py,'VIDEO: '+rec.name,8,false,[95,102,112]);py+=12}}if(col!==0)py+=140;py+=12}}
   }
+  pdf.pages.forEach((p,i)=>pdfFooter(pdf,p,i+1,pdf.pages.length,reportMeta.generatedAt));return pdf.blob();
 }
-async function load(){
- try{
-   let raw=null;
-   try{const rec=await idbGet(STATE_STORE,'latest');raw=rec?.raw||null}catch(e){console.warn(e)}
-   if(!raw)try{raw=localStorage.getItem(STATE_KEY)}catch(e){console.warn(e)}
-   if(raw)state=JSON.parse(raw);
- }catch(e){console.error(e)}
- if(!state.session)state.session={};if(!Array.isArray(state.units))state.units=[];
- applyState();setSave('ok','Guardado automático activo','Último guardado confirmado: '+nowTime());
-}
+function requiredMetricsFromState(u){let total=0,done=0;const power=u.fields?.power;const applicableItems=ALL_ITEMS.filter(i=>!i.variant||(i.variant==='electric'?power==='electric':!!power&&power!=='electric'));for(const item of applicableItems){total++;if(u.checks?.find(c=>c.questionId===item.id&&c.statusCode))done++}const requiredFields=['clientUnit','make','model','serial','year','capacity','hours','power','tires','mast','attachment','operational'];if(['none','sideshifter','fork_positioner','rotator','push_pull','multiple_load_handler'].includes(u.fields?.attachment))requiredFields.push('forkLength');for(const k of requiredFields){total++;if(String(u.fields?.[k]||'').trim())done++}/* baseline media are not included here because state backup does not embed media; DOM metrics are authoritative before report */return{done,total,missing:Math.max(0,total-done)}}
+async function generateSelectedPdf(){const ids=selectedPdfIds();if(!ids.length){alert(t('Selecciona al menos una unidad.','Select at least one unit.'));return}const domUnits=$$('#units .unit'),selectedDom=domUnits.filter(u=>ids.includes(u.dataset.unitId)),allSelected=selectedDom.length===domUnits.length,allResponses=selectedDom.every(u=>u.dataset.missing==='0'),generatedAt=nowIso();if(allSelected&&allResponses){for(const u of selectedDom)if(!u._meta.completedAt){touchUnit(u,{reopen:false});u._meta.completedAt=generatedAt}sessionMeta.completedAt=generatedAt}
+  syncStateFromDom();const selected=state.units.filter(u=>ids.includes(u.id)),type=selected.every(u=>u.meta?.completedAt)&&selectedDom.every(u=>u.dataset.missing==='0')?'final':'preliminary';const reportMeta={generatedAt,type,includedUnitIds:ids,allSessionUnits:allSelected};state.reports.push(reportMeta);await saveNow();$('#pdfGenerateBtn').disabled=true;$('#pdfDialogStatus').textContent=t('Generando PDF…','Generating PDF…');try{const blob=await buildPdfBlob(selected,reportMeta);const name=(LANG==='es'?'Clover-Reporte-Inspeccion-':'Clover-Inspection-Report-')+(state.session.date||new Date().toISOString().slice(0,10))+'.pdf';await shareOrDownloadBlob(name,blob);$('#bottomActionStatus').textContent=t('PDF listo para guardar/compartir.','PDF ready to save/share.');closePdfDialog();renderDashboard();renderMissing();renderSessionFinish()}catch(e){console.error(e);$('#pdfDialogStatus').textContent=t('No se pudo generar el PDF.','Could not generate PDF.')}finally{$('#pdfGenerateBtn').disabled=false}}
+
+async function load(){try{let raw=null;try{const rec=await idbGet(STATE_STORE,'latest');raw=rec?.raw||null}catch(e){console.warn(e)}if(!raw)try{raw=localStorage.getItem(STATE_KEY)}catch(e){console.warn(e)}if(raw)state=migrateState(JSON.parse(raw));else state=migrateState(state)}catch(e){console.error(e);state=migrateState({})}applyState();setSave('ok',UI.saved,UI.savedSub+nowTime())}
 function bindGlobal(){
- ['client','location','tech','date','sessionNotes'].forEach(id=>$('#'+id).addEventListener('input',scheduleSave));
- $('#addUnit').onclick=()=>{addUnit();scheduleSave();renderDashboard();renderMissing()};
- $('#backupBtn').onclick=backup;$('#findingsCsvBtn').onclick=exportCSV;$('#pdfBtn').onclick=report;$('#floatSave').onclick=saveNow;
- $('#clearBtn').onclick=()=>{if(confirm('¿Borrar toda la sesión local?')){try{localStorage.removeItem(STATE_KEY)}catch(e){};state={session:{},units:[]};applyState();saveNow()}};
- $('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=async()=>{const f=$('#importFile').files[0];if(!f)return;try{state=JSON.parse(await f.text());applyState();await saveNow();alert('Respaldo importado.')}catch(e){alert('No se pudo importar el respaldo.')}};
- $('#persistBtn').onclick=async()=>{if(navigator.storage?.persist){const ok=await navigator.storage.persist();alert(ok?'Almacenamiento persistente solicitado correctamente.':'El navegador no garantizó almacenamiento persistente. Descarga respaldos periódicos.')}else alert('Este navegador no ofrece esta función.')};
- document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveNow()});
- window.addEventListener('pagehide',saveNow)
+  ['client','location','tech','date','sessionNotes'].forEach(id=>$('#'+id).addEventListener('input',()=>{touchSession();if(sessionMeta.completedAt)sessionMeta.completedAt='';scheduleSave()}));
+  const add=()=>{addUnit(null,{scroll:true});scheduleSave();renderDashboard();renderMissing()};$('#addUnit').onclick=add;$('#addUnitBottom').onclick=add;$('#backupBtn').onclick=backup;$('#findingsCsvBtn').onclick=exportCSV;$('#pdfBtn').onclick=openPdfDialog;$('#floatSave').onclick=saveNow;$('#finishSessionBtn').onclick=finishSession;$('#pdfCancelBtn').onclick=closePdfDialog;$('#pdfGenerateBtn').onclick=generateSelectedPdf;
+  $('#clearBtn').onclick=async()=>{if(confirm(t('¿Borrar toda la sesión local y toda la evidencia?','Clear the entire local session and all evidence?'))){try{localStorage.removeItem(STATE_KEY)}catch(e){};try{await idbClearStore(MEDIA);await idbClearStore(STATE_STORE)}catch(e){}state=migrateState({});sessionMeta={};applyState();await saveNow()}};
+  $('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=async()=>{const f=$('#importFile').files[0];if(!f)return;try{state=migrateState(JSON.parse(await f.text()));applyState();await saveNow();alert(t('Respaldo importado.','Backup imported.'))}catch(e){alert(t('No se pudo importar el respaldo.','Could not import backup.'))}finally{$('#importFile').value=''}};
+  $('#persistBtn').onclick=async()=>{if(navigator.storage?.persist){const ok=await navigator.storage.persist();alert(ok?t('Almacenamiento persistente solicitado correctamente.','Persistent storage requested successfully.'):t('El navegador no garantizó almacenamiento persistente. Descarga respaldos periódicos.','The browser did not guarantee persistent storage. Download periodic backups.'))}else alert(t('Este navegador no ofrece esta función.','This browser does not provide this function.'))};
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveNow()});window.addEventListener('pagehide',saveNow);
 }
-bindGlobal();load();
+
+applyStaticI18n();bindGlobal();load();
 })();
-if('serviceWorker' in navigator && location.protocol.startsWith('http')){navigator.serviceWorker.register('./sw.js').catch(console.error);}
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(console.error);
