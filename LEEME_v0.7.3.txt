@@ -1,0 +1,38 @@
+CLOVER — INSPECCIÓN DE CONDICIÓN BASE v0.7.3
+30 agosto 2026
+
+DESPLIEGUE
+1. Extrae este ZIP.
+2. En el repositorio existente clover-inspeccion, reemplaza los archivos de la raíz con los archivos extraídos.
+3. Confirma que index.html, app.js, sw.js, manifest.webmanifest e iconos queden en la raíz.
+4. Espera a que GitHub Pages termine de publicar.
+5. Abre la app una vez con internet. Si todavía aparece v0.7.2, cierra completamente la PWA y vuelve a abrirla con internet.
+
+CAMBIOS PRINCIPALES v0.7.3
+- 14 secciones: identidad, estado/configuración actual, entrevista, fotos, inspección técnica y cierre.
+- Solo una tarjeta de unidad puede estar expandida a la vez.
+- Foto de placa de datos requerida dentro de Identificación de la unidad.
+- Evidencia fotográfica estructurada: una foto por categoría; solo las categorías marcadas como requeridas bloquean la finalización.
+- Fotografías requeridas adaptadas parcialmente al tipo de equipo (4 ruedas, 3 ruedas y contrabalanceado).
+- Entrevista condicional: si no hay persona conocedora disponible, el resto de la entrevista no bloquea la inspección.
+- Historial de servicio y mantenimiento reportado se captura en la entrevista; la sección PM queda para observaciones objetivas del técnico.
+- Cada problema reportado conserva su propia ocurrencia y nota.
+- Jerarquía Categoría de equipo > Tipo de equipo > Marca > Modelo.
+- Catálogo inicial de modelos con entrada manual siempre disponible. El catálogo completo normalizado desde market.db queda como expansión posterior; market.db no se distribuye con esta PWA.
+- Horquillas estándar agregadas; listas principales ordenadas alfabéticamente cuando el orden no representa severidad/flujo.
+- Controles compactos Normal / Más opciones; Monitor usa verde, no dorado.
+- Ajustes compactos: idioma, tema, estado de guardado, almacenamiento persistente e importación de respaldo.
+- Tema claro industrial por defecto, más tema oscuro y automático.
+- Corrección del desbordamiento del campo Fecha y de botones como No observado.
+- Video: máximo 30 segundos, 50 MB por archivo y 3 videos por unidad.
+- Los tiempos de inicio/actividad/cierre se almacenan internamente. No se muestra duración al técnico ni en el PDF.
+- Mantiene guardado offline, recuperación, JSON, CSV, PDF, fotos, kg/lb, condicionales eléctricos/IC y detalles de hallazgos restaurados.
+
+MIGRACIÓN
+- El paquete español conserva el mismo espacio de datos local de v0.7.2 para recuperar inspecciones existentes.
+- Los datos antiguos se migran a la nueva numeración cuando se abre la app.
+- Las unidades existentes pueden requerir seleccionar el nuevo Tipo de equipo.
+- Valores ocultos no aplicables, como largo de horquillas con una pinza para rollos, se limpian durante la migración.
+
+IMPORTANTE
+Antes de uso de campo, ejecuta QA_v0.7.3.txt en el iPhone instalado como PWA, incluyendo reapertura offline y evidencia real de cámara/video.

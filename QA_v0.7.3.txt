@@ -1,0 +1,98 @@
+CLOVER v0.7.3 — PRUEBA RÁPIDA DE ACEPTACIÓN EN IPHONE
+
+1. ACTUALIZACIÓN
+- Abrir con internet y confirmar "Piloto v0.7.3".
+- Cerrar completamente y reabrir.
+- Confirmar que datos v0.7.2 existentes siguen presentes si había una sesión previa.
+
+2. AJUSTES
+- Abrir engrane.
+- Confirmar idioma Español/English.
+- Confirmar tema Claro/Oscuro/Automático.
+- Confirmar que el estado de guardado ya no ocupa una tarjeta grande en la pantalla principal.
+
+3. DISEÑO IPHONE
+- Confirmar que Fecha no sobresale de su tarjeta.
+- Confirmar que "No observado" cabe dentro de su botón.
+- Confirmar que no existe desplazamiento horizontal de página.
+
+4. ACORDEÓN DE UNIDADES
+- Agregar 3 unidades.
+- Abrir Unidad 1, luego Unidad 2, luego Unidad 3.
+- Debe quedar abierta solo una unidad a la vez.
+
+5. IDENTIDAD
+- Categoría: Montacargas.
+- Tipo: Contrabalanceado sentado — 4 ruedas.
+- Marca: Toyota.
+- Modelo: 8FGCU25 (puede seleccionarse como sugerencia o escribirse manualmente).
+- Serie: QA-073-001.
+- Año: 2021.
+- Capacidad: 5000 lb.
+- Energía: LP.
+- Mástil: 3 etapas / Triplex.
+- Agregar foto de placa. Debe contar como requerida.
+
+6. ESTADO ACTUAL
+- Horómetro: 6123.
+- Llanta: Cushion.
+- Aditamento: Horquillas estándar.
+- Largo: 42".
+- Estado: Operando.
+- Cambiar Aditamento a Pinza para rollos de papel: largo debe ocultarse y limpiarse.
+- Volver a Horquillas estándar y seleccionar 42" otra vez.
+
+7. ENTREVISTA
+- Persona conocedora: Sí.
+- Rol: Operador.
+- Historial: Sí, parciales.
+- Mantenimiento: Taller independiente.
+- Problemas actuales: Sí.
+- Seleccionar Arranque y Dirección.
+- Arranque: En frío + Intermitente; nota "Tarda en arrancar por la mañana".
+- Dirección: Bajo carga; nota "Holgura bajo carga".
+- Confirmar que cada problema conserva su propia ocurrencia.
+- Crear otra unidad y elegir Persona disponible: No. La sección debe mostrar 1/1 completa y ocultar el resto.
+
+8. FOTOS DE LÍNEA BASE
+- Confirmar una sola foto por categoría.
+- Para 4 ruedas, las 4 fotos individuales de llanta/rueda y el contrapeso deben aparecer como requeridas además de vistas requeridas.
+- Omitir una requerida y confirmar que la unidad no puede finalizarse.
+- Las opcionales no deben bloquear 100%.
+
+9. HALLAZGOS / RECARGA
+- En Seguridad elegir Monitor en una pregunta, escribir "QA MONITOR 073" y agregar una foto.
+- En otra elegir Reparar, escribir "QA REPARAR 073" y agregar 2 fotos.
+- Esperar Guardado, cerrar completamente y reabrir.
+- Los estados, comentarios y fotos deben estar visibles sin volver a seleccionar el estado.
+
+10. PM / CONDICIÓN GENERAL / FUNCIONAL
+- En PM: una fila No observado y otra Observado con comentario.
+- En condición general: Observado en evidencia de impacto.
+- En prueba funcional: Funciona normal en una función y Funciona con anomalía en otra.
+- Confirmar que cada vocabulario corresponde al tipo de pregunta.
+
+11. ELÉCTRICO / CARGADOR
+- Crear unidad eléctrica.
+- Confirmar que aparece sección eléctrica y preguntas de cargador; IC/LP debe ocultarse.
+
+12. VIDEO
+- Probar un video <30 s y <50 MB: debe aceptar.
+- Probar uno >30 s o >50 MB: debe rechazarlo claramente.
+- No almacenar más de 3 videos por unidad.
+
+13. OFFLINE
+- Modo avión, cerrar y reabrir.
+- Cambiar un comentario y agregar una foto.
+- Esperar guardado local, cerrar/reabrir todavía offline.
+- Nada debe desaparecer.
+
+14. EXPORTACIONES
+- JSON: unidades, IDs de preguntas, entrevista por problema y timestamps internos presentes; no registros de checks sin questionId.
+- CSV: hallazgos anormales asociados a la unidad correcta.
+- PDF incompleto: PRELIMINAR.
+- PDF completo: FINAL; fotos y hallazgos correctos; no URL del navegador; no duración/minutos.
+
+15. IDIOMAS AISLADOS
+- Cambiar idioma dentro de Ajustes y confirmar interfaz traducida.
+- El repositorio inglés y español siguen usando espacios de almacenamiento separados; datos de un repositorio no deben aparecer en el otro.
