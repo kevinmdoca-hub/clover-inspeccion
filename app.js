@@ -7,7 +7,11 @@ const concerns=['Arranque','Baja potencia','Traslado / transmisión','Dirección
 const occurrence=['Constante','Intermitente','En frío','En caliente','Al arrancar','Bajo carga','Después de uso prolongado','Desconocido'];
 let state={session:{},units:[]}, saveTimer=null, dbPromise=null;
 
-const $=s=>document.querySelector(s), $$=(r,s)=>[...r.querySelectorAll(s)];
+const $=s=>document.querySelector(s);
+const $$=(root,selector)=>{
+  if(typeof root==='string' && selector===undefined) return [...document.querySelectorAll(root)];
+  return [...root.querySelectorAll(selector)];
+};
 function uid(){return crypto.randomUUID?crypto.randomUUID():'u-'+Date.now()+'-'+Math.random().toString(36).slice(2)}
 function nowTime(){return new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}
 function setSave(kind,title,sub){
@@ -30,7 +34,7 @@ async function saveNow(){
     try{localStorage.setItem(STATE_KEY,raw);saved=true}catch(e){console.warn('localStorage save failed',e)}
     if(!saved)throw new Error('No local storage backend available');
     setSave('ok','Guardado automático activo','Último guardado confirmado: '+nowTime());
-  }catch(e){console.error(e);setSave('bad','Error de guardado local','Toca “Reintentar guardar”. Si continúa, usa el respaldo JSON.')}
+  }catch(e){console.error(e);setSave('bad','Error de guardado local','No se pudo guardar la inspección. Toca “Reintentar guardar”.')}
 }
 function openDB(){
   if(dbPromise)return dbPromise;
@@ -118,7 +122,14 @@ function bindUnit(unit){
  unit.querySelector('.remove').addEventListener('click',()=>{if(confirm('¿Eliminar esta unidad?')){unit.remove();renumber();scheduleSave();renderDashboard();renderMissing()}});
  unit.addEventListener('input',e=>{if(e.target.classList.contains('makeSearch'))showMakeSuggestions(e.target);scheduleSave();updateAll(unit)},true);
  unit.addEventListener('change',e=>{if(e.target.type==='file')saveMedia(e.target);if(e.target.matches('input[type=radio]')){const item=e.target.closest('.item');item.classList.toggle('abnormal',!['Normal','N/A','No inspeccionado'].includes(e.target.value));item.classList.toggle('unable',e.target.value==='No se pudo inspeccionar')}conditional(unit);scheduleSave();updateAll(unit)},true);
- unit.addEventListener('click',e=>{if(e.target.classList.contains('continue')){const step=e.target.closest('.step');step.open=false;const steps=$$(unit,'.step').filter(s=>!s.classList.contains('hidden'));const idx=steps.indexOf(step);if(steps[idx+1]){steps[idx+1].open=true;steps[idx+1].scrollIntoView({behavior:'smooth',block:'start'})}updateAll(unit)} if(e.target.classList.contains('mark-normal')){const step=e.target.closest('.step');$$(step,'.item').forEach(i=>{if(i.querySelector('input[type=radio]:checked'))return;const r=$$(i,'input[type=radio]').find(x=>x.value==='Normal');if(r)r.checked=true});scheduleSave();updateAll(unit)}},true);
+ unit.addEventListener('click',e=>{
+  const cap=e.target.closest('[data-capacity-toggle] button');
+  if(cap){
+    const hidden=unit.querySelector('[data-k="capacityUnit"]');
+    if(hidden){hidden.value=cap.dataset.unit;syncCapacityToggle(unit);scheduleSave();updateAll(unit)}
+    return;
+  }
+  if(e.target.classList.contains('continue')){const step=e.target.closest('.step');step.open=false;const steps=$$(unit,'.step').filter(s=>!s.classList.contains('hidden'));const idx=steps.indexOf(step);if(steps[idx+1]){steps[idx+1].open=true;steps[idx+1].scrollIntoView({behavior:'smooth',block:'start'})}updateAll(unit)} if(e.target.classList.contains('mark-normal')){const step=e.target.closest('.step');$$(step,'.item').forEach(i=>{if(i.querySelector('input[type=radio]:checked'))return;const r=$$(i,'input[type=radio]').find(x=>x.value==='Normal');if(r)r.checked=true});scheduleSave();updateAll(unit)}},true);
  conditional(unit);syncCapacityToggle(unit);setupSearch(unit)
 }
 function setupSearch(unit){const inp=unit.querySelector('.makeSearch'),box=inp.parentElement.querySelector('.suggest');inp.addEventListener('focus',()=>showMakeSuggestions(inp));inp.addEventListener('blur',()=>setTimeout(()=>box.classList.add('hidden'),180))}
@@ -159,7 +170,7 @@ async function shareOrDownload(name,text,type){
  try{if(navigator.canShare?.({files:[file]})){await navigator.share({files:[file],title:name});return true}}catch(e){if(e.name!=='AbortError')console.warn(e)}
  try{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);return true}catch(e){console.error(e);return false}
 }
-async function backup(){await saveNow();const ok=await shareOrDownload('clover-inspeccion-'+($('#date').value||'sesion')+'.json',JSON.stringify(state,null,2),'application/json');$('#bottomActionStatus').textContent=ok?'Respaldo listo para guardar/compartir.':'No se pudo generar el respaldo.'}
+async function backup(){syncStateFromDom();await saveNow();syncStateFromDom();const ok=await shareOrDownload('clover-inspeccion-'+($('#date').value||'sesion')+'.json',JSON.stringify(state,null,2),'application/json');$('#bottomActionStatus').textContent=ok?'Respaldo listo para guardar/compartir.':'No se pudo generar el respaldo.'}
 async function exportCSV(){
   syncStateFromDom();
   const rows=[['Unidad','Marca','Modelo','Grupo','Ítem','Estado','Observación','Clasificación','Notas']];
@@ -168,7 +179,17 @@ async function exportCSV(){
   const ok=await shareOrDownload('clover-hallazgos.csv',csv,'text/csv');
   $('#bottomActionStatus').textContent=ok?'CSV listo para guardar/compartir.':'No se pudo generar el CSV.';
 }
-function report(){syncStateFromDom();const root=$('#reportRoot');root.innerHTML=state.units.map((u,i)=>{const f=u.fields||{},fs=(u.checks||[]).filter(c=>c.status&&!['Normal','N/A','No inspeccionado'].includes(c.status));return`<div class="report-page"><div class="report-head"><img src="./icon-192.png"><div><h1 style="margin:0;color:#17497d;font-size:20px">Clover — Reporte de Inspección</h1><div>${escapeHtml(state.session.client||'')} · ${escapeHtml(state.session.location||'')} · ${escapeHtml(state.session.date||'')}</div></div></div><table class="report-table"><tr><th>Unidad</th><td>${escapeHtml(f.clientUnit||String(i+1))}</td><th>Marca / Modelo</th><td>${escapeHtml((f.make||'')+' '+(f.model||''))}</td></tr><tr><th>Serie</th><td>${escapeHtml(f.serial||'')}</td><th>Horómetro</th><td>${escapeHtml(f.hours||'')}</td></tr><tr><th>Capacidad</th><td>${escapeHtml(f.capacity||'')} ${escapeHtml(f.capacityUnit||'lb')}</td><th>Energía / llantas</th><td>${escapeHtml((f.power||'')+' / '+(f.tires||''))}</td></tr></table><h2 style="color:#17497d">Hallazgos</h2>${fs.length?fs.map(c=>`<div class="report-find"><b>${escapeHtml(c.group)} — ${escapeHtml(c.item)}</b><div>${escapeHtml(c.status)}${c.classification?' · '+escapeHtml(c.classification):''}</div>${c.observation?'<div><b>Observado:</b> '+escapeHtml(c.observation)+'</div>':''}${c.notes?'<div><b>Notas:</b> '+escapeHtml(c.notes)+'</div>':''}</div>`).join(''):'<p>Sin hallazgos anormales registrados.</p>'}<h2 style="color:#17497d">Notas generales</h2><p>${escapeHtml(f.overallNotes||'—')}</p></div>`}).join('');$('#bottomActionStatus').textContent='Abriendo impresión / guardar PDF…';setTimeout(()=>window.print(),100)}
+function report(){
+  try{
+    syncStateFromDom();
+    const root=$('#reportRoot');
+    if(!state.units.length){alert('No hay montacargas en la sesión para generar el reporte.');return;}root.innerHTML=state.units.map((u,i)=>{const f=u.fields||{},fs=(u.checks||[]).filter(c=>c.status&&!['Normal','N/A','No inspeccionado'].includes(c.status));return`<div class="report-page"><div class="report-head"><img src="./icon-192.png"><div><h1 style="margin:0;color:#17497d;font-size:20px">Clover — Reporte de Inspección</h1><div>${escapeHtml(state.session.client||'')} · ${escapeHtml(state.session.location||'')} · ${escapeHtml(state.session.date||'')}</div></div></div><table class="report-table"><tr><th>Unidad</th><td>${escapeHtml(f.clientUnit||String(i+1))}</td><th>Marca / Modelo</th><td>${escapeHtml((f.make||'')+' '+(f.model||''))}</td></tr><tr><th>Serie</th><td>${escapeHtml(f.serial||'')}</td><th>Horómetro</th><td>${escapeHtml(f.hours||'')}</td></tr><tr><th>Capacidad</th><td>${escapeHtml(f.capacity||'')} ${escapeHtml(f.capacityUnit||'lb')}</td><th>Energía / llantas</th><td>${escapeHtml((f.power||'')+' / '+(f.tires||''))}</td></tr></table><h2 style="color:#17497d">Hallazgos</h2>${fs.length?fs.map(c=>`<div class="report-find"><b>${escapeHtml(c.group)} — ${escapeHtml(c.item)}</b><div>${escapeHtml(c.status)}${c.classification?' · '+escapeHtml(c.classification):''}</div>${c.observation?'<div><b>Observado:</b> '+escapeHtml(c.observation)+'</div>':''}${c.notes?'<div><b>Notas:</b> '+escapeHtml(c.notes)+'</div>':''}</div>`).join(''):'<p>Sin hallazgos anormales registrados.</p>'}<h2 style="color:#17497d">Notas generales</h2><p>${escapeHtml(f.overallNotes||'—')}</p></div>`}).join('');$('#bottomActionStatus').textContent='Abriendo impresión / guardar PDF…';setTimeout(()=>window.print(),150);
+  }catch(e){
+    console.error(e);
+    const st=$('#bottomActionStatus');if(st)st.textContent='No se pudo generar el reporte PDF.';
+    alert('No se pudo generar el reporte PDF. Revisa que la inspección esté cargada e intenta nuevamente.');
+  }
+}
 async function load(){
  try{
    let raw=null;
