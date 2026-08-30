@@ -30,10 +30,29 @@ button{font:inherit;min-height:44px;padding:10px 14px;border-radius:12px;border:
 .float-save{position:fixed;z-index:9999;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));border:0;border-radius:999px;background:var(--green);color:white;box-shadow:0 8px 28px rgba(0,0,0,.18);min-width:135px}.float-save.saving{background:#8e7620}.float-save.error{background:var(--red)}
 .report-root{display:none}
 @media print{body{background:#fff}.screen{display:none!important}.report-root{display:block!important}.report-page{page-break-after:always;padding:8px}.report-page:last-child{page-break-after:auto}.report-head{display:flex;gap:12px;align-items:center;border-bottom:2px solid var(--navy);padding-bottom:9px;margin-bottom:12px}.report-head img{width:70px}.report-table{width:100%;border-collapse:collapse;font-size:12px}.report-table th,.report-table td{border:1px solid #cfd8dc;padding:6px;text-align:left;vertical-align:top}.report-find{border:1px solid #d7dfe3;padding:8px;border-radius:8px;margin:8px 0;break-inside:avoid}}
+
+/* v0.7 */
+.grid2>div,.grid3>div{min-width:0}
+input[type="date"]{width:100%;max-width:100%;min-width:0;display:block;-webkit-appearance:none;appearance:none}
+.other-input{margin-top:12px}
+.capacity-wrap{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
+.unit-toggle{display:inline-flex;border:1px solid #b9c8d1;border-radius:12px;overflow:hidden;background:#fff;min-height:46px}
+.unit-toggle button{border:0;border-radius:0;min-width:52px;padding:8px 10px;background:#fff;color:var(--muted)}
+.unit-toggle button.active{background:var(--navy);color:#fff}
+.photo-preview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.photo-preview{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#f7fafb;min-height:90px}
+.photo-preview img{width:100%;height:100px;object-fit:cover;display:block}
+.photo-preview .file-meta{padding:6px;font-size:11px;color:var(--muted);word-break:break-word}
+.photo-preview .delete-media{position:absolute;right:5px;top:5px;width:32px;height:32px;min-height:32px;border-radius:50%;border:0;background:rgba(162,58,53,.92);color:#fff;padding:0;font-size:18px;display:flex;align-items:center;justify-content:center}
+.ev-label.single{background:#eef5fb;border-color:#bfd6e6;min-height:50px}
+.bottom-status{margin:8px 0;font-size:13px;color:var(--muted)}
+.save-panel.error-state{border-color:#e5b5b1;background:#fff7f6}
+.save-panel.ok-state{border-color:#cfe6cc;background:#f7fcf6}
+
 </style>
 </head>
 <body>
-<header class="screen"><div class="head"><img src="./icon-192.png" alt="Clover"><div><h1>Inspección de Condición Base y Planeación de Servicio</h1><p>Borrador técnico v0.6 · Español · Móvil · Offline · Guardado automático</p></div></div></header>
+<header class="screen"><div class="head"><img src="./icon-192.png" alt="Clover"><div><h1>Inspección de Condición Base y Planeación de Servicio</h1><p>Borrador técnico v0.7 · Español · Móvil · Offline · Guardado automático</p></div></div></header>
 <main class="screen">
 <div class="notice"><b>Objetivo del piloto:</b> documentar la condición real de cada montacargas, necesidades inmediatas, mantenimiento diferido y exposición probable de servicio sin pedir al técnico que determine precio o riesgo comercial.</div>
 <section class="save-panel"><div class="save-left"><span id="saveDot" class="dot"></span><div><div id="saveTitle" class="save-title">Inicializando guardado…</div><div id="saveSub" class="small">La app confirmará cuando el estado esté almacenado.</div></div></div><div class="actions"><button id="persistBtn" type="button">Proteger almacenamiento</button><button id="importBtn" type="button">Importar respaldo</button><input id="importFile" type="file" accept=".json,application/json" hidden></div></section>
@@ -45,7 +64,6 @@ button{font:inherit;min-height:44px;padding:10px 14px;border-radius:12px;border:
 <div><label>Cliente / empresa</label><input id="client" autocomplete="organization"></div>
 <div><label>Ubicación</label><input id="location" autocomplete="street-address" placeholder="Planta / ciudad"></div>
 <div><label>Técnico</label><input id="tech" autocomplete="name"></div>
-<div><label>Aprendiz</label><input id="apprentice" autocomplete="name"></div>
 <div><label>Fecha</label><input id="date" type="date"></div>
 <div><label>Notas de la sesión</label><input id="sessionNotes" placeholder="Opcional"></div>
 </div>
@@ -56,7 +74,7 @@ button{font:inherit;min-height:44px;padding:10px 14px;border-radius:12px;border:
 <div id="units"></div>
 
 <section class="card missing"><h2>Revisión antes de cerrar</h2><div id="missingSummary" class="small"></div><div id="missingGroups"></div></section>
-<div class="actions"><button id="backupBtn" type="button" class="primary">Descargar respaldo JSON</button><button id="findingsCsvBtn" type="button">Exportar hallazgos CSV</button><button id="pdfBtn" type="button">Generar reporte PDF</button><button id="clearBtn" type="button" class="danger">Borrar sesión</button></div>
+<div id="bottomActionStatus" class="bottom-status"></div><div class="actions"><button id="backupBtn" type="button" class="primary">Descargar respaldo JSON</button><button id="findingsCsvBtn" type="button">Exportar hallazgos CSV</button><button id="pdfBtn" type="button">Generar reporte PDF</button><button id="clearBtn" type="button" class="danger">Borrar sesión</button></div>
 </main>
 <button id="floatSave" type="button" class="float-save screen">✓ Guardado</button>
 <section id="reportRoot" class="report-root"></section>
@@ -75,13 +93,22 @@ button{font:inherit;min-height:44px;padding:10px 14px;border-radius:12px;border:
 <div><label>Modelo</label><input data-k="model" autocomplete="off"></div>
 <div><label>Número de serie</label><input data-k="serial" autocomplete="off"></div>
 <div><label>Año</label><input data-k="year" inputmode="numeric" pattern="[0-9]*" maxlength="4"></div>
-<div><label>Capacidad nominal</label><div class="inline"><input data-k="capacity" inputmode="numeric" pattern="[0-9]*" placeholder="5000"><span class="suffix">lb</span></div></div>
+<div><label>Capacidad nominal</label>
+      <div class="capacity-wrap">
+        <input data-k="capacity" inputmode="decimal" pattern="[0-9.]*" placeholder="5000">
+        <div class="unit-toggle" data-capacity-toggle>
+          <button type="button" data-unit="lb" class="active">lb</button>
+          <button type="button" data-unit="kg">kg</button>
+        </div>
+      </div>
+      <input type="hidden" data-k="capacityUnit" value="lb">
+    </div>
 <div><label>Horómetro</label><input data-k="hours" inputmode="decimal" pattern="[0-9.]*"></div>
 <div><label>Tipo de energía</label><select data-k="power"><option value="">Seleccionar</option><option>LP</option><option>Gasolina</option><option>Diesel</option><option>Eléctrico</option><option>Otro</option></select></div>
 <div><label>Tipo de llanta</label><select data-k="tires"><option value="">Seleccionar</option><option>Cushion</option><option>Sólida neumática</option><option>Neumática de aire</option><option>Poliuretano</option><option>Otro / desconocido</option></select></div>
-<div><label>Tipo de mástil</label><select data-k="mast"><option value="">Seleccionar</option><option>2 etapas / Duplex</option><option>3 etapas / Triplex</option><option>4 etapas / Quad</option><option>Simplex</option><option>Full free lift</option><option>Desconocido</option><option>Otro</option></select><input data-k="mastOther" class="hidden" placeholder="Otro tipo"></div>
-<div><label>Aditamento(s)</label><select data-k="attachment"><option value="">Seleccionar</option><option>Ninguno</option><option>Desplazador lateral</option><option>Posicionador de horquillas</option><option>Clamp</option><option>Paper roll clamp</option><option>Carton clamp</option><option>Rotator</option><option>Push/Pull</option><option>Bale clamp</option><option>Multiple load handler</option><option>Otro</option></select><input data-k="attachmentOther" class="hidden" placeholder="Otro aditamento"></div>
-<div><label>Largo de horquillas</label><select data-k="forkLength"><option value="">Seleccionar</option><option>36"</option><option>42"</option><option>48"</option><option>54"</option><option>60"</option><option>72"</option><option>84"</option><option>96"</option><option>Otro</option></select><input data-k="forkLengthOther" class="hidden" placeholder="Otro largo"></div>
+<div><label>Tipo de mástil</label><select data-k="mast"><option value="">Seleccionar</option><option>2 etapas / Duplex</option><option>3 etapas / Triplex</option><option>4 etapas / Quad</option><option>Simplex</option><option>Full free lift</option><option>Desconocido</option><option>Otro</option></select><input data-k="mastOther" class="hidden other-input" placeholder="Otro tipo"></div>
+<div><label>Aditamento(s)</label><select data-k="attachment"><option value="">Seleccionar</option><option>Ninguno</option><option>Desplazador lateral</option><option>Posicionador de horquillas</option><option>Clamp</option><option>Paper roll clamp</option><option>Carton clamp</option><option>Rotator</option><option>Push/Pull</option><option>Bale clamp</option><option>Multiple load handler</option><option>Otro</option></select><input data-k="attachmentOther" class="hidden other-input" placeholder="Otro aditamento"></div>
+<div class="fork-length-wrap hidden"><label>Largo de horquillas</label><select data-k="forkLength"><option value="">Seleccionar</option><option>36"</option><option>42"</option><option>48"</option><option>54"</option><option>60"</option><option>72"</option><option>84"</option><option>96"</option><option>Otro</option></select><input data-k="forkLengthOther" class="hidden other-input" placeholder="Otro largo"></div>
 <div><label>Estado operativo actual</label><select data-k="operational"><option>Operando</option><option>Operando con problema reportado</option><option>Operación limitada</option><option>Fuera de servicio</option><option>No probado / desconocido</option></select></div>
 </div>
 <label>Problemas reportados por operador</label><div class="quick concerns"></div>
@@ -105,6 +132,6 @@ button{font:inherit;min-height:44px;padding:10px 14px;border-radius:12px;border:
 </article>
 </template>
 
-<script src="./app.js?v=060"></script>
+<script src="./app.js?v=070"></script>
 </body>
 </html>
