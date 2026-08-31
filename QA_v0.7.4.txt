@@ -1,0 +1,18 @@
+Clover Inspection PWA v0.7.4 - device QA
+
+1. Confirm Pilot v0.7.4.
+2. Confirm Add equipment buttons are centered and only the global top/bottom buttons exist.
+3. Open one unit and open sections 5, 6, 8 in sequence; only one section may remain open.
+4. Confirm question metadata shows ID + Required/Optional on one line, with the question below.
+5. Confirm More options is not clipped at iPhone widths.
+6. Confirm Add photo labels contain no camera emoji.
+7. Confirm fleet progress appears above and below the unit list.
+8. Add a complete set of baseline photos and at least three abnormal findings with evidence.
+9. Generate preliminary PDF with incomplete unit: PRELIMINARY marker must appear.
+10. Complete/finalize unit and generate final PDF.
+11. PDF page 1 must use compact specification block + condition table.
+12. Standard Photos page must use a 4-column labeled grid.
+13. Finding/Damage Photos page must group abnormal evidence in a labeled grid.
+14. Service Planning page must group classified findings when present.
+15. Confirm no duration/minutes appear in app or PDF.
+16. Re-run offline save/reopen and photo persistence regression.

@@ -1,0 +1,19 @@
+Clover Inspection PWA v0.7.4
+
+Primary change: Russell-style Clover PDF report engine.
+- Compact condition-report page with specifications, unit photo, and condition table.
+- Standard photo pages use a 4-column labeled grid.
+- Finding/damage evidence pages use a 4-column labeled grid.
+- Service-planning summary page is added when findings/notes exist.
+- Preliminary reports are clearly marked.
+
+UI corrections:
+- Center Add Equipment buttons.
+- Remove duplicate per-unit Add Equipment button.
+- Remove camera emoji from photo controls.
+- Only one section open at a time within the active unit.
+- More Options responsive sizing.
+- Question metadata line: ID + Required/Optional, question below.
+- Fleet progress repeated above and below equipment list.
+
+Market/model catalog enrichment is intentionally deferred to a later patch.
