@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 
-const VERSION='0.7.4';
+const VERSION='0.7.5';
 const PACKAGE_LANG=(window.CLOVER_PACKAGE_LANG||document.documentElement.lang||'es').toLowerCase().startsWith('en')?'en':'es';
 const STATE_KEY=PACKAGE_LANG==='en'?'clover-inspection-en-v072-state':'clover-inspeccion-v07-state';
 const DB_NAME=PACKAGE_LANG==='en'?'clover-inspection-en-v072':'clover-inspeccion-v07';
@@ -28,7 +28,7 @@ const alpha=arr=>[...arr].sort((a,b)=>String(a[1]).localeCompare(String(b[1]),LA
 const UI={
   headerTitle:t('Inspección de Condición Base y Planeación de Servicio','Baseline Condition & Service Planning Inspection'),
   headerSub:t('Aplicación de campo · Móvil · Offline · Guardado automático','Field app · Mobile · Offline · Automatic saving'),
-  version:t('Piloto v0.7.4','Pilot v0.7.4'),
+  version:t('Piloto v0.7.5','Pilot v0.7.5'),
   pilot:t('<b>Objetivo del piloto:</b> documentar la condición real de cada equipo, necesidades inmediatas, mantenimiento diferido y exposición probable de servicio sin pedir al técnico que determine precio o riesgo comercial.','<b>Pilot objective:</b> document each unit’s actual condition, immediate needs, deferred maintenance and likely service exposure without asking the technician to determine pricing or commercial risk.'),
   feedback:t('<b>Retroalimentación de campo:</b> confirma si el orden coincide con la inspección real, qué sobra o falta, qué debería resolverse con un toque y qué requiere herramientas adicionales.','<b>Field feedback:</b> confirm whether the order matches the real inspection, what is missing or redundant, what should take one tap, and what requires additional tools.'),
   sessionHeading:t('Sesión de inspección','Inspection session'), client:t('Cliente / empresa','Client / company'), location:t('Ubicación','Location'), tech:t('Técnico','Technician'), date:t('Fecha','Date'), sessionNotes:t('Notas de la sesión','Session notes'),
@@ -521,59 +521,139 @@ function reportStatusColor(code){
 }
 function pdfStatusLabel(code){return STATUS_LABELS[code]||code||t('Pendiente','Pending')}
 function pdfCircle(pdf,p,x,y,r,color){const k=.5522847498,cy=PDF_H-y,rr=r,ox=rr*k,oy=rr*k;const c=color||[120,125,132];p.ops.push(`${(c[0]/255).toFixed(3)} ${(c[1]/255).toFixed(3)} ${(c[2]/255).toFixed(3)} rg ${(x+rr).toFixed(2)} ${cy.toFixed(2)} m ${(x+rr).toFixed(2)} ${(cy+oy).toFixed(2)} ${(x+ox).toFixed(2)} ${(cy+rr).toFixed(2)} ${x.toFixed(2)} ${(cy+rr).toFixed(2)} c ${(x-ox).toFixed(2)} ${(cy+rr).toFixed(2)} ${(x-rr).toFixed(2)} ${(cy+oy).toFixed(2)} ${(x-rr).toFixed(2)} ${cy.toFixed(2)} c ${(x-rr).toFixed(2)} ${(cy-oy).toFixed(2)} ${(x-ox).toFixed(2)} ${(cy-rr).toFixed(2)} ${x.toFixed(2)} ${(cy-rr).toFixed(2)} c ${(x+ox).toFixed(2)} ${(cy-rr).toFixed(2)} ${(x+rr).toFixed(2)} ${(cy-oy).toFixed(2)} ${(x+rr).toFixed(2)} ${cy.toFixed(2)} c f\n`)}
-function pdfHeaderRussell(pdf,p,logoId,title,unitNo,serial,preliminary){
-  pdf.rect(p,36,12,523,45,[145,150,154]);
-  if(logoId)pdf.image(p,logoId,44,16,38,38);
-  const titleSize=String(title||'').length>24?8.6:9.8;pdf.text(p,385,29,title,titleSize,true,[255,255,255]);
-  if(unitNo)pdf.text(p,385,42,`${t('Unidad','Unit')} ${unitNo}`,7.2,true,[255,255,255]);
-  if(serial)pdf.text(p,385,52,`${t('Serie','Serial')} ${serial}`,6.3,false,[245,246,247]);
-  pdf.rect(p,36,57,523,2.5,[212,175,55]);
-  if(preliminary){pdf.rect(p,320,62,239,18,[249,231,233]);pdf.text(p,331,75,t('PRELIMINAR - INSPECCION INCOMPLETA','PRELIMINARY - INCOMPLETE INSPECTION'),7.2,true,[169,47,58])}
+function pdfHeaderRussell(pdf,p,logoId,title,unitNo,serial,preliminary,reportMeta){
+  const dark=[15,17,22],gold=[212,175,55],whiteC=[255,255,255],muted=[230,232,235],coral=[226,75,75];
+  pdf.rect(p,36,12,523,54,dark);
+  pdf.rect(p,36,66,523,2.5,gold);
+  if(logoId)pdf.image(p,506,18,42,42);
+  const titleSize=String(title||'').length>30?8.4:10.4;
+  pdf.text(p,48,29,title,titleSize,true,whiteC);
+  if(unitNo)pdf.text(p,48,45,`${t('UNIDAD','CLIENT UNIT ID')}: ${unitNo}`,6.8,true,whiteC);
+  if(serial)pdf.text(p,48,57,`${t('SERIE','SERIAL NO')}: ${serial}`,6.6,false,muted);
+  const rx=488;
+  const date=state.session.date||'';
+  const tech=state.session.tech||'-';
+  const created=reportMeta?.generatedAt?fmtTimestamp(reportMeta.generatedAt):'-';
+  pdf.text(p,385,29,t('Fecha de inspeccion:','Inspection Date:'),6.2,false,muted);pdf.text(p,rx,29,date||'-',6.4,true,whiteC);
+  pdf.text(p,409,43,t('Tecnico:','Technician:'),6.2,false,muted);pdf.text(p,rx,43,tech,6.4,true,whiteC);
+  pdf.text(p,380,57,t('Reporte creado:','Report Created:'),6.2,false,muted);pdf.text(p,rx,57,created,6.4,true,whiteC);
+  if(preliminary){pdf.rect(p,321,72,238,18,[252,236,238]);pdf.text(p,333,84,t('PRELIMINAR - INCOMPLETA','PRELIMINARY - INCOMPLETE'),7.1,true,[180,55,65])}
 }
-function pdfFooter(pdf,p,index,total,generatedAt){pdf.line(p,36,806,559,806,[210,213,217]);pdf.text(p,36,820,t('Clover - Soluciones para el Manejo de Materiales','Clover - Material Handling Solutions'),7.2,true,[95,100,107]);pdf.text(p,36,830,t('Reporte generado: ','Report generated: ')+fmtTimestamp(generatedAt),6.8,false,[110,115,121]);pdf.text(p,522,830,`${index}/${total}`,7,false,[102,107,115])}
-function reportCategory(item){const n=Number(item?.sectionNum||0);const map={5:t('Seguridad','Safety'),6:t('Horquillas / mastil','Forks / mast'),7:t('Direccion / chasis','Steering / chassis'),8:t('Sistema hidraulico','Hydraulic system'),9:t('Sistema de potencia','Power system'),10:t('Llantas','Tires'),11:t('PM diferido','Deferred maintenance'),12:t('Condicion general','General condition'),13:t('Prueba funcional','Functional test')};return map[n]||item?.sectionTitle||''}
+function pdfFooter(pdf,p,index,total){
+  pdf.line(p,36,806,559,806,[184,188,194],.55);
+  pdf.text(p,36,822,t('Clover - Soluciones para el Manejo de Materiales','Clover - Material Handling Solutions'),6.9,true,[102,107,115]);
+  pdf.text(p,36,832,'CM-INS-'+String(state.session.date||'').replaceAll('-','')+'-'+String(index).padStart(2,'0'),6.1,false,[120,125,132]);
+  pdf.text(p,531,827,`${index}/${total}`,6.7,false,[102,107,115]);
+}
+function reportCategory(item){const n=Number(item?.sectionNum||0);const map={5:t('Seguridad','Safety'),6:t('Horquillas / mastil / sistema de carga','Forks / mast / load system'),7:t('Direccion / chasis','Steering / chassis'),8:t('Sistema hidraulico','Hydraulic system'),9:t('Sistema de potencia','Power system'),10:t('Llantas','Tires'),11:t('PM / mantenimiento diferido','PM / deferred maintenance'),12:t('Condicion general / indicadores de abuso','General condition / abuse indicators'),13:t('Prueba funcional','Functional test')};return map[n]||item?.sectionTitle||''}
 function reportComment(c){const bits=[];if(c.observation)bits.push(c.observation);if(c.classificationCode)bits.push(ACTION_LABELS[c.classificationCode]||c.classificationCode);if(c.notes)bits.push(c.notes);if(c.unableReasonCode)bits.push(UNABLE_REASONS[c.unableReasonCode]||c.unableReasonCode);return bits.join(' - ')}
 function specValue(f,key){const v=f?.[key];if(['equipmentCategory','equipmentType','power','tires','mast','attachment','operational','forkLength'].includes(key))return displayField(key,v)||'-';return String(v||'-')}
 function baselineRuleStateForFields(f,rule){const type=f?.equipmentType||'';if(rule==='optional')return{applicable:true,required:false};if(rule==='always')return{applicable:true,required:true};if(rule==='fourwheel')return{applicable:!type||['sitdown_4wheel','heavy_capacity','rough_terrain'].includes(type),required:['sitdown_4wheel','heavy_capacity','rough_terrain'].includes(type)};if(rule==='threewheel')return{applicable:type==='three_wheel_electric',required:type==='three_wheel_electric'};if(rule==='counterbalance')return{applicable:!type||['sitdown_4wheel','three_wheel_electric','heavy_capacity','rough_terrain','standup_counterbalance'].includes(type),required:['sitdown_4wheel','three_wheel_electric','heavy_capacity','rough_terrain','standup_counterbalance'].includes(type)};return{applicable:true,required:false}}
 async function pdfImageForRecord(pdf,rec,max=900){if(!rec||!String(rec.type||'').startsWith('image/'))return null;try{const im=await jpegFromBlob(rec.blob,max);return{id:pdf.img(im.bytes,im.w,im.h),w:im.w,h:im.h}}catch(e){return null}}
 function fitImage(pdf,p,im,x,y,w,h){if(!im)return;const ratio=Math.min(w/im.w,h/im.h),iw=im.w*ratio,ih=im.h*ratio;pdf.image(p,im.id,x+(w-iw)/2,y+(h-ih)/2,iw,ih)}
-function drawSpecLine(pdf,p,x,y,label,value,max=26){pdf.text(p,x,y,label.toUpperCase(),6.2,true,[45,49,55]);const lines=wrapText(value||'-',max).slice(0,2);lines.forEach((line,i)=>pdf.text(p,x+52,y+i*6.8,line,6.6,false,[36,39,44]))}
-async function drawConditionReport(pdf,u,unitMedia,logoId,pre){
-  const f=u.fields||{},unitNo=f.clientUnit||'-',serial=f.serial||'-';let p=pdf.addPage();pdfHeaderRussell(pdf,p,logoId,t('REPORTE DE CONDICION','CONDITION REPORT'),unitNo,serial,pre);
+function reportStatusColor(code){const m={normal:[46,125,50],monitor:[60,140,72],repair:[226,75,75],major:[180,35,44],observed:[160,111,0],function_abnormal:[60,140,72],not_functioning:[226,75,75],not_observed:[46,125,50]};return m[code]||[102,107,115]}
+function evidenceKeySet(item){return item?.ev||[`finding-${item?.id}`]}
+function evidenceRecordsForItem(item,unitMedia){const keys=evidenceKeySet(item);return unitMedia.filter(r=>keys.includes(r.key)).sort((a,b)=>String(a.createdAt||'').localeCompare(String(b.createdAt||'')))}
+function evidenceRefsForItem(item,unitMedia){let pi=0,vi=0;return evidenceRecordsForItem(item,unitMedia).map(r=>String(r.type||'').startsWith('video/')?`${item.id}.V${++vi}`:`${item.id}.${++pi}`)}
+function mediaTimestamp(rec){return rec?.createdAt?fmtTimestamp(rec.createdAt):''}
+function baselineEvidenceRef(slot){return `${slot.qid}.1`}
+function pdfLeaderSpec(pdf,p,x,y,w,label,value){
+  const labelText=String(label||'');const valueText=String(value||'-');
+  pdf.text(p,x,y,labelText,7.6,false,[26,29,34]);
+  const valueW=Math.max(30,Math.min(w-38,valueText.length*4.2));
+  const vx=x+w;
+  pdf.text(p,vx-valueW+2,y,valueText,7.8,true,[26,29,34]);
+  const start=x+Math.min(82,labelText.length*4.2)+4,end=vx-valueW-3;
+  if(end>start){for(let dx=start;dx<end;dx+=3.3)pdf.text(p,dx,y,'.',5.6,false,[184,188,194])}
+}
+function pdfTextLines(pdf,p,text,x,y,maxChars,size=6.6,bold=false,color=[45,49,55]){const lines=wrapText(String(text||''),maxChars);lines.forEach((line,i)=>pdf.text(p,x,y+i*(size+2.1),line,size,bold,color));return lines}
+function verticalCenteredTop(y,rowH,lineCount,size){const lineH=size+2.1,total=Math.max(1,lineCount)*lineH;return y+(rowH-total)/2+size}
+function drawConditionHeader(pdf,p,y){
+  const xs=[36,73,221,279,482,559];
+  pdf.rect(p,36,y,523,19,[15,17,22]);
+  const heads=[t('ID','ID'),t('ITEM','ITEM'),t('ESTADO','STATUS'),t('COMENTARIOS / NOTAS','COMMENTS / NOTES'),t('EVIDENCIA','EVIDENCE')];
+  pdf.text(p,43,y+13,heads[0],6.7,true,[255,255,255]);pdf.text(p,79,y+13,heads[1],6.7,true,[255,255,255]);
+  pdf.text(p,(221+279)/2-15,y+13,heads[2],6.7,true,[255,255,255]);pdf.text(p,287,y+13,heads[3],6.7,true,[255,255,255]);pdf.text(p,(482+559)/2-14,y+13,heads[4],6.7,true,[255,255,255]);
+  return y+19;
+}
+function drawSectionBand(pdf,p,y,item){
+  const title=`${item.sectionNum} - ${reportCategory(item).toUpperCase()}`;
+  pdf.rect(p,36,y,523,18,[231,233,236]);pdf.text(p,43,y+12.5,title,7.6,true,[26,29,34]);return y+18;
+}
+function drawConditionRow(pdf,p,y,row,unitMedia){
+  const {c,item}=row;const itemText=item.label,status=pdfStatusLabel(c.statusCode),comment=reportComment(c),evidence=evidenceRefsForItem(item,unitMedia).join(', ');
+  const itemLines=wrapText(itemText,28),commentLines=wrapText(comment||'',38),evLines=wrapText(evidence||'',15),statusLines=wrapText(status||'',12);
+  const maxLines=Math.max(1,itemLines.length,commentLines.length,evLines.length,statusLines.length);const rh=Math.max(18,8+maxLines*7.4);
+  pdf.rect(p,36,y,523,rh,[255,255,255],[190,194,199],.45);
+  [73,221,279,482].forEach(xx=>pdf.line(p,xx,y,xx,y+rh,[190,194,199],.4));
+  const baseId=verticalCenteredTop(y,rh,1,6.5);pdf.text(p,43,baseId,item.id,6.5,false,[45,49,55]);
+  const baseItem=verticalCenteredTop(y,rh,itemLines.length,6.5);itemLines.forEach((line,i)=>pdf.text(p,79,baseItem+i*8.6,line,6.5,false,[45,49,55]));
+  const statusColor=reportStatusColor(c.statusCode),baseStatus=verticalCenteredTop(y,rh,statusLines.length,6.2);statusLines.forEach((line,i)=>{const approx=line.length*3.3;pdf.text(p,250-approx/2,baseStatus+i*8.3,line,6.2,true,statusColor)});
+  const baseCom=verticalCenteredTop(y,rh,commentLines.length,6.2);commentLines.forEach((line,i)=>pdf.text(p,287,baseCom+i*8.3,line,6.2,false,[45,49,55]));
+  const baseEv=verticalCenteredTop(y,rh,evLines.length,6.0);evLines.forEach((line,i)=>{const approx=line.length*3.1;pdf.text(p,520-approx/2,baseEv+i*8.1,line,6.0,true,[102,107,115])});
+  return y+rh;
+}
+async function drawConditionReport(pdf,u,unitMedia,logoId,pre,reportMeta){
+  const f=u.fields||{},unitNo=f.clientUnit||'-',serial=f.serial||'-';let p=pdf.addPage();pdfHeaderRussell(pdf,p,logoId,t('REPORTE DE CONDICION - ','CONDITION REPORT - ')+(pre?t('PRELIMINAR','PRELIMINARY'):t('FINAL','FINAL')),unitNo,serial,pre,reportMeta);
   const heroRec=unitMedia.find(r=>['right-side','front','foto1'].includes(r.key)&&String(r.type||'').startsWith('image/'));const hero=await pdfImageForRecord(pdf,heroRec,700);
-  let sy=91;const c1=[[t('Marca','Make'),f.make||'-'],[t('Modelo','Model'),f.model||'-'],[t('Ano','Year'),f.year||'-'],[t('Unidad','Unit'),unitNo],[t('Serie','Serial'),serial]];
-  const c2=[[t('Horometro','Hour meter'),f.hours||'-'],[t('Energia','Power'),specValue(f,'power')],[t('Capacidad','Capacity'),`${f.capacity||'-'} ${f.capacityUnit||''}`.trim()],[t('Llantas','Tires'),specValue(f,'tires')],[t('Mastil','Mast'),specValue(f,'mast')]];
-  const fork= ['standard_forks','sideshifter','fork_positioner','rotator','push_pull','multiple_load_handler'].includes(f.attachment)&&f.forkLength?specValue(f,'forkLength'):'-';
-  const c3=[[t('Tipo equipo','Equipment type'),specValue(f,'equipmentType')],[t('Aditamento','Attachment'),specValue(f,'attachment')],[t('Horquillas','Fork length'),fork],[t('Estado','Status'),specValue(f,'operational')],[t('Ubicacion','Location'),state.session.location||'-']];
-  for(let i=0;i<5;i++){drawSpecLine(pdf,p,48,sy+i*15,c1[i][0],c1[i][1],18);drawSpecLine(pdf,p,206,sy+i*15,c2[i][0],c2[i][1],18);drawSpecLine(pdf,p,363,sy+i*15,c3[i][0],c3[i][1],17)}
-  pdf.rect(p,476,84,83,74,[244,245,246],[190,194,199]);if(hero)fitImage(pdf,p,hero,478,86,79,70);else{pdf.text(p,493,119,t('SIN FOTO','NO PHOTO'),7,true,[130,135,141])}
-  const cols=[36,112,305,374,559],headers=[t('Categoria','Category'),t('Item','Item'),t('Estado','Status'),t('Comentarios','Comments')];let y=177;
-  const drawHead=(page,yy)=>{pdf.rect(page,36,yy,523,15,[235,237,239],[177,181,186]);for(let i=0;i<4;i++)pdf.text(page,cols[i]+4,yy+10,headers[i],6.5,true,[45,49,55]);return yy+15};
-  y=drawHead(p,y);
+  const specY=102,specH=134;pdf.rect(p,36,specY,523,specH,[255,255,255],[184,188,194],.65);pdf.line(p,441,specY,441,specY+specH,[184,188,194],.65);
+  const fork=['standard_forks','sideshifter','fork_positioner','rotator','push_pull','multiple_load_handler'].includes(f.attachment)&&f.forkLength?specValue(f,'forkLength'):'-';
+  const left=[[t('Tipo de equipo:','Equipment Type:'),specValue(f,'equipmentType')],[t('Marca:','Make:'),f.make||'-'],[t('Modelo:','Model:'),f.model||'-'],[t('Ano:','Year:'),f.year||'-'],[t('Horas:','Hours:'),f.hours||'-'],[t('Capacidad:','Capacity:'),`${f.capacity||'-'} ${f.capacityUnit||''}`.trim()],[t('Energia:','Power Type:'),specValue(f,'power')]];
+  const right=[[t('Llantas:','Tire Type:'),specValue(f,'tires')],[t('Mastil:','Mast Type:'),specValue(f,'mast')],[t('Aditamento:','Attachment:'),specValue(f,'attachment')],[t('Largo de horquillas:','Fork Length:'),fork],[t('Estado operativo:','Operating Status:'),specValue(f,'operational')],[t('Ubicacion:','Location:'),state.session.location||'-'],[t('Voltaje:','Voltage:'),f.voltage||'-']];
+  let sy=121;for(let i=0;i<7;i++){pdfLeaderSpec(pdf,p,50,sy+i*15.5,175,left[i][0],left[i][1]);pdfLeaderSpec(pdf,p,239,sy+i*15.5,188,right[i][0],right[i][1])}
+  pdf.rect(p,450,117,100,95,[244,245,246],[184,188,194],.5);if(hero)fitImage(pdf,p,hero,452,119,96,91);else pdf.text(p,469,165,t('FOTO PRINCIPAL','PRIMARY UNIT PHOTO'),6.3,true,[102,107,115]);
   const rows=(u.checks||[]).map(c=>({c,item:ITEM_BY_ID.get(c.questionId)})).filter(x=>x.item&&x.c.applicable!==false&&Number(x.item.sectionNum)>=5&&Number(x.item.sectionNum)<=13);
-  for(const row of rows){const cat=reportCategory(row.item),itemText=`${row.item.id} ${row.item.label}`,status=pdfStatusLabel(row.c.statusCode),comment=reportComment(row.c);const il=wrapText(itemText,42).slice(0,2),cl=wrapText(comment,43).slice(0,2),rh=Math.max(12,6+Math.max(il.length,cl.length)*7);if(y+rh>796){p=pdf.addPage();pdfHeaderRussell(pdf,p,logoId,t('REPORTE DE CONDICION - CONT.','CONDITION REPORT - CONT.'),unitNo,serial,pre);y=90;y=drawHead(p,y)}pdf.rect(p,36,y,523,rh,[255,255,255],[210,213,216],.5);pdf.text(p,40,y+8,cat,5.8,false,[55,59,64]);il.forEach((line,i)=>pdf.text(p,116,y+8+i*7,line,5.8,false,[55,59,64]));const col=reportStatusColor(row.c.statusCode);pdfCircle(pdf,p,315,y+rh/2,3.2,col);pdf.text(p,322,y+8,status,5.4,false,[55,59,64]);cl.forEach((line,i)=>pdf.text(p,378,y+8+i*7,line,5.4,false,[55,59,64]));y+=rh}
+  let y=254;y=drawConditionHeader(pdf,p,y);let lastSection=null;
+  for(const row of rows){
+    if(lastSection!==row.item.sectionNum){if(y+38>798){p=pdf.addPage();pdfHeaderRussell(pdf,p,logoId,t('REPORTE DE CONDICION - CONT.','CONDITION REPORT - CONT.'),unitNo,serial,pre,reportMeta);y=92;y=drawConditionHeader(pdf,p,y)}y=drawSectionBand(pdf,p,y,row.item);lastSection=row.item.sectionNum}
+    const itemLines=wrapText(row.item.label,28),commentLines=wrapText(reportComment(row.c)||'',38),evLines=wrapText(evidenceRefsForItem(row.item,unitMedia).join(', '),15),statusLines=wrapText(pdfStatusLabel(row.c.statusCode)||'',12),rh=Math.max(18,8+Math.max(1,itemLines.length,commentLines.length,evLines.length,statusLines.length)*7.4);
+    if(y+rh>798){p=pdf.addPage();pdfHeaderRussell(pdf,p,logoId,t('REPORTE DE CONDICION - CONT.','CONDITION REPORT - CONT.'),unitNo,serial,pre,reportMeta);y=92;y=drawConditionHeader(pdf,p,y);y=drawSectionBand(pdf,p,y,row.item)}
+    y=drawConditionRow(pdf,p,y,row,unitMedia)
+  }
 }
-async function drawStandardPhotos(pdf,u,unitMedia,logoId,pre){
-  const f=u.fields||{},unitNo=f.clientUnit||'-',serial=f.serial||'-';const slots=[{qid:'1-K',key:'placa',title:t('Placa de datos','Data plate'),required:'always'},...BASE_EVIDENCE].filter(s=>baselineRuleStateForFields(f,s.required).applicable);let page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('FOTOS ESTANDAR','STANDARD PHOTOS'),unitNo,serial,pre);let idx=0;const x0=36,gap=8,colW=(523-gap*3)/4,rowH=139,startY=84;
-  for(const slot of slots){if(idx&&idx%20===0){page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('FOTOS ESTANDAR - CONT.','STANDARD PHOTOS - CONT.'),unitNo,serial,pre)}const local=idx%20,col=local%4,row=Math.floor(local/4),x=x0+col*(colW+gap),y=startY+row*rowH;const st=baselineRuleStateForFields(f,slot.required),keys=[slot.key,...(slot.legacyKeys||[])],rec=unitMedia.find(r=>keys.includes(r.key)&&String(r.type||'').startsWith('image/'));const im=await pdfImageForRecord(pdf,rec,800);const label=`${slot.qid} ${slot.title}`;wrapText(label,23).slice(0,2).forEach((line,i)=>pdf.text(page,x,y+7+i*7,line,6.8,true,[35,39,44]));pdf.rect(page,x,y+22,colW,91,[246,247,248],[197,201,205]);if(im)fitImage(pdf,page,im,x+2,y+24,colW-4,87);else{pdf.text(page,x+8,y+65,st.required?t('FOTO REQUERIDA NO CAPTURADA','REQUIRED PHOTO NOT CAPTURED'):t('NO CAPTURADA - OPCIONAL','NOT CAPTURED - OPTIONAL'),5.6,true,st.required?[169,47,58]:[125,130,136])}idx++}
+async function drawStandardPhotos(pdf,u,unitMedia,logoId,pre,reportMeta){
+  const f=u.fields||{},unitNo=f.clientUnit||'-',serial=f.serial||'-';const slots=[{qid:'1-K',key:'placa',title:t('Placa de datos','Data plate'),required:'always'},...BASE_EVIDENCE].filter(s=>baselineRuleStateForFields(f,s.required).applicable);
+  let page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('FOTOS ESTANDAR','STANDARD PHOTOS'),unitNo,serial,pre,reportMeta);pdf.text(page,36,94,t('EVIDENCIA ESTANDARIZADA DE LINEA BASE','STANDARDIZED BASELINE EVIDENCE'),8.5,true,[26,29,34]);
+  let idx=0;const x0=36,gap=10,colW=(523-gap*2)/3,rowH=160,startY=110;
+  for(const slot of slots){if(idx&&idx%12===0){page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('FOTOS ESTANDAR - CONT.','STANDARD PHOTOS - CONT.'),unitNo,serial,pre,reportMeta);pdf.text(page,36,94,t('EVIDENCIA ESTANDARIZADA DE LINEA BASE','STANDARDIZED BASELINE EVIDENCE'),8.5,true,[26,29,34])}
+    const local=idx%12,col=local%3,row=Math.floor(local/3),x=x0+col*(colW+gap),y=startY+row*rowH;const keys=[slot.key,...(slot.legacyKeys||[])],rec=unitMedia.find(r=>keys.includes(r.key)&&String(r.type||'').startsWith('image/'));const im=await pdfImageForRecord(pdf,rec,850);const ref=baselineEvidenceRef(slot);
+    pdf.rect(page,x,y,colW,26,[244,245,246],[184,188,194],.45);pdf.text(page,x+5,y+10,`${ref} - ${slot.title}`,6.5,true,[26,29,34]);if(rec?.createdAt)pdf.text(page,x+5,y+20,t('Capturada ','Captured ')+mediaTimestamp(rec),5.5,false,[102,107,115]);
+    pdf.rect(page,x,y+26,colW,116,[246,247,248],[184,188,194],.45);if(im)fitImage(pdf,page,im,x+2,y+28,colW-4,112);else pdf.text(page,x+14,y+84,t('FOTO NO CAPTURADA','PHOTO NOT CAPTURED'),6.0,true,[120,125,132]);idx++
+  }
 }
-async function drawDamagePhotos(pdf,u,unitMedia,logoId,pre){
-  const f=u.fields||{},unitNo=f.clientUnit||'-',serial=f.serial||'-';const cells=[];for(const c of (u.checks||[])){if(c.applicable===false||!isFindingCode(c.statusCode))continue;const item=ITEM_BY_ID.get(c.questionId);if(!item)continue;const keys=item.ev||[`finding-${item.id}`];for(const rec of unitMedia.filter(r=>keys.includes(r.key)))cells.push({c,item,rec})}if(!cells.length)return;let page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('FOTOS DE HALLAZGOS','DAMAGE / FINDING PHOTOS'),unitNo,serial,pre);const x0=36,gap=8,colW=(523-gap*3)/4,rowH=151,startY=84;for(let i=0;i<cells.length;i++){if(i&&i%16===0){page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('FOTOS DE HALLAZGOS - CONT.','DAMAGE / FINDING PHOTOS - CONT.'),unitNo,serial,pre)}const local=i%16,col=local%4,row=Math.floor(local/4),x=x0+col*(colW+gap),y=startY+row*rowH,{c,item,rec}=cells[i];wrapText(`${item.id} ${item.label}`,23).slice(0,2).forEach((line,j)=>pdf.text(page,x,y+7+j*7,line,6.8,true,[35,39,44]));if(String(rec.type||'').startsWith('image/')){const im=await pdfImageForRecord(pdf,rec,800);pdf.rect(page,x,y+23,colW,100,[246,247,248],[197,201,205]);if(im)fitImage(pdf,page,im,x+2,y+25,colW-4,96)}else{pdf.rect(page,x,y+23,colW,100,[246,247,248],[197,201,205]);pdf.text(page,x+8,y+60,t('EVIDENCIA EN VIDEO','VIDEO EVIDENCE'),7,true,[95,100,107]);wrapText(rec.name||'video',20).slice(0,2).forEach((line,j)=>pdf.text(page,x+8,y+74+j*8,line,6,false,[95,100,107]))}pdf.text(page,x,y+134,pdfStatusLabel(c.statusCode),6.2,true,reportStatusColor(c.statusCode))}
+async function drawDamagePhotos(pdf,u,unitMedia,logoId,pre,reportMeta){
+  const f=u.fields||{},unitNo=f.clientUnit||'-',serial=f.serial||'-';const findings=(u.checks||[]).map(c=>({c,item:ITEM_BY_ID.get(c.questionId)})).filter(x=>x.item&&x.c.applicable!==false&&isFindingCode(x.c.statusCode)&&evidenceRecordsForItem(x.item,unitMedia).length);
+  if(!findings.length)return;let page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('EVIDENCIA ANORMAL','ABNORMAL EVIDENCE'),unitNo,serial,pre,reportMeta);let y=94,lastSection=null;
+  for(const finding of findings){const recs=evidenceRecordsForItem(finding.item,unitMedia),imgs=recs.filter(r=>String(r.type||'').startsWith('image/')),vids=recs.filter(r=>String(r.type||'').startsWith('video/'));
+    const need=imgs.length?250:90;if(y+need>790){page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('EVIDENCIA ANORMAL - CONT.','ABNORMAL EVIDENCE - CONT.'),unitNo,serial,pre,reportMeta);y=94;lastSection=null}
+    if(lastSection!==finding.item.sectionNum){pdf.text(page,36,y,`${finding.item.sectionNum} - ${reportCategory(finding.item).toUpperCase()}`,8.6,true,[26,29,34]);y+=18;lastSection=finding.item.sectionNum}
+    pdf.rect(page,36,y,523,58,[244,245,246]);pdf.text(page,44,y+14,`${finding.item.id} - ${finding.item.label}`,7.3,true,[26,29,34]);const sl=pdfStatusLabel(finding.c.statusCode),sc=reportStatusColor(finding.c.statusCode);pdf.text(page,520-sl.length*3.2,y+14,sl,6.6,true,sc);
+    const cm=wrapText(reportComment(finding.c)||'',84).slice(0,2);cm.forEach((line,i)=>pdf.text(page,44,y+29+i*8,line,6.4,false,[45,49,55]));pdf.text(page,44,y+52,t('Evidencia: ','Evidence: ')+evidenceRefsForItem(finding.item,unitMedia).join(' - '),5.8,true,[102,107,115]);y+=68;
+    let pi=0,vi=0;if(imgs.length){const gap=10,cw=(523-gap)/2,ph=154;for(let i=0;i<imgs.length;i++){if(i>0&&i%2===0){y+=ph+12;if(y+ph>790){page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('EVIDENCIA ANORMAL - CONT.','ABNORMAL EVIDENCE - CONT.'),unitNo,serial,pre,reportMeta);y=94}}
+      const col=i%2,x=36+col*(cw+gap),rec=imgs[i],im=await pdfImageForRecord(pdf,rec,850),ref=`${finding.item.id}.${++pi}`;pdf.rect(page,x,y,cw,24,[244,245,246],[184,188,194],.45);pdf.text(page,x+5,y+10,`${ref} - ${finding.item.label}`,6.3,true,[26,29,34]);if(rec.createdAt)pdf.text(page,x+5,y+20,t('Capturada ','Captured ')+mediaTimestamp(rec),5.4,false,[102,107,115]);pdf.rect(page,x,y+24,cw,ph-24,[246,247,248],[184,188,194],.45);if(im)fitImage(pdf,page,im,x+2,y+26,cw-4,ph-28)}y+=ph+12}
+    if(vids.length){for(const rec of vids){pdf.text(page,44,y,t('Video registrado: ','Video recorded: ')+`${finding.item.id}.V${++vi}`+(rec.createdAt?' - '+mediaTimestamp(rec):''),6.0,false,[102,107,115]);y+=10}y+=6}
+    y+=14
+  }
 }
-function drawServicePlanning(pdf,u,logoId,pre){
-  const f=u.fields||{},unitNo=f.clientUnit||'-',serial=f.serial||'-';const finds=(u.checks||[]).map(c=>({c,item:ITEM_BY_ID.get(c.questionId)})).filter(x=>x.item&&x.c.applicable!==false&&isFindingCode(x.c.statusCode));const hasNotes=String(f.overallNotes||'').trim()||String(f.missingTools||'').trim();if(!finds.length&&!hasNotes)return;let page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('PLANEACION DE SERVICIO','SERVICE PLANNING'),unitNo,serial,pre);let y=90;pdf.text(page,36,y,t('Resumen para revision tecnica','Technical review summary'),12,true,[25,29,34]);y+=16;const groups=[['baseline_repair',t('Reparacion inmediata / linea base','Immediate / baseline repair')],['initial_rehab',t('Rehabilitacion inicial recomendada','Recommended initial rehabilitation')],['monitor',t('Monitorear','Monitor')],['major_eval',t('Componente mayor / evaluacion separada','Major component / separate evaluation')],['repair_replace',t('Evaluar reparar vs reemplazar','Repair-vs-replacement review')],['__unclassified__',t('Hallazgos pendientes de clasificacion','Findings pending classification')]];
-  for(const [code,label] of groups){const rows=finds.filter(x=>(x.c.classificationCode||'__unclassified__')===code);if(!rows.length)continue;if(y>735){page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('PLANEACION DE SERVICIO - CONT.','SERVICE PLANNING - CONT.'),unitNo,serial,pre);y=90}pdf.rect(page,36,y,523,19,[238,239,241]);pdf.text(page,43,y+13,label,8.5,true,[35,39,44]);y+=22;for(const row of rows){const comm=reportComment(row.c)||t('Sin comentario adicional.','No additional comment.'),lines=wrapText(`${row.item.id} ${row.item.label} - ${comm}`,94).slice(0,3),h=8+lines.length*9;if(y+h>790){page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('PLANEACION DE SERVICIO - CONT.','SERVICE PLANNING - CONT.'),unitNo,serial,pre);y=90}lines.forEach((line,i)=>pdf.text(page,45,y+8+i*9,line,7.1,false,[55,59,64]));y+=h+4}}
-  if(f.overallNotes){y+=8;pdf.text(page,36,y,t('Notas generales del tecnico','Technician general notes'),9,true,[35,39,44]);y+=12;for(const line of wrapText(f.overallNotes,96)){pdf.text(page,43,y,line,7.1,false,[55,59,64]);y+=9}}
-  if(f.missingTools){y+=8;pdf.text(page,36,y,t('Informacion / herramienta faltante','Missing information / tool'),9,true,[35,39,44]);y+=12;for(const line of wrapText(f.missingTools,96)){pdf.text(page,43,y,line,7.1,false,[55,59,64]);y+=9}}
+function drawServicePlanning(pdf,u,logoId,pre,reportMeta){
+  const f=u.fields||{},unitNo=f.clientUnit||'-',serial=f.serial||'-';const finds=(u.checks||[]).map(c=>({c,item:ITEM_BY_ID.get(c.questionId)})).filter(x=>x.item&&x.c.applicable!==false&&isFindingCode(x.c.statusCode));const hasNotes=String(f.overallNotes||'').trim()||String(f.missingTools||'').trim();if(!finds.length&&!hasNotes)return;
+  let page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('RESUMEN DE PLANEACION DE SERVICIO','SERVICE PLANNING SUMMARY'),unitNo,serial,pre,reportMeta);let y=100;pdf.text(page,36,y,t('Resumen trazable de hallazgos que requieren accion, monitoreo o evaluacion.','Traceable summary of findings requiring action, monitoring, or further evaluation.'),7.0,false,[102,107,115]);y+=18;
+  const groups=[['baseline_repair',t('REPARACION INMEDIATA / LINEA BASE','IMMEDIATE / BASELINE REPAIR'),[226,75,75]],['initial_rehab',t('REHABILITACION INICIAL RECOMENDADA','RECOMMENDED INITIAL REHABILITATION'),[160,111,0]],['monitor',t('MONITOREAR','MONITOR'),[60,140,72]],['major_eval',t('COMPONENTE MAYOR / EVALUACION SEPARADA','MAJOR COMPONENT / SEPARATE EVALUATION'),[180,35,44]],['repair_replace',t('EVALUAR REPARAR VS REEMPLAZAR','REPAIR-VS-REPLACEMENT REVIEW'),[180,35,44]],['__unclassified__',t('HALLAZGOS PENDIENTES DE CLASIFICACION','FINDINGS PENDING CLASSIFICATION'),[102,107,115]]];
+  for(const [code,label,color] of groups){const rows=finds.filter(x=>(x.c.classificationCode||'__unclassified__')===code);if(!rows.length)continue;if(y+55>790){page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('RESUMEN DE SERVICIO - CONT.','SERVICE SUMMARY - CONT.'),unitNo,serial,pre,reportMeta);y=100}pdf.rect(page,36,y,523,20,color);pdf.text(page,43,y+14,label,7.4,true,[255,255,255]);y+=20;
+    for(const row of rows){const comm=reportComment(row.c)||t('Sin comentario adicional.','No additional comment.'),ev='';const lines=wrapText(`${row.item.id} - ${row.item.label} - ${comm}`,82).slice(0,3),h=11+lines.length*8;if(y+h>792){page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('RESUMEN DE SERVICIO - CONT.','SERVICE SUMMARY - CONT.'),unitNo,serial,pre,reportMeta);y=100}pdf.rect(page,36,y,523,h,[255,255,255],[184,188,194],.4);lines.forEach((line,i)=>pdf.text(page,44,y+12+i*8,line,6.5,false,[45,49,55]));y+=h}
+    y+=12
+  }
+  if(f.overallNotes){pdf.text(page,36,y,t('Notas generales del tecnico','Technician general notes'),8.0,true,[26,29,34]);y+=12;for(const line of wrapText(f.overallNotes,90)){pdf.text(page,44,y,line,6.4,false,[45,49,55]);y+=8}}
+  if(f.missingTools){y+=8;pdf.text(page,36,y,t('Informacion / herramienta faltante','Missing information / tool'),8.0,true,[26,29,34]);y+=12;for(const line of wrapText(f.missingTools,90)){pdf.text(page,44,y,line,6.4,false,[45,49,55]);y+=8}}
 }
 async function buildPdfBlob(selectedUnits,reportMeta){
   const pdf=new SimplePDF(),logo=await loadLogoJpeg(),logoId=logo?pdf.img(logo.bytes,logo.w,logo.h):null,media=await idbGetAllMedia();
-  for(const u of selectedUnits){const m=requiredMetricsFromState(u),pre=reportMeta.type==='preliminary'||m.missing>0,unitMedia=media.filter(r=>r.unitId===u.id);await drawConditionReport(pdf,u,unitMedia,logoId,pre);await drawStandardPhotos(pdf,u,unitMedia,logoId,pre);await drawDamagePhotos(pdf,u,unitMedia,logoId,pre);drawServicePlanning(pdf,u,logoId,pre)}
-  pdf.pages.forEach((p,i)=>pdfFooter(pdf,p,i+1,pdf.pages.length,reportMeta.generatedAt));return pdf.blob();
+  for(const u of selectedUnits){const m=requiredMetricsFromState(u),pre=reportMeta.type==='preliminary'||m.missing>0,unitMedia=media.filter(r=>r.unitId===u.id);await drawConditionReport(pdf,u,unitMedia,logoId,pre,reportMeta);await drawStandardPhotos(pdf,u,unitMedia,logoId,pre,reportMeta);await drawDamagePhotos(pdf,u,unitMedia,logoId,pre,reportMeta);drawServicePlanning(pdf,u,logoId,pre,reportMeta)}
+  pdf.pages.forEach((p,i)=>pdfFooter(pdf,p,i+1,pdf.pages.length));return pdf.blob();
 }
 function requiredMetricsFromState(u){let total=0,done=0;const power=u.fields?.power,items=ALL_ITEMS.filter(i=>!i.variant||(i.variant==='electric'?power==='electric':!!power&&power!=='electric'));for(const item of items){total++;if(u.checks?.find(c=>c.questionId===item.id&&c.statusCode))done++}const requiredFields=['equipmentCategory','equipmentType','clientUnit','make','model','serial','year','capacity','power','mast','hours','tires','attachment','operational'];if(['standard_forks','sideshifter','fork_positioner','rotator','push_pull','multiple_load_handler'].includes(u.fields?.attachment))requiredFields.push('forkLength');for(const k of requiredFields){total++;if(String(u.fields?.[k]||'').trim())done++}total++;if(u.fields?.knowledgeablePresent){done++;if(u.fields.knowledgeablePresent==='available_yes'){for(const k of ['knowledgeableRole','serviceRecords','maintenanceProvider','recurringStatus','majorRepairStatus','deferredStatus','problemsReported']){total++;if(u.fields?.[k])done++}}}return{done,total,missing:Math.max(0,total-done)}}
 async function generateSelectedPdf(){const ids=selectedPdfIds();if(!ids.length){alert(t('Selecciona al menos una unidad.','Select at least one unit.'));return}const domUnits=$$('#units .unit'),selectedDom=domUnits.filter(u=>ids.includes(u.dataset.unitId)),allSelected=selectedDom.length===domUnits.length,allResponses=selectedDom.every(u=>u.dataset.missing==='0'),generatedAt=nowIso();if(allSelected&&allResponses){for(const u of selectedDom)if(!u._meta.completedAt){touchUnit(u,{reopen:false});u._meta.completedAt=generatedAt}sessionMeta.completedAt=generatedAt}
-  syncStateFromDom();const selected=state.units.filter(u=>ids.includes(u.id)),type=selected.every(u=>u.meta?.completedAt)&&selectedDom.every(u=>u.dataset.missing==='0')?'final':'preliminary';const reportMeta={generatedAt,type,includedUnitIds:ids,allSessionUnits:allSelected};state.reports.push(reportMeta);await saveNow();$('#pdfGenerateBtn').disabled=true;$('#pdfDialogStatus').textContent=t('Generando PDF…','Generating PDF…');try{const blob=await buildPdfBlob(selected,reportMeta);const name=(LANG==='es'?'Clover-Reporte-Inspeccion-':'Clover-Inspection-Report-')+(state.session.date||new Date().toISOString().slice(0,10))+'.pdf';await shareOrDownloadBlob(name,blob);$('#bottomActionStatus').textContent=t('PDF listo para guardar/compartir.','PDF ready to save/share.');closePdfDialog();renderDashboard();renderMissing();renderSessionFinish()}catch(e){console.error(e);$('#pdfDialogStatus').textContent=t('No se pudo generar el PDF.','Could not generate PDF.')}finally{$('#pdfGenerateBtn').disabled=false}}
+  syncStateFromDom();const selected=state.units.filter(u=>ids.includes(u.id)),type=selected.every(u=>u.meta?.completedAt)&&selectedDom.every(u=>u.dataset.missing==='0')?'final':'preliminary';const reportMeta={generatedAt,type,language:LANG,includedUnitIds:ids,allSessionUnits:allSelected};state.reports.push(reportMeta);await saveNow();$('#pdfGenerateBtn').disabled=true;$('#pdfDialogStatus').textContent=t('Generando PDF…','Generating PDF…');try{const blob=await buildPdfBlob(selected,reportMeta);const name=(LANG==='es'?'Clover-Reporte-Inspeccion-':'Clover-Inspection-Report-')+(state.session.date||new Date().toISOString().slice(0,10))+'.pdf';await shareOrDownloadBlob(name,blob);$('#bottomActionStatus').textContent=t('PDF listo para guardar/compartir.','PDF ready to save/share.');closePdfDialog();renderDashboard();renderMissing();renderSessionFinish()}catch(e){console.error(e);$('#pdfDialogStatus').textContent=t('No se pudo generar el PDF.','Could not generate PDF.')}finally{$('#pdfGenerateBtn').disabled=false}}
 
 function applyTheme(value){let theme=value||'light';if(theme==='system')theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.body.dataset.theme=theme;const sel=$('#themeSelect');if(sel&&sel.value!==value)sel.value=value||'light'}
 async function load(){try{let raw=null;try{const rec=await idbGet(STATE_STORE,'latest');raw=rec?.raw||null}catch(e){console.warn(e)}if(!raw)try{raw=localStorage.getItem(STATE_KEY)}catch(e){console.warn(e)}if(raw)state=migrateState(JSON.parse(raw));else state=migrateState(state)}catch(e){console.error(e);state=migrateState({})}applyState();let theme='light';try{theme=localStorage.getItem(THEME_KEY)||'light'}catch(e){}applyTheme(theme);setSave('ok',UI.saved,UI.savedSub+nowTime())}
