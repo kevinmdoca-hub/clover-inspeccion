@@ -1,0 +1,36 @@
+Clover Inspection PWA v0.7.6 - device QA
+
+1. Confirm Pilot v0.7.6.
+2. Confirm Add equipment buttons are centered and only the global top/bottom buttons exist.
+3. Open one unit and open sections 5, 6, 8 in sequence; only one section may remain open.
+4. Confirm question metadata shows ID + Required/Optional on one line, with the question below.
+5. Confirm More options is not clipped at iPhone widths.
+6. Confirm Add photo labels contain no camera emoji.
+7. Confirm fleet progress appears above and below the unit list.
+8. Add a complete set of baseline photos and at least three abnormal findings with evidence.
+9. Generate preliminary PDF with incomplete unit: PRELIMINARY marker must appear.
+10. Complete/finalize unit and generate final PDF.
+11. PDF page 1 must use compact specification block + condition table.
+12. Standard Photos page must use a 3-column labeled grid.
+13. Finding/Damage Photos page must group abnormal evidence in a labeled grid.
+14. Service Planning page must group classified findings when present.
+15. Confirm no duration/minutes appear in app or PDF.
+16. Re-run offline save/reopen and photo persistence regression.
+
+PDF v0.7.6 checks:
+- Generate report with Settings > Idioma = Español; headings/statuses must be Spanish.
+- Switch Settings > Idioma = English, allow app reload, then generate report; headings/statuses must be English.
+- Verify 5-column condition table: ID | ITEM | STATUS | COMMENTS/NOTES | EVIDENCE.
+- Verify ID, ITEM, STATUS and EVIDENCE are vertically centered in tall rows; STATUS and EVIDENCE are horizontally centered.
+- Verify condition rows are grouped by numbered inspection section.
+- Verify standard photos include evidence reference + timestamp.
+- Verify abnormal photos reference their exact finding; videos are referenced only.
+- Verify report-created timestamp appears at top and is not duplicated in footer.
+
+
+v0.7.6 focused regression:
+- Open PDF dialog with an incomplete unit and generate a PRELIMINARY report. It must generate/share without an error.
+- Repeat with at least one saved photo so logo/photo image embedding is exercised.
+- Manually open sections above and below the current section. The tapped section header must stay visually anchored instead of jumping to the bottom.
+- Continue must still collapse current, open next, and move next section to the top.
+- Missing-item jump must still open only the target section and move it to the top.
