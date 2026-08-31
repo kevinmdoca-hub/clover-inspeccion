@@ -1,0 +1,30 @@
+Clover Inspection PWA v0.7.8
+
+Focused reliability patch on the approved v0.7.5 baseline.
+
+Fixes:
+- PDF generation crash corrected. The report header was calling the embedded-logo image routine with a missing image ID, which caused PDF generation to fail whenever the logo loaded successfully.
+- PDF image placement is now guarded against invalid dimensions/arguments.
+- Manual section changes no longer rely on the browser's native <details> scroll behavior. The tapped section stays visually anchored while the previously open section collapses.
+- Continue and Missing-item navigation still deliberately move the target section to the top.
+
+Preserved:
+- Approved 5-column condition report: ID | ITEM | STATUS | COMMENTS / NOTES | EVIDENCE.
+- ID/Item/Status/Evidence vertical centering; Status/Evidence horizontal centering.
+- 3-column standardized photo page, abnormal evidence mapping, video-reference-only behavior, service-planning summary, bilingual PDF language from Settings, offline saving, evidence persistence, and one-unit/one-section accordion rules.
+
+Market/model catalog enrichment remains a separate patch.
+
+
+v0.7.8 patch:
+- Section 1 completion no longer double-counts the required data-plate photo.
+- Abnormal-finding evidence videos use a 10-second maximum and 50 MB maximum per clip; each finding allows up to 3 total evidence files.
+- Section 13 general functional-test videos retain a 30-second maximum and 50 MB maximum per clip, with up to 3 functional-test videos per unit.
+- Removed video-camera emoji from controls/previews.
+- 'No observado / Not observed' status control no longer breaks a word mid-label on mobile.
+
+
+v0.7.8 patch:
+- Corrected PDF header metadata alignment/clearance from logo.
+- Other/Otro sorts last in applicable lists.
+- Explicit custom text fields for Other selections; exports use the custom value.
