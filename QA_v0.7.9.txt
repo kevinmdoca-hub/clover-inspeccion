@@ -1,0 +1,17 @@
+Clover Inspection PWA v0.7.9 - focused device QA
+
+1. Confirm Pilot v0.7.9.
+2. Complete one unit to 100% without explicitly pressing Finalize this unit. Fleet Finalize must become active.
+3. Press Finalize fleet inspection. The unit and session must become finalized and persist after close/reopen.
+4. When total required missing = 0, the entire Missing-items review card must disappear. Add a required blank again; the card must return.
+5. PDF: verify every value in each specification column shares the same right edge. Check Make, Model, Year, Hours and Capacity with visibly different string lengths.
+6. PDF: equipment type should use short report wording (e.g. 4-wheel sit-down) and must not overlap its label.
+7. Dark theme: Add equipment / Add another unit must be clearly visible against the page background.
+8. Dark theme: More options and other dropdowns must show a legible custom chevron.
+9. Hierarchy: change Equipment Category. Equipment Type, Make and Model must clear; Client Unit, Serial, Year and Capacity must remain.
+10. Hierarchy: change Equipment Type. Make and Model must clear; Category and unrelated fields must remain.
+11. Hierarchy: change Make. Model must clear.
+12. Make / Model: verify × appears when populated, clears the field in one tap, and Make × also clears Model.
+13. Repeat hierarchy test with Other + custom values. Changing a custom upstream value must clear downstream fields.
+14. Close/reopen app and confirm resulting hierarchy values persist correctly.
+15. Re-run PDF generation, offline save/reopen, photo persistence, 10-second finding-video limit and 30-second Section 13 video limit.

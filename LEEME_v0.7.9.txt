@@ -1,0 +1,16 @@
+Clover Inspection PWA v0.7.9
+
+Focused workflow / PDF alignment patch on v0.7.8.
+
+Changes:
+- Fleet/session finalization is enabled whenever every unit has zero required items missing. Finalizing the fleet automatically timestamps any 100%-complete unit that has not already been explicitly finalized, then timestamps the session.
+- Missing-items review is hidden completely when the session has zero required missing items.
+- PDF specification values use one fixed right edge per specification column; dotted leaders expand/contract between the label and the right-aligned value.
+- Long equipment-type labels use shorter report-only wording (for example 4-wheel sit-down) while saved app data remains unchanged.
+- Dark-mode Add equipment buttons use a clearer raised surface/border.
+- Native select arrows are replaced by a theme-aware chevron for stronger contrast in dark mode.
+- Equipment hierarchy now cascades: Category change clears Type + Make + Model; Type change clears Make + Model; Make change clears Model. Unrelated identity/current-state data is preserved.
+- Make and Model fields have a one-tap × clear control; clearing Make also clears Model.
+- Existing offline storage, media persistence, bilingual report generation, evidence references, PDF layout, and video limits are preserved.
+
+Market.db catalog enrichment remains a separate catalog patch.
