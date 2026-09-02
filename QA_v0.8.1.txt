@@ -1,0 +1,14 @@
+QA v0.8.1 DEV — Captura guiada
+
+1. Abrir una unidad con Tipo de equipo definido.
+2. En Fotos de línea base, tocar Iniciar captura guiada.
+3. Confirmar que aparece una sola categoría a la vez.
+4. Tomar una foto, confirmar vista previa, tocar Usar foto.
+5. Confirmar avance automático a la siguiente categoría.
+6. Omitir una foto y confirmar que no bloquea el recorrido; al final debe aparecer como Pendiente.
+7. Cerrar/Pausar a mitad del recorrido, volver a abrir y confirmar que reanuda en la primera evidencia faltante.
+8. Completar las requeridas y confirmar que ofrece continuar con opcionales o terminar.
+9. Confirmar que las fotos guardadas aparecen también en las ranuras normales de Sección 4 / 1-K.
+10. Cerrar/reabrir la PWA y confirmar persistencia de fotos.
+11. Probar 4 ruedas y 3 ruedas: la ruta debe respetar fotos aplicables.
+12. Exportar JSON y confirmar métricas guidedPhotoStarts/Resumes/Accepted/Retakes/Skips.

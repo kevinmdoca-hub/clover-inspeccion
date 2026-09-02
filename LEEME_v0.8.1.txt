@@ -1,0 +1,14 @@
+Clover Inspección PWA — v0.8.1 DEV
+
+DESARROLLO / PRUEBAS
+
+Novedad principal:
+- Captura guiada para fotos de línea base.
+- Recorre una foto a la vez.
+- Evidencia requerida primero; fotos opcionales después.
+- Omitir por ahora, revisar omitidas y reanudar sin perder fotos ya guardadas.
+- La foto de placa (1-K) puede completarse desde la captura guiada aunque siga perteneciendo a Identificación.
+- Vista previa antes de aceptar una foto; permite repetirla.
+- Métricas internas de eficiencia para medir uso de la captura guiada.
+
+No reemplaza las ranuras individuales: siguen disponibles para revisión/reemplazo manual.
