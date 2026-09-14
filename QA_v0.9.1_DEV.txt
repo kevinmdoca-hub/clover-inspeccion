@@ -1,0 +1,41 @@
+Clover Inspection PWA — v0.9.1 DEV QA
+
+Run on iPhone Home Screen PWA where possible.
+
+SHELL / NAVIGATION
+1. Open app. Confirm Advisor-style Clover top bar, + button, gear, and 4-tab bottom nav.
+2. Tap Settings gear. Confirm bottom sheet opens and page behind it does not scroll.
+3. Change Light/Dark/System. Confirm shell and inspection surfaces update without horizontal overflow.
+4. Change language. Confirm app reloads and shows only one language, not bilingual labels side-by-side.
+5. Tap each bottom tab: Today, Work, Calendar, Clients. Confirm active tab uses Clover gold.
+
+NEW INSPECTION
+6. Tap global +. Confirm New Inspection opens as bottom sheet.
+7. Select Pre-sale / warranty baseline; enter client/location/date/time/technician; Create.
+8. Confirm Work Mode opens, bottom nav hides, Back to Work is visible, and inspection type pill is correct.
+9. Return to workspace and confirm inspection appears as a job card.
+10. Create a second Acquisition / intake inspection and confirm both persist after force-close/reopen.
+
+WORKSPACE
+11. Today: confirm metric cards and today's jobs.
+12. Work: test search by client and filter Active / Ready / Completed / All.
+13. Calendar: move previous/next month, tap Today, select a date, open an agenda item.
+14. Clients: tap a client card; confirm its inspections open in a bottom sheet and can be opened.
+
+INSPECTION REGRESSION
+15. Add 2 units; confirm one unit open at a time and one section open at a time.
+16. Complete several sections using Mark Remaining Normal; confirm no existing findings are overwritten.
+17. Test LP vs electric Section 9 behavior.
+18. Add baseline photos and use guided photo capture; force-close/reopen and verify evidence persists.
+19. Add abnormal comment + photo; force-close/reopen and confirm detail/evidence rehydrates without reselecting status.
+20. Generate preliminary PDF from incomplete work.
+21. Complete a unit and generate final PDF; verify selected language controls PDF language/date formatting.
+22. Export JSON and CSV.
+
+OFFLINE / UPDATE
+23. Open online once, switch to airplane mode, force-close/reopen, edit inspection, add photo, force-close/reopen.
+24. Reconnect and confirm nothing disappears.
+25. If an app update is staged, confirm it does not auto-reload. Use Update only when ready and confirm inspection data persists.
+
+FAILURE REPORTING
+For a FAIL, capture screenshot plus JSON/PDF when relevant and note exact tab/section/question ID.

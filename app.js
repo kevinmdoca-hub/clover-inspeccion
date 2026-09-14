@@ -1,8 +1,8 @@
 (() => {
 'use strict';
 
-const VERSION='0.9.0-dev';
-const PACKAGE_LANG='es';
+const VERSION='0.9.1-dev';
+const PACKAGE_LANG=window.CLOVER_PACKAGE_LANG||'es';
 const STATE_KEY='clover-inspection-dev-v090-state';
 const DB_NAME='clover-inspection-dev-v090';
 const LANG_KEY='clover-inspection-language';
@@ -28,10 +28,56 @@ const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;'
 const isOtherOption=pair=>{const code=String(pair?.[0]??'').toLowerCase(),label=String(pair?.[1]??'').trim().toLowerCase();return code==='other'||code.startsWith('other_')||code.endsWith('_other')||label==='otro'||label==='other'||label.startsWith('otro /')||label.startsWith('other /')};
 const alpha=arr=>[...arr].sort((a,b)=>{const ao=isOtherOption(a),bo=isOtherOption(b);if(ao!==bo)return ao?1:-1;return String(a[1]).localeCompare(String(b[1]),LANG==='es'?'es':'en',{sensitivity:'base'})});
 
+
+// ---------- Advisor-style shell / bottom sheet ----------
+const sheet=document.getElementById('sheet');
+const sheetBackdrop=document.getElementById('sheetBackdrop');
+let sheetScrollY=0;
+let lastSaveState={kind:'ok',title:'',sub:''};
+function lockPageBehindSheet(){
+  if(document.body.dataset.sheetLocked==='1')return;
+  sheetScrollY=window.scrollY||0;document.body.dataset.sheetLocked='1';document.body.classList.add('sheet-open');
+  document.body.style.position='fixed';document.body.style.top=`-${sheetScrollY}px`;document.body.style.left='0';document.body.style.right='0';document.body.style.width='100%';
+}
+function unlockPageBehindSheet(){
+  if(document.body.dataset.sheetLocked!=='1')return;delete document.body.dataset.sheetLocked;document.body.classList.remove('sheet-open');
+  document.body.style.position='';document.body.style.top='';document.body.style.left='';document.body.style.right='';document.body.style.width='';window.scrollTo(0,sheetScrollY||0);
+}
+function openSheet(content,{onBack=null}={}){
+  if(!sheet||!sheetBackdrop)return;
+  sheet.innerHTML=`<div class="sheet-drag-area"><div class="sheet-handle"></div></div><div class="sheet-toolbar">${onBack?`<button class="sheet-topbtn" id="sheetBack" type="button">‹ ${t('Atrás','Back')}</button>`:'<span></span>'}<button class="sheet-topbtn sheet-closebtn" id="sheetClose" type="button" aria-label="${t('Cerrar','Close')}">×</button></div><div class="sheet-scroll" id="sheetScroll">${content}</div>`;
+  sheet.classList.remove('hidden');sheetBackdrop.classList.remove('hidden');lockPageBehindSheet();
+  $('#sheetClose').onclick=closeSheet;$('#sheetBack')?.addEventListener('click',onBack||(()=>{}));setupSheetDrag091();
+  requestAnimationFrame(()=>$('#sheetScroll')?.scrollTo(0,0));
+}
+function setupSheetDrag091(){const drag=sheet?.querySelector('.sheet-drag-area');if(!drag)return;let start=0,dy=0;drag.addEventListener('pointerdown',e=>{start=e.clientY;dy=0;drag.setPointerCapture?.(e.pointerId)});drag.addEventListener('pointermove',e=>{if(!start)return;dy=Math.max(0,e.clientY-start);if(sheet)sheet.style.transform=`translateY(${Math.min(dy,160)}px)`});drag.addEventListener('pointerup',()=>{if(dy>90)closeSheet();else if(sheet)sheet.style.transform='';start=0;dy=0});drag.addEventListener('pointercancel',()=>{if(sheet)sheet.style.transform='';start=0;dy=0})}
+function closeSheet(){if(!sheet||!sheetBackdrop)return;sheet.classList.add('hidden');sheetBackdrop.classList.add('hidden');sheet.style.transform='';sheet.innerHTML='';unlockPageBehindSheet()}
+sheetBackdrop?.addEventListener('click',closeSheet);
+function settingsSaveRow(){
+  const dotClass=lastSaveState.kind==='bad'?'bad':lastSaveState.kind==='saving'?'':'ok';
+  return `<div class="setting-row"><span class="save-row"><span class="dot ${dotClass}"></span><span><b>${escapeHtml(lastSaveState.title||UI.saved)}</b><small>${escapeHtml(lastSaveState.sub||'')}</small></span></span></div>`;
+}
+function openInspectionSettings(){
+  let theme='light';try{theme=localStorage.getItem(THEME_KEY)||'light'}catch(e){}
+  const updateVisible=!$('#updateBanner')?.classList.contains('hidden');
+  openSheet(`<span class="kicker">Clover</span><h2>${t('Ajustes','Settings')}</h2><p class="muted small">${t('Preferencias, guardado local y aplicación.','Preferences, local storage and app information.')}</p>
+    <div class="settings-section"><h3>${t('General','General')}</h3><div class="settings-list">
+      <label class="setting-row"><span>${t('Idioma','Language')}</span><select id="sheetLanguage"><option value="es" ${LANG==='es'?'selected':''}>Español</option><option value="en" ${LANG==='en'?'selected':''}>English</option></select></label>
+      <label class="setting-row"><span>${t('Apariencia','Appearance')}</span><select id="sheetTheme"><option value="system" ${theme==='system'?'selected':''}>${t('Automático','System')}</option><option value="dark" ${theme==='dark'?'selected':''}>${t('Oscuro','Dark')}</option><option value="light" ${theme==='light'?'selected':''}>${t('Claro','Light')}</option></select></label>
+    </div></div>
+    <div class="settings-section"><h3>${t('Datos y guardado','Data & saving')}</h3><div class="settings-list">${settingsSaveRow()}<button id="sheetPersist" class="setting-action" type="button">${t('Proteger almacenamiento','Protect storage')}</button><button id="sheetImport" class="setting-action" type="button">${t('Importar respaldo','Import backup')}</button><button id="sheetExport" class="setting-action" type="button">${t('Exportar respaldo JSON','Export JSON backup')}</button></div></div>
+    <div class="settings-section"><h3>${t('Aplicación','Application')}</h3><div class="settings-list"><div class="setting-row"><span>${t('Versión','Version')}<small>v${VERSION}</small></span></div>${updateVisible?`<button id="sheetUpdate" class="setting-action" type="button">${t('Actualizar ahora','Update now')}</button>`:''}<div class="setting-row"><span><small>${t('Las actualizaciones conservan los datos locales y se aplican únicamente cuando tú lo autorizas.','Updates preserve local data and only apply when you authorize them.')}</small></span></div></div></div>`);
+  $('#sheetLanguage').onchange=async e=>{try{localStorage.setItem(LANG_KEY,e.target.value)}catch(x){}await saveNow();location.reload()};
+  $('#sheetTheme').onchange=e=>{try{localStorage.setItem(THEME_KEY,e.target.value)}catch(x){}applyTheme(e.target.value)};
+  $('#sheetImport').onclick=()=>$('#importFile').click();$('#sheetExport').onclick=()=>backup();
+  $('#sheetPersist').onclick=async()=>{if(navigator.storage?.persist){const ok=await navigator.storage.persist();alert(ok?t('Almacenamiento persistente solicitado correctamente.','Persistent storage requested successfully.'):t('El navegador no garantizó almacenamiento persistente. Descarga respaldos periódicos.','The browser did not guarantee persistent storage. Download periodic backups.'))}else alert(t('Este navegador no ofrece esta función.','This browser does not provide this function.'))};
+  $('#sheetUpdate')?.addEventListener('click',()=>$('#updateNow')?.click());
+}
+
 const UI={
   headerTitle:t('Inspección de Condición Base y Planeación de Servicio','Baseline Condition & Service Planning Inspection'),
   headerSub:t('Aplicación de campo · Móvil · Offline · Guardado automático','Field app · Mobile · Offline · Automatic saving'),
-  version:t('Desarrollo v0.9.0','Development v0.9.0'),
+  version:t('Desarrollo v0.9.1','Development v0.9.1'),
   pilot:t('<b>Objetivo del piloto:</b> documentar la condición real de cada equipo, necesidades inmediatas, mantenimiento diferido y exposición probable de servicio sin pedir al técnico que determine precio o riesgo comercial.','<b>Pilot objective:</b> document each unit’s actual condition, immediate needs, deferred maintenance and likely service exposure without asking the technician to determine pricing or commercial risk.'),
   feedback:t('<b>Retroalimentación de campo:</b> confirma si el orden coincide con la inspección real, qué sobra o falta, qué debería resolverse con un toque y qué requiere herramientas adicionales.','<b>Field feedback:</b> confirm whether the order matches the real inspection, what is missing or redundant, what should take one tap, and what requires additional tools.'),
   sessionHeading:t('Sesión de inspección','Inspection session'), client:t('Cliente / empresa','Client / company'), location:t('Ubicación','Location'), tech:t('Técnico','Technician'), date:t('Fecha','Date'), sessionNotes:t('Notas de la sesión','Session notes'),
@@ -320,10 +366,11 @@ function migrateState(raw){
 }
 let saveToastTimer=null;
 function setSave(kind,title,sub){
+  lastSaveState={kind,title,sub:sub||''};
   const dot=$('#saveDot'),settingsDot=$('.settings-save .dot'),f=$('#floatSave'),mini=$('#saveMiniText');
   for(const d of [dot,settingsDot])if(d)d.className='dot '+(kind==='ok'?'ok':kind==='bad'?'bad':'');
   const titleEl=$('#saveTitle'),subEl=$('#saveSub');if(titleEl)titleEl.textContent=title;if(subEl)subEl.textContent=sub||'';if(mini)mini.textContent=kind==='bad'?t('Error','Error'):kind==='saving'?t('Guardando','Saving'):t('Guardado','Saved');
-  if(f){clearTimeout(saveToastTimer);f.className='float-save screen '+(kind==='saving'?'saving':kind==='bad'?'error':'');f.textContent=kind==='saving'?UI.savingFloat:kind==='bad'?UI.retry:UI.savedFloat;f.classList.remove('toast-hidden');if(kind==='ok')saveToastTimer=setTimeout(()=>f.classList.add('toast-hidden'),1400)}
+  if(f){clearTimeout(saveToastTimer);f.className='float-save screen '+(kind==='saving'?'saving':kind==='bad'?'error':'');f.textContent=kind==='saving'?UI.savingFloat:kind==='bad'?UI.retry:UI.savedFloat;const inWork=document.body.classList.contains('inspection-open')&&!$('#inspectionView')?.classList.contains('hidden');if(inWork){f.classList.remove('toast-hidden');if(kind==='ok')saveToastTimer=setTimeout(()=>f.classList.add('toast-hidden'),1400)}else f.classList.add('toast-hidden')}
 }
 function scheduleSave(){setSave('saving',UI.saving,UI.savingSub);clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,450)}
 function openDB(){if(dbPromise)return dbPromise;dbPromise=new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(MEDIA))db.createObjectStore(MEDIA,{keyPath:'id'});if(!db.objectStoreNames.contains(STATE_STORE))db.createObjectStore(STATE_STORE,{keyPath:'key'});if(!db.objectStoreNames.contains(JOB_STORE))db.createObjectStore(JOB_STORE,{keyPath:'id'})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});return dbPromise}
@@ -785,24 +832,29 @@ function requiredMetricsFromState(u){let total=0,done=0;const power=u.fields?.po
 async function generateSelectedPdf(){const ids=selectedPdfIds();if(!ids.length){alert(t('Selecciona al menos una unidad.','Select at least one unit.'));return}const domUnits=$$('#units .unit'),selectedDom=domUnits.filter(u=>ids.includes(u.dataset.unitId)),allSelected=selectedDom.length===domUnits.length,allResponses=selectedDom.every(u=>u.dataset.missing==='0'),generatedAt=nowIso();if(allSelected&&allResponses){for(const u of selectedDom)if(!u._meta.completedAt){touchUnit(u,{reopen:false});u._meta.completedAt=generatedAt}sessionMeta.completedAt=generatedAt}
   syncStateFromDom();const selected=state.units.filter(u=>ids.includes(u.id)),type=selected.every(u=>u.meta?.completedAt)&&selectedDom.every(u=>u.dataset.missing==='0')?'final':'preliminary';const reportMeta={generatedAt,type,language:LANG,inspectionType:sessionMeta.inspectionType||'baseline_fleet',inspectionRevision:sessionMeta.revision||1,includedUnitIds:ids,allSessionUnits:allSelected};state.reports.push(reportMeta);await saveNow();$('#pdfGenerateBtn').disabled=true;$('#pdfDialogStatus').textContent=t('Generando PDF…','Generating PDF…');try{const blob=await buildPdfBlob(selected,reportMeta);const name=(LANG==='es'?'Clover-Reporte-Inspeccion-':'Clover-Inspection-Report-')+(state.session.date||new Date().toISOString().slice(0,10))+'.pdf';await shareOrDownloadBlob(name,blob);$('#bottomActionStatus').textContent=t('PDF listo para guardar/compartir.','PDF ready to save/share.');closePdfDialog();renderDashboard();renderMissing();renderSessionFinish()}catch(e){console.error(e);$('#pdfDialogStatus').textContent=t('No se pudo generar el PDF.','Could not generate PDF.')}finally{$('#pdfGenerateBtn').disabled=false}}
 
-function applyTheme(value){let theme=value||'light';if(theme==='system')theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.body.dataset.theme=theme;const sel=$('#themeSelect');if(sel&&sel.value!==value)sel.value=value||'light'}
+function applyTheme(value){let theme=value||'light';if(theme==='system')theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.body.dataset.theme=theme;document.documentElement.dataset.theme=theme;const meta=$('#themeMeta');if(meta)meta.setAttribute('content',theme==='dark'?'#0F1117':'#F4F5F7');const sel=$('#themeSelect');if(sel&&sel.value!==value)sel.value=value||'light'}
 async function load(){try{let raw=null;try{const rec=await idbGet(STATE_STORE,'latest');raw=rec?.raw||null}catch(e){console.warn(e)}if(!raw)try{raw=localStorage.getItem(STATE_KEY)}catch(e){console.warn(e)}if(raw)state=migrateState(JSON.parse(raw));else state=migrateState(state)}catch(e){console.error(e);state=migrateState({})}applyState();let theme='light';try{theme=localStorage.getItem(THEME_KEY)||'light'}catch(e){}applyTheme(theme);setSave('ok',UI.saved,UI.savedSub+nowTime())}
 function bindGlobal(){
   ['client','location','tech','date','sessionNotes'].forEach(id=>{const el=$('#'+id);el.addEventListener('input',()=>{touchSession();if(sessionMeta.completedAt)sessionMeta.completedAt='';scheduleSave()});el.addEventListener('change',e=>{if(e.isTrusted)recordSessionAction('sessionFieldEdits')})});
   const add=()=>{recordSessionAction('addUnitTaps');addUnit(null,{scroll:true});scheduleSave();renderDashboard();renderMissing()};$('#addUnit').onclick=add;$('#addUnitBottom').onclick=add;$('#backupBtn').onclick=()=>{recordSessionAction('jsonExportTaps');backup()};$('#findingsCsvBtn').onclick=()=>{recordSessionAction('csvExportTaps');exportCSV()};$('#pdfBtn').onclick=()=>{recordSessionAction('pdfDialogOpenTaps');openPdfDialog()};$('#floatSave').onclick=saveNow;$('#finishSessionBtn').onclick=()=>{recordSessionAction('finalizeSessionTaps');finishSession()};$('#pdfCancelBtn').onclick=closePdfDialog;$('#pdfGenerateBtn').onclick=()=>{recordSessionAction('pdfGenerateTaps');generateSelectedPdf()};
   $('#guidedPhotoClose').onclick=closeGuidedPhotos;$('#guidedPhotoFinish').onclick=closeGuidedPhotos;$('#guidedPhotoInput').onchange=e=>guidedInputChanged(e.target);$('#guidedPhotoUse').onclick=guidedUsePhoto;$('#guidedPhotoRetake').onclick=guidedRetake;$('#guidedPhotoSkip').onclick=guidedSkip;$('#guidedPhotoReviewSkipped').onclick=guidedReviewSkipped;$('#guidedPhotoOptional').onclick=guidedContinueOptional;$('#guidedPhotoDialog').addEventListener('close',()=>{guidedCleanupTemp();guidedPhotoSession=null});
-  $('#settingsBtn').onclick=()=>$('#settingsPanel').classList.toggle('hidden');$('#settingsCloseBtn').onclick=()=>$('#settingsPanel').classList.add('hidden');$('#themeSelect').onchange=e=>{try{localStorage.setItem(THEME_KEY,e.target.value)}catch(x){}applyTheme(e.target.value)};$('#languageSelect').onchange=e=>{try{localStorage.setItem(LANG_KEY,e.target.value)}catch(x){}saveNow().finally(()=>location.reload())};
+  $('#settingsBtn').onclick=openInspectionSettings;
   $('#clearBtn').onclick=async()=>{if(confirm(t('¿Borrar toda la sesión local y toda la evidencia?','Clear the entire local session and all evidence?'))){try{localStorage.removeItem(STATE_KEY)}catch(e){};try{await idbClearStore(MEDIA);await idbClearStore(STATE_STORE)}catch(e){}state=migrateState({});sessionMeta={};applyState();await saveNow()}};
   $('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=async()=>{const f=$('#importFile').files[0];if(!f)return;try{state=migrateState(JSON.parse(await f.text()));applyState();await saveNow();alert(t('Respaldo importado.','Backup imported.'))}catch(e){alert(t('No se pudo importar el respaldo.','Could not import backup.'))}finally{$('#importFile').value=''}};
   $('#persistBtn').onclick=async()=>{if(navigator.storage?.persist){const ok=await navigator.storage.persist();alert(ok?t('Almacenamiento persistente solicitado correctamente.','Persistent storage requested successfully.'):t('El navegador no garantizó almacenamiento persistente. Descarga respaldos periódicos.','The browser did not guarantee persistent storage. Download periodic backups.'))}else alert(t('Este navegador no ofrece esta función.','This browser does not provide this function.'))};
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveNow()});window.addEventListener('pagehide',saveNow);matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{if($('#themeSelect')?.value==='system')applyTheme('system')});
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveNow()});window.addEventListener('pagehide',saveNow);matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{let pref='light';try{pref=localStorage.getItem(THEME_KEY)||'light'}catch(e){}if(pref==='system')applyTheme('system')});
 }
 
 
-// ---------- Local inspection workspace (v0.9.0 DEV) ----------
+// ---------- Local inspection workspace (v0.9.1 DEV · Advisor shell) ----------
 let currentJobId='';
 let workspaceReady=false;
+let workspaceTab='today';
+let workFilter='active';
+let workQuery='';
 let calendarDate=new Date().toISOString().slice(0,10);
+let newInspectionTypeDraft='baseline_fleet';
+
 function ensureInspectionMeta(){
   if(!sessionMeta||typeof sessionMeta!=='object')sessionMeta={};
   if(!sessionMeta.jobId)sessionMeta.jobId=currentJobId||uid();
@@ -818,7 +870,8 @@ function jobProgressFromState(s){
   return{done,total,pct:total?Math.round(done/total*100):0,units:us.length};
 }
 function jobRecordFromState(s,raw=JSON.stringify(s)){
-  const meta=s?.session?.meta||{};let pr=jobProgressFromState(s);if(meta.jobId&&meta.jobId===currentJobId&&$('#units')){const dus=$$('#units .unit');if(dus.length){let total=0,done=0;for(const u of dus){total+=Number(u.dataset.total||0);done+=Number(u.dataset.done||0)}pr={done,total,pct:total?Math.round(done/total*100):0,units:dus.length}}}
+  const meta=s?.session?.meta||{};let pr=jobProgressFromState(s);
+  if(meta.jobId&&meta.jobId===currentJobId&&$('#units')){const dus=$$('#units .unit');if(dus.length){let total=0,done=0;for(const u of dus){total+=Number(u.dataset.total||0);done+=Number(u.dataset.done||0)}pr={done,total,pct:total?Math.round(done/total*100):0,units:dus.length}}}
   return{id:meta.jobId||currentJobId||uid(),raw,updatedAt:nowIso(),createdAt:meta.createdAt||nowIso(),inspectionType:meta.inspectionType||'baseline_fleet',scheduledAt:meta.scheduledAt||'',client:s?.session?.client||'',location:s?.session?.location||'',technician:s?.session?.tech||'',date:s?.session?.date||'',completedAt:meta.completedAt||'',revision:meta.revision||1,progress:pr};
 }
 async function allJobs(){try{return (await idbGetAll(JOB_STORE)).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')))}catch(e){console.warn(e);return[]}}
@@ -827,56 +880,85 @@ function blankInspection(opts={}){
   const id=uid(),meta={jobId:id,inspectionType:opts.inspectionType||'baseline_fleet',createdAt:nowIso(),scheduledAt:opts.scheduledAt||'',revision:1};
   return migrateState({schemaVersion:VERSION,session:{client:opts.client||'',location:opts.location||'',tech:opts.tech||'',date:opts.date||new Date().toISOString().slice(0,10),notes:opts.notes||'',meta,efficiency:{}},units:[],reports:[]});
 }
-function workspaceStatus(job){if(job.completedAt)return t('Finalizada · pendiente de entrega/sincronización','Finalized · pending delivery/sync');return job.progress?.pct===100?t('Lista para finalizar','Ready to finalize'):t('En progreso','In progress')}
-function jobCard(job,{compact=false}={}){
-  const pr=job.progress||{pct:0,units:0};const title=job.client||t('Cliente sin nombre','Unnamed client');
-  return `<article class="work-card" data-job-id="${escapeHtml(job.id)}"><div class="work-card-top"><div><div class="work-client">${escapeHtml(title)}</div><div class="work-type">${escapeHtml(inspectionTypeLabel(job.inspectionType))}</div></div><span class="work-status ${job.completedAt?'done':''}">${escapeHtml(workspaceStatus(job))}</span></div><div class="work-meta">${escapeHtml(job.location||t('Ubicación pendiente','Location pending'))} · ${escapeHtml(job.date||'—')} · ${pr.units||0} ${t('equipo(s)','unit(s)')}</div><div class="work-progress"><div style="width:${Math.max(0,Math.min(100,pr.pct||0))}%"></div></div><div class="work-card-bottom"><span>${pr.pct||0}%</span><button type="button" class="open-job">${job.completedAt?t('Abrir','Open'):t('Continuar','Continue')}</button></div></article>`;
+function scheduledDate(job){return job.date||String(job.scheduledAt||'').slice(0,10)||''}
+function scheduledTime(job){const raw=String(job.scheduledAt||'');return raw.includes('T')?raw.slice(11,16):''}
+function jobStatusCode(job){if(job.completedAt)return'complete';if((job.progress?.pct||0)>=100)return'ready';if((job.progress?.done||0)>0)return'active';return'scheduled'}
+function workspaceStatus(job){const code=jobStatusCode(job);return code==='complete'?t('Completa','Complete'):code==='ready'?t('Lista para finalizar','Ready to finalize'):code==='active'?t('En progreso','In progress'):t('Programada','Scheduled')}
+function jobSearchText(job){let unitText='';try{const st=JSON.parse(job.raw||'{}');unitText=(st.units||[]).map(u=>Object.values(u.fields||{}).join(' ')).join(' ')}catch(e){}return `${job.client||''} ${job.location||''} ${inspectionTypeLabel(job.inspectionType)} ${unitText}`.toLowerCase()}
+function jobCard(job,{agenda=false}={}){
+  const pr=job.progress||{pct:0,units:0},status=jobStatusCode(job),title=job.client||t('Cliente sin nombre','Unnamed client'),time=scheduledTime(job),date=scheduledDate(job);
+  if(agenda)return `<button type="button" class="agenda-item" data-job-id="${escapeHtml(job.id)}"><div><strong>${escapeHtml(title)}</strong><span>${escapeHtml(inspectionTypeLabel(job.inspectionType))} · ${escapeHtml(job.location||t('Ubicación pendiente','Location pending'))}</span></div><time>${escapeHtml(time||'')}</time></button>`;
+  return `<article class="candidate status-${status}" data-job-id="${escapeHtml(job.id)}"><button type="button" class="cardbtn open-job"><div class="candidate-top"><div><h3>${escapeHtml(title)}</h3><p>${escapeHtml(inspectionTypeLabel(job.inspectionType))}</p><div class="distance">${escapeHtml(job.location||t('Ubicación pendiente','Location pending'))}${date?` · ${escapeHtml(formatWorkspaceDate(date))}`:''}${time?` · ${escapeHtml(time)}`:''}</div></div><span class="job-status ${status}">${escapeHtml(workspaceStatus(job))}</span></div><div class="job-progress"><span style="width:${Math.max(0,Math.min(100,pr.pct||0))}%"></span></div><div class="next"><span>${pr.units||0} ${t('equipo(s)','unit(s)')} · ${pr.pct||0}%</span><b>${status==='complete'?t('Abrir','Open'):t('Continuar','Continue')} ›</b></div></button></article>`;
 }
+function formatWorkspaceDate(v){if(!v)return'';const [y,m,d]=String(v).split('-');if(!y||!m||!d)return v;return LANG==='es'?`${d}/${m}/${y}`:`${m}/${d}/${y}`}
+function applyWorkspaceI18n(){
+  const set=(id,val)=>{const el=$('#'+id);if(el)el.textContent=val};
+  set('brandSubtitle',t('Inspecciones','Inspections'));set('navToday',t('Hoy','Today'));set('navWork',t('Trabajo','Work'));set('navCalendar',t('Calendario','Calendar'));set('navClients',t('Clientes','Clients'));
+  set('todayTitle',t('Hoy','Today'));set('todaySub',t('Trabajo programado y en progreso','Scheduled and in-progress work'));set('metricTodayLabel',t('Hoy','Today'));set('metricActiveLabel',t('En progreso','In progress'));set('metricReadyLabel',t('Listas','Ready'));
+  set('workTitle',t('Trabajo','Work'));set('workSub',t('Inspecciones locales','Local inspections'));set('calendarTitle',t('Calendario','Calendar'));set('calendarSub',t('Inspecciones por fecha','Inspections by date'));set('clientsTitle',t('Clientes','Clients'));set('clientsSub',t('Inspecciones y equipos por cliente','Inspections and units by client'));
+  const ws=$('#workSearch');if(ws)ws.placeholder=t('Buscar cliente, ubicación o unidad…','Search client, location, or unit…');
+  const filterLabels={active:t('Activas','Active'),ready:t('Listas','Ready'),complete:t('Completadas','Completed'),all:t('Todas','All')};$$('[data-work-filter]').forEach(b=>b.textContent=filterLabels[b.dataset.workFilter]);
+  set('calendarToday',t('Hoy','Today'));const g=$('#globalNewBtn');if(g){g.setAttribute('aria-label',t('Nueva inspección','New inspection'));g.title=t('Nueva inspección','New inspection')};const st=$('#settingsBtn');if(st){st.setAttribute('aria-label',t('Ajustes','Settings'));st.title=t('Ajustes','Settings')};
+  const up=$('#updateBannerText');if(up)up.textContent=t('Actualización disponible','Update available');const us=$('#updateBannerSub');if(us)us.textContent=t('Tus datos locales se conservarán.','Your local data will be preserved.');const ul=$('#updateLater');if(ul)ul.textContent=t('Más tarde','Later');const un=$('#updateNow');if(un)un.textContent=t('Actualizar','Update');
+}
+function bindJobOpeners(root=document){$$(root,'.open-job').forEach(b=>b.onclick=()=>openJob(b.closest('[data-job-id]').dataset.jobId));$$(root,'.agenda-item').forEach(b=>b.onclick=()=>openJob(b.dataset.jobId))}
+function matchesWorkFilter(job){const code=jobStatusCode(job);if(workFilter==='all')return true;if(workFilter==='active')return code==='active'||code==='scheduled';return code===workFilter}
 async function refreshWorkspace(){
-  if(!workspaceReady)return;const jobs=await allJobs();
-  const today=new Date().toISOString().slice(0,10),todayJobs=jobs.filter(j=>(j.date||String(j.scheduledAt||'').slice(0,10))===today);
-  const active=jobs.filter(j=>!j.completedAt);
-  const tbox=$('#todayJobs'),abox=$('#activeJobs');if(tbox)tbox.innerHTML=todayJobs.length?todayJobs.map(j=>jobCard(j)).join(''):`<div class="empty-state">${t('No hay inspecciones programadas para hoy.','No inspections scheduled for today.')}</div>`;if(abox)abox.innerHTML=active.length?active.map(j=>jobCard(j)).join(''):`<div class="empty-state">${t('No hay trabajo activo.','No active work.')}</div>`;
-  const clients=new Map();for(const j of jobs){const key=(j.client||t('Cliente sin nombre','Unnamed client')).trim();const arr=clients.get(key)||[];arr.push(j);clients.set(key,arr)}
-  const cbox=$('#clientsList');if(cbox)cbox.innerHTML=[...clients.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([name,arr])=>`<button type="button" class="client-row" data-client="${escapeHtml(name)}"><span><b>${escapeHtml(name)}</b><small>${arr.length} ${t('inspección(es)','inspection(s)')}</small></span><span>›</span></button>`).join('')||`<div class="empty-state">${t('Aún no hay clientes locales.','No local clients yet.')}</div>`;
-  renderCalendarJobs(jobs);
-  $$('.open-job').forEach(b=>b.onclick=()=>openJob(b.closest('[data-job-id]').dataset.jobId));
-  $$('.client-row').forEach(b=>b.onclick=()=>showClientJobs(b.dataset.client,jobs));
-  const badge=$('#activeWorkBadge');if(badge)badge.textContent=active.length?String(active.length):'';
+  if(!workspaceReady)return;const jobs=await allJobs(),today=new Date().toISOString().slice(0,10),active=jobs.filter(j=>!j.completedAt&&(j.progress?.pct||0)<100),ready=jobs.filter(j=>!j.completedAt&&(j.progress?.pct||0)>=100),todayScheduled=jobs.filter(j=>scheduledDate(j)===today);
+  const todayJobs=[...new Map([...todayScheduled,...active.filter(j=>(j.progress?.done||0)>0)].map(j=>[j.id,j])).values()].sort((a,b)=>(scheduledTime(a)||'99:99').localeCompare(scheduledTime(b)||'99:99'));
+  $('#metricToday').textContent=todayScheduled.length;$('#metricActive').textContent=active.filter(j=>(j.progress?.done||0)>0).length;$('#metricReady').textContent=ready.length;$('#todayCountPill').textContent=todayJobs.length;$('#activeWorkBadgePill').textContent=jobs.filter(j=>!j.completedAt).length;
+  const tb=$('#todayJobs');tb.innerHTML=todayJobs.length?todayJobs.map(j=>jobCard(j)).join(''):`<div class="empty-state">${t('No hay inspecciones para hoy. Usa + para crear una.','No inspections for today. Use + to create one.')}</div>`;
+  const q=(workQuery||'').trim().toLowerCase();const filtered=jobs.filter(j=>matchesWorkFilter(j)&&(!q||jobSearchText(j).includes(q)));const ab=$('#activeJobs');ab.innerHTML=filtered.length?filtered.map(j=>jobCard(j)).join(''):`<div class="empty-state">${t('No hay inspecciones con estos filtros.','No inspections match these filters.')}</div>`;
+  const clients=new Map();for(const j of jobs){const key=(j.client||t('Cliente sin nombre','Unnamed client')).trim();const row=clients.get(key)||{jobs:[],units:0};row.jobs.push(j);row.units+=Number(j.progress?.units||0);clients.set(key,row)}
+  const cbox=$('#clientsList');cbox.innerHTML=[...clients.entries()].sort((a,b)=>a[0].localeCompare(b[0],LANG==='es'?'es':'en',{sensitivity:'base'})).map(([name,row])=>`<button type="button" class="client-card" data-client="${escapeHtml(name)}"><span><b>${escapeHtml(name)}</b><small>${row.units} ${t('equipo(s)','unit(s)')} · ${row.jobs.length} ${t('inspección(es)','inspection(s)')}</small></span><span class="client-arrow">›</span></button>`).join('')||`<div class="empty-state">${t('Aún no hay clientes locales.','No local clients yet.')}</div>`;
+  bindJobOpeners();$$('.client-card').forEach(b=>b.onclick=()=>showClientJobs(b.dataset.client,jobs));renderCalendarJobs(jobs);
+  const badge=$('#activeWorkBadge');if(badge){const n=jobs.filter(j=>!j.completedAt).length;badge.textContent=n?String(n):'';badge.classList.toggle('hidden',!n)}
 }
 function renderCalendarJobs(jobs){
-  const label=$('#calendarDateLabel');if(label){const d=new Date(calendarDate+'T12:00:00');label.textContent=d.toLocaleDateString(LANG==='es'?'es-MX':'en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})}
-  const list=jobs.filter(j=>(j.date||String(j.scheduledAt||'').slice(0,10))===calendarDate);const box=$('#calendarJobs');if(box)box.innerHTML=list.length?list.map(j=>jobCard(j,{compact:true})).join(''):`<div class="empty-state">${t('Sin inspecciones para esta fecha.','No inspections for this date.')}</div>`;
+  const selected=new Date(calendarDate+'T12:00:00'),y=selected.getFullYear(),m=selected.getMonth(),today=new Date().toISOString().slice(0,10),days=new Date(y,m+1,0).getDate(),first=new Date(y,m,1).getDay();
+  const monthLabel=selected.toLocaleDateString(LANG==='es'?'es-MX':'en-US',{month:'long',year:'numeric'});$('#calendarDateLabel').textContent=monthLabel.charAt(0).toUpperCase()+monthLabel.slice(1);
+  $('#calendarWeek').innerHTML=(LANG==='es'?['D','L','M','M','J','V','S']:['S','M','T','W','T','F','S']).map(x=>`<span>${x}</span>`).join('');
+  const counts={};for(const j of jobs){const k=scheduledDate(j);if(k)counts[k]=(counts[k]||0)+1}let cells='';for(let i=0;i<first;i++)cells+='<span></span>';for(let d=1;d<=days;d++){const key=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;cells+=`<button type="button" class="cal-day ${key===today?'today':''} ${key===calendarDate?'selected':''}" data-cal-date="${key}"><span>${d}</span>${counts[key]?`<b>${counts[key]}</b>`:''}</button>`}$('#calendarGrid').innerHTML=cells;
+  const dayJobs=jobs.filter(j=>scheduledDate(j)===calendarDate).sort((a,b)=>(scheduledTime(a)||'99:99').localeCompare(scheduledTime(b)||'99:99'));$('#calendarSelectedLabel').textContent=calendarDate===today?t('Hoy','Today'):formatWorkspaceDate(calendarDate);$('#calendarAgendaHeading').textContent=calendarDate===today?t('Hoy','Today'):formatWorkspaceDate(calendarDate);$('#calendarJobs').innerHTML=dayJobs.length?dayJobs.map(j=>jobCard(j,{agenda:true})).join(''):`<div class="empty-state">${t('No hay inspecciones en esta fecha.','No inspections on this date.')}</div>`;
+  $$('.cal-day').forEach(b=>b.onclick=()=>{calendarDate=b.dataset.calDate;renderCalendarJobs(jobs)});bindJobOpeners($('#calendarJobs'));
 }
-function showClientJobs(name,jobs){const pane=$('#clientDetail');if(!pane)return;const rows=jobs.filter(j=>(j.client||t('Cliente sin nombre','Unnamed client'))===name);pane.innerHTML=`<div class="workspace-section-head"><button type="button" id="clientBack">←</button><h2>${escapeHtml(name)}</h2></div>${rows.map(j=>jobCard(j)).join('')}`;$('#clientsList').classList.add('hidden');pane.classList.remove('hidden');$('#clientBack').onclick=()=>{pane.classList.add('hidden');$('#clientsList').classList.remove('hidden')};$$(pane,'.open-job').forEach(b=>b.onclick=()=>openJob(b.closest('[data-job-id]').dataset.jobId))}
-function showWorkspaceTab(tab){
-  $$('.workspace-pane').forEach(p=>p.classList.toggle('hidden',p.dataset.workspacePane!==tab));$$('.workspace-nav button').forEach(b=>b.classList.toggle('active',b.dataset.workspaceTab===tab));showWorkspace();
+function showClientJobs(name,jobs){
+  const rows=jobs.filter(j=>(j.client||t('Cliente sin nombre','Unnamed client'))===name),units=rows.reduce((n,j)=>n+Number(j.progress?.units||0),0);
+  openSheet(`<span class="kicker">${t('Cliente','Client')}</span><h2>${escapeHtml(name)}</h2><p class="muted small">${units} ${t('equipo(s) conocidos localmente','unit(s) known locally')} · ${rows.length} ${t('inspección(es)','inspection(s)')}</p><div id="sheetClientJobs" class="list">${rows.map(j=>jobCard(j)).join('')}</div>`);
+  bindJobOpeners($('#sheetClientJobs'));
 }
-function showWorkspace(){
-  $('#workspaceView')?.classList.remove('hidden');$('#inspectionView')?.classList.add('hidden');$('#workspaceNav')?.classList.remove('hidden');document.body.classList.remove('inspection-open');
-  const h=$('#headerTitle');if(h)h.textContent=t('Clover Inspecciones','Clover Inspections');const s=$('#headerSub');if(s)s.textContent=t('Trabajo de campo · Offline · Evidencia · Reportes','Field work · Offline · Evidence · Reports');window.scrollTo({top:0,behavior:'auto'});refreshWorkspace();
+function showWorkspaceTab(tab){workspaceTab=tab;$$('.workspace-pane').forEach(p=>p.classList.toggle('hidden',p.dataset.workspacePane!==tab));$$('.navitem').forEach(b=>b.classList.toggle('active',b.dataset.workspaceTab===tab));showWorkspace({preserveTab:true})}
+function showWorkspace({preserveTab=false}={}){
+  $('#workspaceView')?.classList.remove('hidden');$('#inspectionView')?.classList.add('hidden');$('#workspaceNav')?.classList.remove('hidden');$('#globalNewBtn')?.classList.remove('hidden');document.body.classList.remove('inspection-open');
+  if(!preserveTab){workspaceTab=workspaceTab||'today';$$('.workspace-pane').forEach(p=>p.classList.toggle('hidden',p.dataset.workspacePane!==workspaceTab));$$('.navitem').forEach(b=>b.classList.toggle('active',b.dataset.workspaceTab===workspaceTab))}
+  $('#brandSubtitle').textContent=t('Inspecciones','Inspections');window.scrollTo({top:0,behavior:'auto'});refreshWorkspace();
 }
 function showInspection(){
-  $('#workspaceView')?.classList.add('hidden');$('#inspectionView')?.classList.remove('hidden');$('#workspaceNav')?.classList.add('hidden');document.body.classList.add('inspection-open');
-  const h=$('#headerTitle');if(h)h.textContent=inspectionTypeLabel(sessionMeta.inspectionType||'baseline_fleet');const s=$('#headerSub');if(s)s.textContent=t('Inspección activa · Guardado automático local','Active inspection · Automatic local saving');const type=$('#currentInspectionType');if(type)type.textContent=inspectionTypeLabel(sessionMeta.inspectionType||'baseline_fleet');window.scrollTo({top:0,behavior:'auto'});
+  $('#workspaceView')?.classList.add('hidden');$('#inspectionView')?.classList.remove('hidden');$('#workspaceNav')?.classList.add('hidden');$('#globalNewBtn')?.classList.add('hidden');document.body.classList.add('inspection-open');
+  $('#brandSubtitle').textContent=t('Inspecciones','Inspections');const type=$('#currentInspectionType');if(type)type.textContent=inspectionTypeLabel(sessionMeta.inspectionType||'baseline_fleet');window.scrollTo({top:0,behavior:'auto'});
 }
 async function openJob(id){
-  await saveNow();const rec=await idbGet(JOB_STORE,id);if(!rec)return;try{state=migrateState(JSON.parse(rec.raw));currentJobId=id;sessionMeta={...(state.session?.meta||{}),jobId:id};applyState();ensureInspectionMeta();try{localStorage.setItem(WORKSPACE_KEY,id)}catch(e){}showInspection()}catch(e){console.error(e);alert(t('No se pudo abrir esta inspección.','Could not open this inspection.'))}
+  closeSheet();await saveNow();const rec=await idbGet(JOB_STORE,id);if(!rec)return;try{state=migrateState(JSON.parse(rec.raw));currentJobId=id;sessionMeta={...(state.session?.meta||{}),jobId:id};applyState();ensureInspectionMeta();try{localStorage.setItem(WORKSPACE_KEY,id)}catch(e){}showInspection()}catch(e){console.error(e);alert(t('No se pudo abrir esta inspección.','Could not open this inspection.'))}
 }
-async function createNewInspection(){
-  const type=$('#newInspectionType').value,client=$('#newInspectionClient').value.trim(),location=$('#newInspectionLocation').value.trim(),date=$('#newInspectionDate').value||new Date().toISOString().slice(0,10),time=$('#newInspectionTime').value||'',tech=$('#newInspectionTech').value.trim();
-  await saveNow();state=blankInspection({inspectionType:type,client,location,date,tech,scheduledAt:time?`${date}T${time}:00`:''});currentJobId=state.session.meta.jobId;sessionMeta={...state.session.meta};applyState();await saveNow();$('#newInspectionDialog').close();showInspection();
+function inspectionTypeChoices(){return Object.entries(INSPECTION_TYPES).map(([code,x])=>`<button type="button" class="choice ${code===newInspectionTypeDraft?'selected':''}" data-new-type="${code}">${escapeHtml(LANG==='es'?x.es:x.en)}</button>`).join('')}
+function openNewInspectionSheet(){
+  newInspectionTypeDraft='baseline_fleet';const today=new Date().toISOString().slice(0,10),tech=$('#tech')?.value||'';
+  openSheet(`<span class="kicker">Clover</span><h2>${t('Nueva inspección','New inspection')}</h2><p class="muted small">${t('Selecciona el propósito y los datos básicos.','Choose the purpose and basic details.')}</p><h3>${t('Tipo de inspección','Inspection type')}</h3><div id="newTypeChoices" class="stack">${inspectionTypeChoices()}</div><label class="field">${t('Cliente','Client')}<input id="newInspectionClient" autocomplete="organization"></label><label class="field">${t('Ubicación','Location')}<input id="newInspectionLocation"></label><div class="two-cols"><label class="field">${t('Fecha','Date')}<input id="newInspectionDate" type="date" value="${today}"></label><label class="field">${t('Hora programada','Scheduled time')}<input id="newInspectionTime" type="time"></label></div><label class="field">${t('Técnico','Technician')}<input id="newInspectionTech" autocomplete="name" value="${escapeHtml(tech)}"></label><div class="sheet-actions"><button id="newInspectionCancel" type="button" class="secondary-sheet">${t('Cancelar','Cancel')}</button><button id="newInspectionCreate" type="button" class="primary-sheet">${t('Crear inspección','Create inspection')}</button></div>`);
+  $$('#newTypeChoices .choice').forEach(b=>b.onclick=()=>{newInspectionTypeDraft=b.dataset.newType;$$('#newTypeChoices .choice').forEach(x=>x.classList.toggle('selected',x.dataset.newType===newInspectionTypeDraft))});$('#newInspectionCancel').onclick=closeSheet;$('#newInspectionCreate').onclick=createNewInspectionFromSheet;
+}
+async function createNewInspectionFromSheet(){
+  const client=$('#newInspectionClient')?.value.trim()||'',location=$('#newInspectionLocation')?.value.trim()||'',date=$('#newInspectionDate')?.value||new Date().toISOString().slice(0,10),time=$('#newInspectionTime')?.value||'',tech=$('#newInspectionTech')?.value.trim()||'';
+  await saveNow();state=blankInspection({inspectionType:newInspectionTypeDraft,client,location,date,tech,scheduledAt:time?`${date}T${time}:00`:''});currentJobId=state.session.meta.jobId;sessionMeta={...state.session.meta};applyState();await saveNow();closeSheet();showInspection();
 }
 async function ensureWorkspaceJob(){
-  ensureInspectionMeta();let id='';try{id=localStorage.getItem(WORKSPACE_KEY)||''}catch(e){};if(state.session?.meta?.jobId)id=state.session.meta.jobId;if(!id)id=sessionMeta.jobId;currentJobId=id;sessionMeta.jobId=id;state.session.meta={...sessionMeta};const raw=JSON.stringify(state);if(hasMeaningfulInspection(state)||!(await allJobs()).length)await idbPut(JOB_STORE,jobRecordFromState(state,raw));try{localStorage.setItem(WORKSPACE_KEY,id)}catch(e){}
+  ensureInspectionMeta();let id='';try{id=localStorage.getItem(WORKSPACE_KEY)||''}catch(e){}if(state.session?.meta?.jobId)id=state.session.meta.jobId;if(!id)id=sessionMeta.jobId;currentJobId=id;sessionMeta.jobId=id;state.session.meta={...sessionMeta};const raw=JSON.stringify(state);if(hasMeaningfulInspection(state))await idbPut(JOB_STORE,jobRecordFromState(state,raw));try{if(hasMeaningfulInspection(state))localStorage.setItem(WORKSPACE_KEY,id);else localStorage.removeItem(WORKSPACE_KEY)}catch(e){}
 }
 function bindWorkspace(){
-  $$('.workspace-nav button').forEach(b=>b.onclick=()=>showWorkspaceTab(b.dataset.workspaceTab));
-  $$('.new-inspection').forEach(b=>b.onclick=()=>{$('#newInspectionDialog').showModal();$('#newInspectionDate').value=new Date().toISOString().slice(0,10);$('#newInspectionTech').value=$('#tech')?.value||''});
-  $('#newInspectionCancel').onclick=()=>$('#newInspectionDialog').close();$('#newInspectionCreate').onclick=createNewInspection;$('#backToWorkspace').onclick=async()=>{await saveNow();showWorkspace()};
-  $('#calendarPrev').onclick=()=>{const d=new Date(calendarDate+'T12:00:00');d.setDate(d.getDate()-1);calendarDate=d.toISOString().slice(0,10);refreshWorkspace()};$('#calendarNext').onclick=()=>{const d=new Date(calendarDate+'T12:00:00');d.setDate(d.getDate()+1);calendarDate=d.toISOString().slice(0,10);refreshWorkspace()};$('#calendarToday').onclick=()=>{calendarDate=new Date().toISOString().slice(0,10);refreshWorkspace()};
+  $$('.navitem').forEach(b=>b.onclick=()=>showWorkspaceTab(b.dataset.workspaceTab));$('#globalNewBtn').onclick=openNewInspectionSheet;$('#backToWorkspace').onclick=async()=>{await saveNow();showWorkspace()};
+  $('#workSearch').addEventListener('input',e=>{workQuery=e.target.value;refreshWorkspace()});$$('[data-work-filter]').forEach(b=>b.onclick=()=>{workFilter=b.dataset.workFilter;$$('[data-work-filter]').forEach(x=>x.classList.toggle('active',x===b));refreshWorkspace()});
+  $('#calendarPrev').onclick=()=>{const d=new Date(calendarDate+'T12:00:00');d.setMonth(d.getMonth()-1);d.setDate(1);calendarDate=d.toISOString().slice(0,10);refreshWorkspace()};$('#calendarNext').onclick=()=>{const d=new Date(calendarDate+'T12:00:00');d.setMonth(d.getMonth()+1);d.setDate(1);calendarDate=d.toISOString().slice(0,10);refreshWorkspace()};$('#calendarToday').onclick=()=>{calendarDate=new Date().toISOString().slice(0,10);refreshWorkspace()};
 }
-async function initWorkspace(){applyStaticI18n();bindGlobal();bindWorkspace();await load();ensureInspectionMeta();await ensureWorkspaceJob();workspaceReady=true;await refreshWorkspace();showWorkspace();}
+async function initWorkspace(){applyStaticI18n();applyWorkspaceI18n();bindGlobal();bindWorkspace();try{await load();ensureInspectionMeta();await ensureWorkspaceJob()}catch(e){console.error('Workspace initialization fallback',e)}workspaceReady=true;await refreshWorkspace();showWorkspace();}
 initWorkspace();
 })();
 if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
