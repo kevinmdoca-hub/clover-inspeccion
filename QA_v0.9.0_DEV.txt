@@ -1,0 +1,12 @@
+v0.9.0 DEV smoke tests
+
+1. Existing v0.8.1 production data must NOT appear in this DEV build (isolated namespace).
+2. Create Fleet Baseline, Pre-sale/Warranty, and Acquisition/Intake jobs.
+3. Confirm each appears in Today/Active and can be reopened with its data intact.
+4. Create jobs for two clients and verify Clients grouping.
+5. Change calendar day with arrows and verify jobs appear only on their date.
+6. Complete one job; verify it leaves Active and remains accessible through Today/Clients/Calendar.
+7. Generate PDF for each of the three types; verify report title matches the inspection purpose.
+8. Switch app language in Settings; regenerate PDF and verify language follows Settings.
+9. Work offline, switch jobs, close/reopen, and verify all local jobs persist.
+10. Publish a later test worker and verify update waits for Update button rather than reloading automatically.

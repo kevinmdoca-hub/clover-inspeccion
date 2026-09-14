@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Clover Inspection">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<title>Clover — Inspection</title>
+<title>Clover — Inspection Workspace</title>
 <style>
 :root{
   --clover-bg:#E7E9EC;--clover-bg-secondary:#D9DCE1;--clover-surface:#F4F5F6;--clover-surface-strong:#ECEEF0;
@@ -62,11 +62,23 @@ dialog{border:1px solid var(--clover-border-strong);border-radius:18px;padding:0
 body[data-theme="dark"] .guided-card{background:#1B1E24}body[data-theme="dark"] .guided-success{color:#A9D8B0}
 @media(max-width:560px){.head{align-items:flex-start}.head img{width:66px;height:66px}.head h1{font-size:19px}.settings-trigger{padding:7px 8px}.settings-trigger .save-mini-text{display:none}.unit-head{align-items:flex-start}.remove{padding:8px 10px}.photo-preview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar .small{flex-basis:100%}.actions>button{flex:1 1 180px}.float-save{font-size:13px;min-width:0}}
 @media(max-width:360px){main{padding-left:9px;padding-right:9px}.card,.notice,.feedback,.settings-panel,.unit-card{padding:11px;border-radius:14px}.step-body{padding:10px}.step summary{padding:10px}.num{min-width:38px;height:38px}.step-title{font-size:16px}}
+
+.workspace-shell{max-width:1040px;margin:auto;padding:14px 14px 100px}.workspace-hero{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 14px}.workspace-hero h2{margin:0}.workspace-pane{min-height:420px}.workspace-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 12px}.workspace-section-head h2{margin:0}.work-card{background:var(--clover-surface);border:1px solid var(--clover-border);border-radius:16px;padding:13px;margin:10px 0;box-shadow:0 2px 10px rgba(15,17,22,.05)}.work-card-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.work-client{font-size:18px;font-weight:950;color:var(--clover-dark)}.work-type{font-size:13px;color:var(--clover-text-muted);font-weight:750;margin-top:2px}.work-status{font-size:11px;font-weight:850;border:1px solid var(--clover-border);border-radius:999px;padding:4px 7px;background:var(--clover-neutral-soft);text-align:right}.work-status.done{background:var(--clover-green-soft);color:var(--clover-green)}.work-meta{font-size:12px;color:var(--clover-text-muted);margin:9px 0}.work-progress{height:7px;background:var(--clover-bg-secondary);border-radius:999px;overflow:hidden}.work-progress>div{height:100%;background:var(--clover-gold)}.work-card-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:9px}.work-card-bottom span{font-weight:900}.work-card-bottom button{min-width:110px}.workspace-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;z-index:40;width:min(100%,1040px);display:grid;grid-template-columns:repeat(4,1fr);background:var(--clover-dark);border-top:3px solid var(--clover-gold);padding:6px max(6px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left))}.workspace-nav button{background:transparent;border:0;color:#D5D8DD;border-radius:9px;min-height:48px;padding:5px 3px;font-size:12px}.workspace-nav button.active{background:#262B33;color:var(--clover-gold)}.nav-badge{display:inline-flex;min-width:17px;height:17px;align-items:center;justify-content:center;border-radius:999px;background:var(--clover-coral);color:white;font-size:10px;margin-left:3px}.empty-state{padding:24px 14px;text-align:center;color:var(--clover-text-muted);border:1px dashed var(--clover-border);border-radius:14px}.client-row{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;margin:8px 0;background:var(--clover-surface)}.client-row span:first-child{display:flex;flex-direction:column}.client-row small{font-size:12px;color:var(--clover-text-muted);margin-top:2px}.calendar-controls{display:grid;grid-template-columns:44px 1fr 44px;gap:8px;align-items:center;margin-bottom:10px}.calendar-controls strong{text-align:center}.inspection-topbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px}.inspection-type-pill{display:inline-flex;border-radius:999px;padding:6px 9px;background:#FFF6CF;border:1px solid #DDC875;color:#66520E;font-size:12px;font-weight:850}.update-banner{position:sticky;top:0;z-index:60;background:#FFF6CF;border-bottom:1px solid #DDC875;padding:9px 14px}.update-inner{max-width:1040px;margin:auto;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}.update-inner span{font-weight:800;color:#66520E}.new-inspection{background:var(--clover-gold);border-color:var(--clover-gold);color:var(--clover-dark)}body[data-theme="dark"] .work-card,body[data-theme="dark"] .client-row{background:#1B1E24}.inspection-open .workspace-nav{display:none}@media(max-width:560px){.workspace-hero{align-items:flex-start}.workspace-hero .new-inspection{flex:0 0 auto;padding-left:10px;padding-right:10px}.work-card-top{flex-direction:column}.work-status{align-self:flex-start}.inspection-topbar{align-items:flex-start}.workspace-nav button{font-size:11px}}
 </style>
 </head>
-<body>
+<body><div id="updateBanner" class="update-banner hidden"><div class="update-inner"><span>Actualización / Update available</span><div class="actions"><button id="updateLater" type="button">Más tarde / Later</button><button id="updateNow" type="button" class="brand">Actualizar / Update</button></div></div></div>
 <header class="screen"><div class="head"><img src="./icon-192.png" alt="Clover"><div class="head-copy"><h1 id="headerTitle"></h1><p id="headerSub"></p><span id="versionChip" class="version-chip"></span></div><div class="head-tools"><button id="settingsBtn" type="button" class="settings-trigger"><span id="saveDot" class="dot"></span><span id="saveMiniText" class="save-mini-text"></span><span class="gear" aria-hidden="true">⚙</span></button></div></div></header>
-<main class="screen">
+
+<main id="workspaceView" class="workspace-shell">
+  <div class="workspace-hero"><div><h2>Trabajo de inspección / Inspection work</h2><div class="small">Offline primero · una cola local lista para sincronización futura / Offline first · local queue ready for future sync</div></div><button type="button" class="new-inspection">+ Nueva / New</button></div>
+  <section class="workspace-pane" data-workspace-pane="today"><div class="workspace-section-head"><h2>Hoy / Today</h2><button type="button" class="new-inspection">+ Nueva / New</button></div><div id="todayJobs"></div></section>
+  <section class="workspace-pane hidden" data-workspace-pane="active"><div class="workspace-section-head"><h2>Trabajo activo / Active work</h2></div><div id="activeJobs"></div></section>
+  <section class="workspace-pane hidden" data-workspace-pane="clients"><div class="workspace-section-head"><h2>Clientes / Clients</h2></div><div id="clientsList"></div><div id="clientDetail" class="hidden"></div></section>
+  <section class="workspace-pane hidden" data-workspace-pane="calendar"><div class="workspace-section-head"><h2>Calendario / Calendar</h2><button id="calendarToday" type="button">Hoy / Today</button></div><div class="calendar-controls"><button id="calendarPrev" type="button">‹</button><strong id="calendarDateLabel"></strong><button id="calendarNext" type="button">›</button></div><div id="calendarJobs"></div></section>
+</main>
+<nav id="workspaceNav" class="workspace-nav"><button type="button" class="active" data-workspace-tab="today">Hoy<br>Today</button><button type="button" data-workspace-tab="active">Activo<br>Active <span id="activeWorkBadge" class="nav-badge"></span></button><button type="button" data-workspace-tab="clients">Clientes<br>Clients</button><button type="button" data-workspace-tab="calendar">Calendario<br>Calendar</button></nav>
+<main id="inspectionView" class="screen hidden">
+  <div class="inspection-topbar"><button id="backToWorkspace" type="button">← Trabajo / Work</button><span id="currentInspectionType" class="inspection-type-pill"></span></div>
   <div class="notice" id="pilotNotice"></div>
   <section id="settingsPanel" class="settings-panel hidden"><div class="settings-head"><h2 id="settingsHeading"></h2><button id="settingsCloseBtn" type="button"></button></div><div class="settings-grid"><div><label id="languageLabel" for="languageSelect"></label><select id="languageSelect"><option value="es">Español</option><option value="en">English</option></select></div><div><label id="themeLabel" for="themeSelect"></label><select id="themeSelect"><option value="light">Claro</option><option value="dark">Oscuro</option><option value="system">Automático</option></select></div></div><div class="settings-save" style="margin-top:10px"><span class="dot" aria-hidden="true"></span><div><div id="saveTitle" class="save-title"></div><div id="saveSub" class="small"></div></div></div><div class="actions" style="margin-top:10px"><button id="persistBtn" type="button"></button><button id="importBtn" type="button"></button><input id="importFile" type="file" accept=".json,application/json" hidden></div></section>
   <div class="feedback" id="feedbackBox"></div>
@@ -101,6 +113,28 @@ body[data-theme="dark"] .guided-card{background:#1B1E24}body[data-theme="dark"] 
   <div class="dialog-body"><div id="pdfDialogHelp" class="small"></div><div id="pdfUnitOptions"></div><div id="pdfDialogStatus" class="small"></div><div class="dialog-actions"><button id="pdfCancelBtn" type="button"></button><button id="pdfGenerateBtn" type="button" class="brand"></button></div></div>
 </dialog>
 
+
+<dialog id="newInspectionDialog">
+  <div class="dialog-head"><h2>Nueva inspección / New inspection</h2></div>
+  <div class="dialog-body">
+    <label for="newInspectionType">Tipo de inspección / Inspection type</label>
+    <select id="newInspectionType">
+      <option value="baseline_fleet">Condición base de flota / Fleet baseline condition</option>
+      <option value="sales_warranty_baseline">Preventa / garantía / Pre-sale / warranty baseline</option>
+      <option value="acquisition_intake">Recepción / adquisición / Acquisition / intake</option>
+      <option value="rental_out">Salida de renta / Rental out</option>
+      <option value="rental_return">Retorno de renta / Rental return</option>
+      <option value="pm">PM / Preventive maintenance</option>
+      <option value="delivery_handoff">Entrega / recepción / Delivery handoff</option>
+      <option value="incident_damage">Incidente / daño / Incident / damage</option>
+      <option value="warranty_claim">Reclamo de garantía / Warranty claim</option>
+    </select>
+    <div class="grid2"><div><label for="newInspectionClient">Cliente / Client</label><input id="newInspectionClient"></div><div><label for="newInspectionLocation">Ubicación / Location</label><input id="newInspectionLocation"></div><div><label for="newInspectionDate">Fecha / Date</label><input id="newInspectionDate" type="date"></div><div><label for="newInspectionTime">Hora programada / Scheduled time</label><input id="newInspectionTime" type="time"></div><div style="grid-column:1/-1"><label for="newInspectionTech">Técnico / Technician</label><input id="newInspectionTech"></div></div>
+    <div class="small" style="margin-top:9px">La primera versión usa la inspección completa actual para todos los tipos; el tipo controla propósito, organización y título del reporte. / The first version uses the current full inspection for all types; type controls purpose, organization and report title.</div>
+    <div class="dialog-actions"><button id="newInspectionCancel" type="button">Cancelar / Cancel</button><button id="newInspectionCreate" type="button" class="brand">Crear / Create</button></div>
+  </div>
+</dialog>
+
 <dialog id="guidedPhotoDialog" class="guided-dialog">
   <div class="dialog-head"><h2 id="guidedPhotoDialogTitle"></h2><button id="guidedPhotoClose" type="button" aria-label="Close">×</button></div>
   <div class="dialog-body">
@@ -125,6 +159,6 @@ body[data-theme="dark"] .guided-card{background:#1B1E24}body[data-theme="dark"] 
 </dialog>
 
 <script>window.CLOVER_PACKAGE_LANG='es';</script>
-<script src="./app.js?v=081"></script>
+<script src="./app.js?v=090"></script>
 </body>
 </html>

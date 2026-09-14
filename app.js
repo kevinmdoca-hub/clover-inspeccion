@@ -1,22 +1,23 @@
 (() => {
 'use strict';
 
-const VERSION='0.8.1';
-const PACKAGE_LANG=(window.CLOVER_PACKAGE_LANG||document.documentElement.lang||'es').toLowerCase().startsWith('en')?'en':'es';
-const STATE_KEY=PACKAGE_LANG==='en'?'clover-inspection-en-v072-state':'clover-inspeccion-v07-state';
-const DB_NAME=PACKAGE_LANG==='en'?'clover-inspection-en-v072':'clover-inspeccion-v07';
-const LANG_KEY=(PACKAGE_LANG==='en'?'clover-inspection-en':'clover-inspeccion-es')+'-language';
+const VERSION='0.9.0-dev';
+const PACKAGE_LANG='es';
+const STATE_KEY='clover-inspection-dev-v090-state';
+const DB_NAME='clover-inspection-dev-v090';
+const LANG_KEY='clover-inspection-language';
+const WORKSPACE_KEY='clover-inspection-dev-v090-current-job';
 let storedLanguage='';try{storedLanguage=localStorage.getItem(LANG_KEY)||''}catch(e){}
 const LANG=['es','en'].includes(storedLanguage)?storedLanguage:PACKAGE_LANG;
-const DB_VERSION=3;
-const MEDIA='media', STATE_STORE='state';
+const DB_VERSION=4;
+const MEDIA='media', STATE_STORE='state', JOB_STORE='jobs';
 const IDLE_SECONDS=10*60;
 const MAX_FILES_PER_PICK=3;
 const MAX_VIDEO_BYTES=50*1024*1024;
 const MAX_FINDING_VIDEO_SECONDS=10;
 const MAX_FUNCTIONAL_VIDEO_SECONDS=30;
 const MAX_FUNCTIONAL_VIDEOS_PER_UNIT=3;
-const THEME_KEY=(PACKAGE_LANG==='en'?'clover-inspection-en':'clover-inspeccion-es')+'-theme';
+const THEME_KEY='clover-inspection-theme';
 const $=s=>document.querySelector(s);
 const $$=(root,selector)=>typeof root==='string'&&selector===undefined?[...document.querySelectorAll(root)]:[...root.querySelectorAll(selector)];
 const t=(es,en)=>LANG==='es'?es:en;
@@ -30,7 +31,7 @@ const alpha=arr=>[...arr].sort((a,b)=>{const ao=isOtherOption(a),bo=isOtherOptio
 const UI={
   headerTitle:t('Inspección de Condición Base y Planeación de Servicio','Baseline Condition & Service Planning Inspection'),
   headerSub:t('Aplicación de campo · Móvil · Offline · Guardado automático','Field app · Mobile · Offline · Automatic saving'),
-  version:t('Piloto v0.8.1 DEV','Pilot v0.8.1 DEV'),
+  version:t('Desarrollo v0.9.0','Development v0.9.0'),
   pilot:t('<b>Objetivo del piloto:</b> documentar la condición real de cada equipo, necesidades inmediatas, mantenimiento diferido y exposición probable de servicio sin pedir al técnico que determine precio o riesgo comercial.','<b>Pilot objective:</b> document each unit’s actual condition, immediate needs, deferred maintenance and likely service exposure without asking the technician to determine pricing or commercial risk.'),
   feedback:t('<b>Retroalimentación de campo:</b> confirma si el orden coincide con la inspección real, qué sobra o falta, qué debería resolverse con un toque y qué requiere herramientas adicionales.','<b>Field feedback:</b> confirm whether the order matches the real inspection, what is missing or redundant, what should take one tap, and what requires additional tools.'),
   sessionHeading:t('Sesión de inspección','Inspection session'), client:t('Cliente / empresa','Client / company'), location:t('Ubicación','Location'), tech:t('Técnico','Technician'), date:t('Fecha','Date'), sessionNotes:t('Notas de la sesión','Session notes'),
@@ -50,6 +51,21 @@ const UI={
   internalTime:t('Los tiempos se registran automáticamente para análisis interno. No se muestra una duración al técnico ni en el reporte.','Timing is recorded automatically for internal analysis. No duration is shown to the technician or in the report.'),
 };
 
+
+const INSPECTION_TYPES={
+ baseline_fleet:{es:'Condición base de flota',en:'Fleet baseline condition',reportEs:'REPORTE DE CONDICIÓN BASE',reportEn:'BASELINE CONDITION REPORT'},
+ sales_warranty_baseline:{es:'Preventa / línea base de garantía',en:'Pre-sale / warranty baseline',reportEs:'REPORTE DE CONDICIÓN PREVENTA / GARANTÍA',reportEn:'PRE-SALE / WARRANTY CONDITION REPORT'},
+ acquisition_intake:{es:'Recepción de equipo adquirido',en:'Acquisition / intake',reportEs:'REPORTE DE RECEPCIÓN / ADQUISICIÓN',reportEn:'ACQUISITION / INTAKE CONDITION REPORT'},
+ rental_out:{es:'Salida de renta',en:'Rental out',reportEs:'REPORTE DE SALIDA DE RENTA',reportEn:'RENTAL OUT CONDITION REPORT'},
+ rental_return:{es:'Retorno de renta',en:'Rental return',reportEs:'REPORTE DE RETORNO DE RENTA',reportEn:'RENTAL RETURN CONDITION REPORT'},
+ pm:{es:'Mantenimiento preventivo (PM)',en:'Preventive maintenance (PM)',reportEs:'REPORTE DE INSPECCIÓN PM',reportEn:'PM INSPECTION REPORT'},
+ delivery_handoff:{es:'Entrega / recepción',en:'Delivery handoff',reportEs:'REPORTE DE ENTREGA / RECEPCIÓN',reportEn:'DELIVERY HANDOFF REPORT'},
+ incident_damage:{es:'Incidente / daño',en:'Incident / damage',reportEs:'REPORTE DE INCIDENTE / DAÑO',reportEn:'INCIDENT / DAMAGE REPORT'},
+ warranty_claim:{es:'Reclamo de garantía',en:'Warranty claim',reportEs:'REPORTE DE RECLAMO DE GARANTÍA',reportEn:'WARRANTY CLAIM REPORT'}
+};
+function inspectionTypeLabel(code){const x=INSPECTION_TYPES[code]||INSPECTION_TYPES.baseline_fleet;return LANG==='es'?x.es:x.en}
+function inspectionReportBaseTitle(code){const x=INSPECTION_TYPES[code]||INSPECTION_TYPES.baseline_fleet;return LANG==='es'?x.reportEs:x.reportEn}
+function inspectionReportTitle(code,pre,cont=false){return inspectionReportBaseTitle(code)+(cont?t(' - CONT.',' - CONT.'):'')+' - '+(pre?t('PRELIMINAR','PRELIMINARY'):t('FINAL','FINAL'))}
 const STATUS_LABELS={
  normal:t('Normal','Normal'), monitor:t('Monitor','Monitor'), repair:t('Reparar','Repair'), major:t('Preocupación mayor','Major concern'), na:t('N/A','N/A'), not_inspected:t('No inspeccionado','Not inspected'), unable_inspect:t('No se pudo inspeccionar','Unable to inspect'),
  not_observed:t('No observado','Not observed'), observed:t('Observado','Observed'), unable_determine:t('No se pudo determinar','Unable to determine'),
@@ -310,10 +326,11 @@ function setSave(kind,title,sub){
   if(f){clearTimeout(saveToastTimer);f.className='float-save screen '+(kind==='saving'?'saving':kind==='bad'?'error':'');f.textContent=kind==='saving'?UI.savingFloat:kind==='bad'?UI.retry:UI.savedFloat;f.classList.remove('toast-hidden');if(kind==='ok')saveToastTimer=setTimeout(()=>f.classList.add('toast-hidden'),1400)}
 }
 function scheduleSave(){setSave('saving',UI.saving,UI.savingSub);clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,450)}
-function openDB(){if(dbPromise)return dbPromise;dbPromise=new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(MEDIA))db.createObjectStore(MEDIA,{keyPath:'id'});if(!db.objectStoreNames.contains(STATE_STORE))db.createObjectStore(STATE_STORE,{keyPath:'key'})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});return dbPromise}
+function openDB(){if(dbPromise)return dbPromise;dbPromise=new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(MEDIA))db.createObjectStore(MEDIA,{keyPath:'id'});if(!db.objectStoreNames.contains(STATE_STORE))db.createObjectStore(STATE_STORE,{keyPath:'key'});if(!db.objectStoreNames.contains(JOB_STORE))db.createObjectStore(JOB_STORE,{keyPath:'id'})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});return dbPromise}
 async function idbPut(store,value){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).put(value);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
 async function idbGet(store,key){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readonly');const rq=tx.objectStore(store).get(key);rq.onsuccess=()=>resolve(rq.result||null);rq.onerror=()=>reject(rq.error)})}
 async function idbGetAllMedia(){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(MEDIA,'readonly');const rq=tx.objectStore(MEDIA).getAll();rq.onsuccess=()=>resolve(rq.result||[]);rq.onerror=()=>reject(rq.error)})}
+async function idbGetAll(store){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readonly');const rq=tx.objectStore(store).getAll();rq.onsuccess=()=>resolve(rq.result||[]);rq.onerror=()=>reject(rq.error)})}
 async function idbDeleteMedia(id){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(MEDIA,'readwrite');tx.objectStore(MEDIA).delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
 async function idbClearStore(store){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).clear();tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)})}
 async function deleteMediaForUnit(unitId){const all=await idbGetAllMedia();for(const r of all.filter(x=>x.unitId===unitId))await idbDeleteMedia(r.id)}
@@ -338,7 +355,7 @@ function unitFromDom(unit){
   return{id:unit.dataset.unitId,fields,reportedConcerns,checks,legacyChecks:[...(unit._legacyChecks||[])],meta:{...(unit._meta||{})},efficiency:normalizeEfficiency(unit._efficiency||{})};
 }
 function syncStateFromDom(){state.schemaVersion=VERSION;state.session=sessionFromDom();state.units=$$('#units .unit').map(unitFromDom);if(!Array.isArray(state.reports))state.reports=[]}
-async function saveNow(){try{syncStateFromDom();const raw=JSON.stringify(state);let saved=false;try{await idbPut(STATE_STORE,{key:'latest',raw,savedAt:nowIso()});saved=true}catch(e){console.warn('IndexedDB save failed',e)}try{localStorage.setItem(STATE_KEY,raw);saved=true}catch(e){console.warn('localStorage save failed',e)}if(!saved)throw new Error('No local storage backend');setSave('ok',UI.saved,UI.savedSub+nowTime())}catch(e){console.error(e);setSave('bad',UI.saveError,UI.saveErrorSub)}}
+async function saveNow(){try{syncStateFromDom();ensureInspectionMeta();const raw=JSON.stringify(state);let saved=false;try{await idbPut(STATE_STORE,{key:'latest',raw,savedAt:nowIso()});saved=true}catch(e){console.warn('IndexedDB save failed',e)}try{localStorage.setItem(STATE_KEY,raw);saved=true}catch(e){console.warn('localStorage save failed',e)}if(currentJobId)try{await idbPut(JOB_STORE,jobRecordFromState(state,raw))}catch(e){console.warn('Job snapshot save failed',e)}if(!saved)throw new Error('No local storage backend');setSave('ok',UI.saved,UI.savedSub+nowTime());if(workspaceReady)refreshWorkspace()}catch(e){console.error(e);setSave('bad',UI.saveError,UI.saveErrorSub)}}
 
 function createChip(name,code,label,checked,attrs=''){return`<label class="chip"><input type="checkbox" name="${escapeHtml(name)}" value="${escapeHtml(code)}" ${checked?'checked':''} ${attrs}><span>${escapeHtml(label)}</span></label>`}
 function qLabel(id,label,optional=false){return`<span class="q-meta"><span class="qid">${escapeHtml(id)}</span><span class="${optional?'optional-tag':'required-tag'}">${optional?UI.optional:UI.required}</span></span><span class="q-text">${escapeHtml(label)}</span>`}
@@ -409,6 +426,7 @@ function unitHtml(id){
    <div class="interview-skipped small hidden">${t('Sin persona disponible: la entrevista se considera atendida y no bloquea la finalización.','No knowledgeable person available: the interview is considered addressed and does not block completion.')}</div>
    <button type="button" class="continue">${UI.continue}</button></div></details>
   <details class="step" data-step="4" data-section="4"><summary><span class="num">4</span><span><span class="step-title">${t('Fotos de línea base','Baseline photos')}</span><span class="step-subtitle">${t('Una foto por categoría; solo las categorías requeridas bloquean la finalización.','One photo per category; only required categories block finalization.')}</span><span class="step-status"></span></span></summary><div class="step-body"><div class="baseline-progress small"></div><button type="button" class="guided-photo-start brand">${t('Iniciar captura guiada','Start guided capture')}</button><div class="guided-photo-help small">${t('Una foto a la vez, en orden de recorrido. Puedes omitir una y volver después.','One photo at a time in walk-around order. You can skip one and return later.')}</div>${BASE_EVIDENCE.map(evidenceSlot).join('')}<button type="button" class="continue">${UI.continue}</button></div></details>
+  <details class="step power-placeholder" data-step="9" data-section="9"><summary><span class="num">9</span><span><span class="step-title">${t('Tren motriz / sistema de potencia','Powertrain / power system')}</span><span class="step-status">${t('Configuración pendiente','Configuration pending')}</span></span></summary><div class="step-body"><div class="notice"><b>${t('Selecciona el tipo de energía en la Sección 1 para habilitar las preguntas correctas de esta sección.','Select Power Type in Section 1 to enable the correct questions for this section.')}</b></div></div></details>
   ${SECTIONS.map(dynamicStepHtml).join('')}
   <details class="step" data-step="14" data-section="14"><summary><span class="num">14</span><span><span class="step-title">${t('Resumen de hallazgos y planeación de servicio','Findings summary & service planning')}</span><span class="step-status"></span></span></summary><div class="step-body"><div class="findingsSummary"></div>${fieldLabel('14-A',t('Notas generales del técnico','Technician general notes'),true)}<textarea data-k="overallNotes"></textarea>${fieldLabel('14-B',t('Información / herramienta que hizo falta','Missing information / tool'),true)}<textarea data-k="missingTools"></textarea><div class="finalize-hint unit-finalize-hint"></div><button type="button" class="finish-unit">${UI.finishUnit}</button></div></details>
   </div><div class="unit-footer"><div class="unit-progress-copy"></div><div class="actions"><button type="button" class="review-unit-missing">${UI.reviewMissing}</button></div></div></div></article>`;
@@ -493,6 +511,10 @@ function conditional(unit,{clearHidden=false}={}){
   const problems=unit.querySelector('[data-k="problemsReported"]').value,reported=unit.querySelector('.reported-problems');reported.classList.toggle('hidden',present!=='available_yes'||problems!=='yes_known');
   for(const k of ['recurring','majorRepair','deferred']){const st=unit.querySelector(`[data-k="${k}Status"]`),note=unit.querySelector(`[data-k="${k}Notes"]`);if(st&&note)note.classList.toggle('hidden',st.value!=='yes_known')}
   updateBaselineRequirements(unit);
+  const pwr=unit.querySelector('[data-k="power"]')?.value||'';
+  const placeholder=unit.querySelector('.power-placeholder');
+  if(placeholder)placeholder.classList.toggle('hidden',!!pwr);
+
 }
 function syncCapacityToggle(unit){const v=unit.querySelector('[data-k="capacityUnit"]')?.value||'lb';$$(unit,'[data-capacity-toggle] button').forEach(b=>b.classList.toggle('active',b.dataset.unit===v))}
 function renumber(){$$('#units .unit').forEach((u,i)=>u.querySelector('.unitIndex').textContent=i+1)}
@@ -525,6 +547,7 @@ function bindUnit(unit){
 function interviewMetrics(step){const unit=step.closest('.unit'),present=unit.querySelector('[data-k="knowledgeablePresent"]').value;if(!present)return{done:0,total:1};if(present==='available_no')return{done:1,total:1};let total=1,done=1;for(const k of ['knowledgeableRole','serviceRecords','maintenanceProvider','recurringStatus','majorRepairStatus','deferredStatus','problemsReported']){total++;const el=unit.querySelector(`[data-k="${k}"]`),v=String(el?.value||'').trim();if(v&&(!isOtherSelection(k,v)||String(unit.querySelector(`[data-k="${OTHER_FIELD_MAP[k]}"]`)?.value||'').trim()))done++}if(unit.querySelector('[data-k="problemsReported"]').value==='yes_known'){total++;const selected=$$(unit,'.concerns input:checked');if(selected.length)done++;for(const card of $$(unit,'.concern-detail')){total++;if($$(card,'input[data-occurrence]:checked').length)done++}}return{done,total}}
 function stepMetrics(step){
   const unit=step.closest('.unit');
+  if(step.classList.contains('power-placeholder'))return{done:0,total:0};
   if(step.dataset.step==='1'){const fields=$$(step,'[data-k][data-required="true"]:not(.hidden)').filter(el=>!el.closest('.hidden')),photo=step.querySelector('[data-preview-keys="placa"]');const doneFields=fields.filter(el=>{const k=el.dataset.k;if(!String(el.value||'').trim())return false;if(isOtherSelection(k,el.value)){const other=unit.querySelector(`[data-k="${OTHER_FIELD_MAP[k]}"]`);return !!String(other?.value||'').trim()}return true}).length;return{done:doneFields+(photo?.children.length?1:0),total:fields.length+1}}
   if(step.dataset.step==='2'){const fields=$$(step,'[data-required="true"]:not(.hidden)').filter(el=>!el.closest('.hidden'));return{done:fields.filter(el=>{const k=el.dataset.k;if(!String(el.value||'').trim())return false;if(isOtherSelection(k,el.value)){const other=unit.querySelector(`[data-k="${OTHER_FIELD_MAP[k]}"]`);return !!String(other?.value||'').trim()}return true}).length,total:fields.length}}
   if(step.dataset.step==='3')return interviewMetrics(step);
@@ -533,7 +556,7 @@ function stepMetrics(step){
 }
 function requiredMetrics(unit){let done=0,total=0;$$(unit,'.step').filter(s=>!s.classList.contains('hidden')&&s.dataset.step!=='14').forEach(s=>{const m=stepMetrics(s);done+=m.done;total+=m.total});return{done,total,missing:Math.max(0,total-done)}}
 function missingForStep(step){
-  const unit=step.closest('.unit');if(step.dataset.step==='1'){const misses=$$(step,'[data-k][data-required="true"]:not(.hidden)').filter(el=>{if(el.closest('.hidden'))return false;const v=String(el.value||'').trim();if(!v)return true;if(isOtherSelection(el.dataset.k,v)){const other=unit.querySelector(`[data-k="${OTHER_FIELD_MAP[el.dataset.k]}"]`);return !String(other?.value||'').trim()}return false}).map(el=>el.closest('div')?.querySelector('.q-label')?.innerText||el.dataset.k);if(!step.querySelector('[data-preview-keys="placa"]')?.children.length)misses.push(t('1-K Foto de placa de datos','1-K Data plate photo'));return misses}
+  const unit=step.closest('.unit');if(step.classList.contains('power-placeholder'))return[];if(step.dataset.step==='1'){const misses=$$(step,'[data-k][data-required="true"]:not(.hidden)').filter(el=>{if(el.closest('.hidden'))return false;const v=String(el.value||'').trim();if(!v)return true;if(isOtherSelection(el.dataset.k,v)){const other=unit.querySelector(`[data-k="${OTHER_FIELD_MAP[el.dataset.k]}"]`);return !String(other?.value||'').trim()}return false}).map(el=>el.closest('div')?.querySelector('.q-label')?.innerText||el.dataset.k);if(!step.querySelector('[data-preview-keys="placa"]')?.children.length)misses.push(t('1-K Foto de placa de datos','1-K Data plate photo'));return misses}
   if(step.dataset.step==='2')return $$(step,'[data-required="true"]:not(.hidden)').filter(el=>{if(el.closest('.hidden'))return false;const v=String(el.value||'').trim();if(!v)return true;if(isOtherSelection(el.dataset.k,v)){const other=unit.querySelector(`[data-k="${OTHER_FIELD_MAP[el.dataset.k]}"]`);return !String(other?.value||'').trim()}return false}).map(el=>el.closest('div')?.querySelector('.q-label')?.innerText||el.dataset.k);
   if(step.dataset.step==='3'){const p=unit.querySelector('[data-k="knowledgeablePresent"]').value;if(!p)return[t('3-A Persona disponible','3-A Knowledgeable person available')];if(p==='available_no')return[];const out=[];for(const [k,id,label] of [['knowledgeableRole','3-B',t('Rol','Role')],['serviceRecords','3-C',t('Historial de servicio','Service history')],['maintenanceProvider','3-D',t('Proveedor de mantenimiento','Maintenance provider')],['recurringStatus','3-H',t('Problemas recurrentes','Recurring issues')],['majorRepairStatus','3-I',t('Reparaciones mayores','Major repairs')],['deferredStatus','3-J',t('Reparaciones diferidas','Deferred repairs')],['problemsReported','3-K',t('Problemas actuales','Current problems')]]){const el=unit.querySelector(`[data-k="${k}"]`),v=el?.value||'';if(!v||(isOtherSelection(k,v)&&!String(unit.querySelector(`[data-k="${OTHER_FIELD_MAP[k]}"]`)?.value||'').trim()))out.push(`${id} ${label}`)};if(unit.querySelector('[data-k="problemsReported"]').value==='yes_known'){const selected=$$(unit,'.concerns input:checked');if(!selected.length)out.push(t('3-L Seleccionar al menos un problema reportado','3-L Select at least one reported concern'));for(const card of $$(unit,'.concern-detail'))if(!$$(card,'input[data-occurrence]:checked').length)out.push(t('Ocurrencia: ','Occurrence: ')+(CONCERNS.find(x=>x[0]===card.dataset.concernCode)?.[1]||card.dataset.concernCode))}return out}
   if(step.dataset.step==='4')return $$(step,'[data-preview-keys][data-required="true"]').filter(x=>!x.closest('.hidden')&&x.children.length===0).map(x=>x.dataset.evidenceTitle||t('Evidencia','Evidence'));if(step.dataset.step==='14')return[];return $$(step,'.check-item').filter(i=>!statusCodeForItem(i)).map(i=>`${i.dataset.qid} ${ITEM_BY_ID.get(i.dataset.qid)?.label||''}`)
@@ -607,7 +630,8 @@ class SimplePDF{
 function wrapText(text,maxChars){const words=String(text||'').split(/\s+/),lines=[];let line='';for(const w of words){if(!w)continue;if((line+' '+w).trim().length>maxChars&&line){lines.push(line);line=w}else line=(line+' '+w).trim()}if(line)lines.push(line);return lines.length?lines:['']}
 async function jpegFromBlob(blob,max=1200){return new Promise((resolve,reject)=>{const url=URL.createObjectURL(blob),img=new Image();img.onload=()=>{try{let w=img.naturalWidth,h=img.naturalHeight,scale=Math.min(1,max/Math.max(w,h));w=Math.max(1,Math.round(w*scale));h=Math.max(1,Math.round(h*scale));const c=document.createElement('canvas');c.width=w;c.height=h;const ctx=c.getContext('2d');ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,w,h);ctx.drawImage(img,0,0,w,h);c.toBlob(async b=>{URL.revokeObjectURL(url);if(!b)return reject(new Error('image conversion'));resolve({bytes:new Uint8Array(await b.arrayBuffer()),w,h})},'image/jpeg',.78)}catch(e){URL.revokeObjectURL(url);reject(e)}};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('image load'))};img.src=url})}
 async function loadLogoJpeg(){try{const b=await (await fetch('./icon-192.png')).blob();return await jpegFromBlob(b,300)}catch(e){return null}}
-function fmtTimestamp(iso){if(!iso)return t('En progreso','In progress');const d=new Date(iso);return isNaN(d)?iso:d.toLocaleString(LANG==='es'?'es-MX':'en-US',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}
+function fmtDateValue(value){if(!value)return'';const d=new Date(String(value).length===10?value+'T12:00:00':value);if(isNaN(d))return value;if(LANG==='es')return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;return `${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}/${d.getFullYear()}`}
+function fmtTimestamp(iso){if(!iso)return t('En progreso','In progress');const d=new Date(iso);if(isNaN(d))return iso;if(LANG==='es')return `${fmtDateValue(iso)} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;return `${fmtDateValue(iso)} ${d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'})}`}
 function itemStatusFromState(u,id){return u.checks?.find(c=>c.questionId===id)}
 function reportStatusColor(code){
   if(['normal','not_observed','function_normal','available_yes','compatible','no_known'].includes(code))return[45,151,72];
@@ -632,11 +656,11 @@ function pdfHeaderRussell(pdf,p,logoId,title,unitNo,serial,preliminary,reportMet
   if(unitNo)pdf.text(p,48,45,`${t('UNIDAD','CLIENT UNIT ID')}: ${unitNo}`,6.8,true,whiteC);
   if(serial)pdf.text(p,48,57,`${t('SERIE','SERIAL NO')}: ${serial}`,6.6,false,muted);
   const labelRight=399,valueRight=494;
-  const date=state.session.date||'';
+  const date=fmtDateValue(state.session.date||'');
   const tech=state.session.tech||'-';
   const created=reportMeta?.generatedAt?fmtTimestamp(reportMeta.generatedAt):'-';
-  pdfTextRight(pdf,p,labelRight,29,t('Fecha de inspeccion:','Inspection Date:'),6.2,false,muted);pdfTextRight(pdf,p,valueRight,29,date||'-',6.4,true,whiteC);
-  pdfTextRight(pdf,p,labelRight,43,t('Tecnico:','Technician:'),6.2,false,muted);pdfTextRight(pdf,p,valueRight,43,tech,6.4,true,whiteC);
+  pdfTextRight(pdf,p,labelRight,29,t('Fecha de inspección:','Inspection Date:'),6.2,false,muted);pdfTextRight(pdf,p,valueRight,29,date||'-',6.4,true,whiteC);
+  pdfTextRight(pdf,p,labelRight,43,t('Técnico:','Technician:'),6.2,false,muted);pdfTextRight(pdf,p,valueRight,43,tech,6.4,true,whiteC);
   pdfTextRight(pdf,p,labelRight,57,t('Reporte creado:','Report Created:'),6.2,false,muted);pdfTextRight(pdf,p,valueRight,57,created,6.4,true,whiteC);
   if(preliminary){pdf.rect(p,321,72,238,18,[252,236,238]);pdf.text(p,333,84,t('PRELIMINAR - INCOMPLETA','PRELIMINARY - INCOMPLETE'),7.1,true,[180,55,65])}
 }
@@ -646,7 +670,7 @@ function pdfFooter(pdf,p,index,total){
   pdf.text(p,36,832,'CM-INS-'+String(state.session.date||'').replaceAll('-','')+'-'+String(index).padStart(2,'0'),6.1,false,[120,125,132]);
   pdf.text(p,531,827,`${index}/${total}`,6.7,false,[102,107,115]);
 }
-function reportCategory(item){const n=Number(item?.sectionNum||0);const map={5:t('Seguridad','Safety'),6:t('Horquillas / mastil / sistema de carga','Forks / mast / load system'),7:t('Direccion / chasis','Steering / chassis'),8:t('Sistema hidraulico','Hydraulic system'),9:t('Sistema de potencia','Power system'),10:t('Llantas','Tires'),11:t('PM / mantenimiento diferido','PM / deferred maintenance'),12:t('Condicion general / indicadores de abuso','General condition / abuse indicators'),13:t('Prueba funcional','Functional test')};return map[n]||item?.sectionTitle||''}
+function reportCategory(item){const n=Number(item?.sectionNum||0);const map={5:t('Seguridad','Safety'),6:t('Horquillas / mástil / sistema de carga','Forks / mast / load system'),7:t('Dirección / chasis','Steering / chassis'),8:t('Sistema hidráulico','Hydraulic system'),9:t('Sistema de potencia','Power system'),10:t('Llantas','Tires'),11:t('PM / mantenimiento diferido','PM / deferred maintenance'),12:t('Condición general / indicadores de abuso','General condition / abuse indicators'),13:t('Prueba funcional','Functional test')};return map[n]||item?.sectionTitle||''}
 function reportComment(c){const bits=[];if(c.observation)bits.push(c.observation);if(c.classificationCode)bits.push(ACTION_LABELS[c.classificationCode]||c.classificationCode);if(c.notes)bits.push(c.notes);if(c.unableReasonCode){const reason=c.unableReasonCode==='other'&&c.extra?.unableReasonOther?c.extra.unableReasonOther:(UNABLE_REASONS[c.unableReasonCode]||c.unableReasonCode);bits.push(reason)}return bits.join(' - ')}
 function specValue(f,key){const v=effectiveFieldValue(f,key);return String(v||'-')}
 function baselineRuleStateForFields(f,rule){const type=f?.equipmentType||'';if(rule==='optional')return{applicable:true,required:false};if(rule==='always')return{applicable:true,required:true};if(rule==='fourwheel')return{applicable:!type||['sitdown_4wheel','heavy_capacity','rough_terrain'].includes(type),required:['sitdown_4wheel','heavy_capacity','rough_terrain'].includes(type)};if(rule==='threewheel')return{applicable:type==='three_wheel_electric',required:type==='three_wheel_electric'};if(rule==='counterbalance')return{applicable:!type||['sitdown_4wheel','three_wheel_electric','heavy_capacity','rough_terrain','standup_counterbalance'].includes(type),required:['sitdown_4wheel','three_wheel_electric','heavy_capacity','rough_terrain','standup_counterbalance'].includes(type)};return{applicable:true,required:false}}
@@ -695,32 +719,37 @@ function drawConditionRow(pdf,p,y,row,unitMedia){
   return y+rh;
 }
 async function drawConditionReport(pdf,u,unitMedia,logoId,pre,reportMeta){
-  const f=u.fields||{},unitNo=f.clientUnit||'-',serial=f.serial||'-';let p=pdf.addPage();pdfHeaderRussell(pdf,p,logoId,t('REPORTE DE CONDICION - ','CONDITION REPORT - ')+(pre?t('PRELIMINAR','PRELIMINARY'):t('FINAL','FINAL')),unitNo,serial,pre,reportMeta);
+  const f=u.fields||{},unitNo=f.clientUnit||'-',serial=f.serial||'-';let p=pdf.addPage();pdfHeaderRussell(pdf,p,logoId,inspectionReportTitle(reportMeta.inspectionType||sessionMeta.inspectionType,pre,false),unitNo,serial,pre,reportMeta);
   const heroRec=unitMedia.find(r=>['right-side','front','foto1'].includes(r.key)&&String(r.type||'').startsWith('image/'));const hero=await pdfImageForRecord(pdf,heroRec,700);
   const specY=102,specH=134;pdf.rect(p,36,specY,523,specH,[255,255,255],[184,188,194],.65);pdf.line(p,441,specY,441,specY+specH,[184,188,194],.65);
   const fork=['standard_forks','sideshifter','fork_positioner','rotator','push_pull','multiple_load_handler'].includes(f.attachment)&&f.forkLength?specValue(f,'forkLength'):'-';
-  const left=[[t('Tipo de equipo:','Equipment Type:'),reportEquipmentType(f)],[t('Marca:','Make:'),specValue(f,'make')],[t('Modelo:','Model:'),specValue(f,'model')],[t('Ano:','Year:'),f.year||'-'],[t('Horas:','Hours:'),f.hours||'-'],[t('Capacidad:','Capacity:'),`${f.capacity||'-'} ${f.capacityUnit||''}`.trim()],[t('Energia:','Power Type:'),specValue(f,'power')]];
-  const right=[[t('Llantas:','Tire Type:'),specValue(f,'tires')],[t('Mastil:','Mast Type:'),specValue(f,'mast')],[t('Aditamento:','Attachment:'),specValue(f,'attachment')],[t('Largo de horquillas:','Fork Length:'),fork],[t('Estado operativo:','Operating Status:'),specValue(f,'operational')],[t('Ubicacion:','Location:'),state.session.location||'-'],[t('Voltaje:','Voltage:'),f.voltage||'-']];
+  const left=[[t('Tipo de equipo:','Equipment Type:'),reportEquipmentType(f)],[t('Marca:','Make:'),specValue(f,'make')],[t('Modelo:','Model:'),specValue(f,'model')],[t('Año:','Year:'),f.year||'-'],[t('Horas:','Hours:'),f.hours||'-'],[t('Capacidad:','Capacity:'),`${f.capacity||'-'} ${f.capacityUnit||''}`.trim()],[t('Energía:','Power Type:'),specValue(f,'power')]];
+  const right=[[t('Llantas:','Tire Type:'),specValue(f,'tires')],[t('Mástil:','Mast Type:'),specValue(f,'mast')],[t('Aditamento:','Attachment:'),specValue(f,'attachment')],[t('Largo de horquillas:','Fork Length:'),fork],[t('Estado operativo:','Operating Status:'),specValue(f,'operational')],[t('Ubicación:','Location:'),state.session.location||'-'],[t('Voltaje:','Voltage:'),f.voltage||'-']];
   let sy=121;for(let i=0;i<7;i++){pdfLeaderSpec(pdf,p,50,sy+i*15.5,175,left[i][0],left[i][1]);pdfLeaderSpec(pdf,p,239,sy+i*15.5,188,right[i][0],right[i][1])}
   pdf.rect(p,450,117,100,95,[244,245,246],[184,188,194],.5);if(hero)fitImage(pdf,p,hero,452,119,96,91);else pdf.text(p,469,165,t('FOTO PRINCIPAL','PRIMARY UNIT PHOTO'),6.3,true,[102,107,115]);
   const rows=(u.checks||[]).map(c=>({c,item:ITEM_BY_ID.get(c.questionId)})).filter(x=>x.item&&x.c.applicable!==false&&Number(x.item.sectionNum)>=5&&Number(x.item.sectionNum)<=13);
   let y=254;y=drawConditionHeader(pdf,p,y);let lastSection=null;
   for(const row of rows){
-    if(lastSection!==row.item.sectionNum){if(y+38>798){p=pdf.addPage();pdfHeaderRussell(pdf,p,logoId,t('REPORTE DE CONDICION - CONT.','CONDITION REPORT - CONT.'),unitNo,serial,pre,reportMeta);y=92;y=drawConditionHeader(pdf,p,y)}y=drawSectionBand(pdf,p,y,row.item);lastSection=row.item.sectionNum}
+    if(lastSection!==row.item.sectionNum){if(y+38>798){p=pdf.addPage();pdfHeaderRussell(pdf,p,logoId,inspectionReportTitle(reportMeta.inspectionType||sessionMeta.inspectionType,pre,true),unitNo,serial,pre,reportMeta);y=92;y=drawConditionHeader(pdf,p,y)}y=drawSectionBand(pdf,p,y,row.item);lastSection=row.item.sectionNum}
     const itemLines=wrapText(row.item.label,28),commentLines=wrapText(reportComment(row.c)||'',38),evLines=wrapText(evidenceRefsForItem(row.item,unitMedia).join(', '),15),statusLines=wrapText(pdfStatusLabel(row.c.statusCode)||'',12),rh=Math.max(18,8+Math.max(1,itemLines.length,commentLines.length,evLines.length,statusLines.length)*7.4);
-    if(y+rh>798){p=pdf.addPage();pdfHeaderRussell(pdf,p,logoId,t('REPORTE DE CONDICION - CONT.','CONDITION REPORT - CONT.'),unitNo,serial,pre,reportMeta);y=92;y=drawConditionHeader(pdf,p,y);y=drawSectionBand(pdf,p,y,row.item)}
+    if(y+rh>798){p=pdf.addPage();pdfHeaderRussell(pdf,p,logoId,inspectionReportTitle(reportMeta.inspectionType||sessionMeta.inspectionType,pre,true),unitNo,serial,pre,reportMeta);y=92;y=drawConditionHeader(pdf,p,y);y=drawSectionBand(pdf,p,y,row.item)}
     y=drawConditionRow(pdf,p,y,row,unitMedia)
   }
 }
 async function drawStandardPhotos(pdf,u,unitMedia,logoId,pre,reportMeta){
-  const f=u.fields||{},unitNo=f.clientUnit||'-',serial=f.serial||'-';const slots=[{qid:'1-K',key:'placa',title:t('Placa de datos','Data plate'),required:'always'},...BASE_EVIDENCE].filter(s=>baselineRuleStateForFields(f,s.required).applicable);
-  let page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('FOTOS ESTANDAR','STANDARD PHOTOS'),unitNo,serial,pre,reportMeta);pdf.text(page,36,94,t('EVIDENCIA ESTANDARIZADA DE LINEA BASE','STANDARDIZED BASELINE EVIDENCE'),8.5,true,[26,29,34]);
+  const f=u.fields||{},unitNo=f.clientUnit||'-',serial=f.serial||'-';
+  const slots=[{qid:'1-K',key:'placa',title:t('Placa de datos','Data plate'),required:'always'},...BASE_EVIDENCE].filter(s=>baselineRuleStateForFields(f,s.required).applicable);
+  const captured=[],missingRequired=[];
+  for(const slot of slots){const keys=[slot.key,...(slot.legacyKeys||[])],rec=unitMedia.find(r=>keys.includes(r.key)&&String(r.type||'').startsWith('image/'));const rule=baselineRuleStateForFields(f,slot.required);if(rec)captured.push({slot,rec});else if(rule.required)missingRequired.push(slot)}
+  if(!captured.length&&!missingRequired.length)return;
+  let page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('FOTOS ESTÁNDAR','STANDARD PHOTOS'),unitNo,serial,pre,reportMeta);pdf.text(page,36,94,t('EVIDENCIA ESTANDARIZADA DE LÍNEA BASE','STANDARDIZED BASELINE EVIDENCE'),8.5,true,[26,29,34]);
   let idx=0;const x0=36,gap=10,colW=(523-gap*2)/3,rowH=160,startY=110;
-  for(const slot of slots){if(idx&&idx%12===0){page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('FOTOS ESTANDAR - CONT.','STANDARD PHOTOS - CONT.'),unitNo,serial,pre,reportMeta);pdf.text(page,36,94,t('EVIDENCIA ESTANDARIZADA DE LINEA BASE','STANDARDIZED BASELINE EVIDENCE'),8.5,true,[26,29,34])}
-    const local=idx%12,col=local%3,row=Math.floor(local/3),x=x0+col*(colW+gap),y=startY+row*rowH;const keys=[slot.key,...(slot.legacyKeys||[])],rec=unitMedia.find(r=>keys.includes(r.key)&&String(r.type||'').startsWith('image/'));const im=await pdfImageForRecord(pdf,rec,850);const ref=baselineEvidenceRef(slot);
+  for(const entry of captured){if(idx&&idx%12===0){page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('FOTOS ESTÁNDAR - CONT.','STANDARD PHOTOS - CONT.'),unitNo,serial,pre,reportMeta);pdf.text(page,36,94,t('EVIDENCIA ESTANDARIZADA DE LÍNEA BASE','STANDARDIZED BASELINE EVIDENCE'),8.5,true,[26,29,34])}
+    const {slot,rec}=entry,local=idx%12,col=local%3,row=Math.floor(local/3),x=x0+col*(colW+gap),y=startY+row*rowH,im=await pdfImageForRecord(pdf,rec,850),ref=baselineEvidenceRef(slot);
     pdf.rect(page,x,y,colW,26,[244,245,246],[184,188,194],.45);pdf.text(page,x+5,y+10,`${ref} - ${slot.title}`,6.5,true,[26,29,34]);if(rec?.createdAt)pdf.text(page,x+5,y+20,t('Capturada ','Captured ')+mediaTimestamp(rec),5.5,false,[102,107,115]);
-    pdf.rect(page,x,y+26,colW,116,[246,247,248],[184,188,194],.45);if(im)fitImage(pdf,page,im,x+2,y+28,colW-4,112);else pdf.text(page,x+14,y+84,t('FOTO NO CAPTURADA','PHOTO NOT CAPTURED'),6.0,true,[120,125,132]);idx++
+    pdf.rect(page,x,y+26,colW,116,[246,247,248],[184,188,194],.45);if(im)fitImage(pdf,page,im,x+2,y+28,colW-4,112);idx++
   }
+  if(pre&&missingRequired.length){const local=idx%12,row=Math.floor(local/3),noteY=startY+row*rowH+8;if(noteY<760){const list=missingRequired.map(s=>`${s.qid} ${s.title}`).join(', ');pdf.text(page,36,noteY,t('Evidencia requerida pendiente: ','Required evidence pending: ')+list,6.1,true,[180,55,65])}}
 }
 async function drawDamagePhotos(pdf,u,unitMedia,logoId,pre,reportMeta){
   const f=u.fields||{},unitNo=f.clientUnit||'-',serial=f.serial||'-';const findings=(u.checks||[]).map(c=>({c,item:ITEM_BY_ID.get(c.questionId)})).filter(x=>x.item&&x.c.applicable!==false&&isFindingCode(x.c.statusCode)&&evidenceRecordsForItem(x.item,unitMedia).length);
@@ -738,14 +767,14 @@ async function drawDamagePhotos(pdf,u,unitMedia,logoId,pre,reportMeta){
 }
 function drawServicePlanning(pdf,u,logoId,pre,reportMeta){
   const f=u.fields||{},unitNo=f.clientUnit||'-',serial=f.serial||'-';const finds=(u.checks||[]).map(c=>({c,item:ITEM_BY_ID.get(c.questionId)})).filter(x=>x.item&&x.c.applicable!==false&&isFindingCode(x.c.statusCode));const hasNotes=String(f.overallNotes||'').trim()||String(f.missingTools||'').trim();if(!finds.length&&!hasNotes)return;
-  let page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('RESUMEN DE PLANEACION DE SERVICIO','SERVICE PLANNING SUMMARY'),unitNo,serial,pre,reportMeta);let y=100;pdf.text(page,36,y,t('Resumen trazable de hallazgos que requieren accion, monitoreo o evaluacion.','Traceable summary of findings requiring action, monitoring, or further evaluation.'),7.0,false,[102,107,115]);y+=18;
-  const groups=[['baseline_repair',t('REPARACION INMEDIATA / LINEA BASE','IMMEDIATE / BASELINE REPAIR'),[226,75,75]],['initial_rehab',t('REHABILITACION INICIAL RECOMENDADA','RECOMMENDED INITIAL REHABILITATION'),[160,111,0]],['monitor',t('MONITOREAR','MONITOR'),[60,140,72]],['major_eval',t('COMPONENTE MAYOR / EVALUACION SEPARADA','MAJOR COMPONENT / SEPARATE EVALUATION'),[180,35,44]],['repair_replace',t('EVALUAR REPARAR VS REEMPLAZAR','REPAIR-VS-REPLACEMENT REVIEW'),[180,35,44]],['__unclassified__',t('HALLAZGOS PENDIENTES DE CLASIFICACION','FINDINGS PENDING CLASSIFICATION'),[102,107,115]]];
+  let page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('RESUMEN DE PLANEACIÓN DE SERVICIO','SERVICE PLANNING SUMMARY'),unitNo,serial,pre,reportMeta);let y=100;pdf.text(page,36,y,t('Resumen trazable de hallazgos que requieren acción, monitoreo o evaluación.','Traceable summary of findings requiring action, monitoring, or further evaluation.'),7.0,false,[102,107,115]);y+=18;
+  const groups=[['baseline_repair',t('REPARACIÓN INMEDIATA / LÍNEA BASE','IMMEDIATE / BASELINE REPAIR'),[226,75,75]],['initial_rehab',t('REHABILITACIÓN INICIAL RECOMENDADA','RECOMMENDED INITIAL REHABILITATION'),[160,111,0]],['monitor',t('MONITOREAR','MONITOR'),[60,140,72]],['major_eval',t('COMPONENTE MAYOR / EVALUACIÓN SEPARADA','MAJOR COMPONENT / SEPARATE EVALUATION'),[180,35,44]],['repair_replace',t('EVALUAR REPARAR VS REEMPLAZAR','REPAIR-VS-REPLACEMENT REVIEW'),[180,35,44]],['__unclassified__',t('HALLAZGOS PENDIENTES DE CLASIFICACIÓN','FINDINGS PENDING CLASSIFICATION'),[102,107,115]]];
   for(const [code,label,color] of groups){const rows=finds.filter(x=>(x.c.classificationCode||'__unclassified__')===code);if(!rows.length)continue;if(y+55>790){page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('RESUMEN DE SERVICIO - CONT.','SERVICE SUMMARY - CONT.'),unitNo,serial,pre,reportMeta);y=100}pdf.rect(page,36,y,523,20,color);pdf.text(page,43,y+14,label,7.4,true,[255,255,255]);y+=20;
     for(const row of rows){const comm=reportComment(row.c)||t('Sin comentario adicional.','No additional comment.'),ev='';const lines=wrapText(`${row.item.id} - ${row.item.label} - ${comm}`,82).slice(0,3),h=11+lines.length*8;if(y+h>792){page=pdf.addPage();pdfHeaderRussell(pdf,page,logoId,t('RESUMEN DE SERVICIO - CONT.','SERVICE SUMMARY - CONT.'),unitNo,serial,pre,reportMeta);y=100}pdf.rect(page,36,y,523,h,[255,255,255],[184,188,194],.4);lines.forEach((line,i)=>pdf.text(page,44,y+12+i*8,line,6.5,false,[45,49,55]));y+=h}
     y+=12
   }
   if(f.overallNotes){pdf.text(page,36,y,t('Notas generales del tecnico','Technician general notes'),8.0,true,[26,29,34]);y+=12;for(const line of wrapText(f.overallNotes,90)){pdf.text(page,44,y,line,6.4,false,[45,49,55]);y+=8}}
-  if(f.missingTools){y+=8;pdf.text(page,36,y,t('Informacion / herramienta faltante','Missing information / tool'),8.0,true,[26,29,34]);y+=12;for(const line of wrapText(f.missingTools,90)){pdf.text(page,44,y,line,6.4,false,[45,49,55]);y+=8}}
+  if(f.missingTools){y+=8;pdf.text(page,36,y,t('Información / herramienta faltante','Missing information / tool'),8.0,true,[26,29,34]);y+=12;for(const line of wrapText(f.missingTools,90)){pdf.text(page,44,y,line,6.4,false,[45,49,55]);y+=8}}
 }
 async function buildPdfBlob(selectedUnits,reportMeta){
   const pdf=new SimplePDF(),logo=await loadLogoJpeg(),logoId=logo?pdf.img(logo.bytes,logo.w,logo.h):null,media=await idbGetAllMedia();
@@ -754,7 +783,7 @@ async function buildPdfBlob(selectedUnits,reportMeta){
 }
 function requiredMetricsFromState(u){let total=0,done=0;const power=u.fields?.power,items=ALL_ITEMS.filter(i=>!i.variant||(i.variant==='electric'?power==='electric':!!power&&power!=='electric'));for(const item of items){total++;if(u.checks?.find(c=>c.questionId===item.id&&c.statusCode))done++}const requiredFields=['equipmentCategory','equipmentType','clientUnit','make','model','serial','year','capacity','power','mast','hours','tires','attachment','operational'];if(['standard_forks','sideshifter','fork_positioner','rotator','push_pull','multiple_load_handler'].includes(u.fields?.attachment))requiredFields.push('forkLength');for(const k of requiredFields){total++;if(otherRequiredValue(u.fields||{},k))done++}total++;if(u.fields?.knowledgeablePresent){done++;if(u.fields.knowledgeablePresent==='available_yes'){for(const k of ['knowledgeableRole','serviceRecords','maintenanceProvider','recurringStatus','majorRepairStatus','deferredStatus','problemsReported']){total++;if(k==='knowledgeableRole'?otherRequiredValue(u.fields||{},k):u.fields?.[k])done++}}}return{done,total,missing:Math.max(0,total-done)}}
 async function generateSelectedPdf(){const ids=selectedPdfIds();if(!ids.length){alert(t('Selecciona al menos una unidad.','Select at least one unit.'));return}const domUnits=$$('#units .unit'),selectedDom=domUnits.filter(u=>ids.includes(u.dataset.unitId)),allSelected=selectedDom.length===domUnits.length,allResponses=selectedDom.every(u=>u.dataset.missing==='0'),generatedAt=nowIso();if(allSelected&&allResponses){for(const u of selectedDom)if(!u._meta.completedAt){touchUnit(u,{reopen:false});u._meta.completedAt=generatedAt}sessionMeta.completedAt=generatedAt}
-  syncStateFromDom();const selected=state.units.filter(u=>ids.includes(u.id)),type=selected.every(u=>u.meta?.completedAt)&&selectedDom.every(u=>u.dataset.missing==='0')?'final':'preliminary';const reportMeta={generatedAt,type,language:LANG,includedUnitIds:ids,allSessionUnits:allSelected};state.reports.push(reportMeta);await saveNow();$('#pdfGenerateBtn').disabled=true;$('#pdfDialogStatus').textContent=t('Generando PDF…','Generating PDF…');try{const blob=await buildPdfBlob(selected,reportMeta);const name=(LANG==='es'?'Clover-Reporte-Inspeccion-':'Clover-Inspection-Report-')+(state.session.date||new Date().toISOString().slice(0,10))+'.pdf';await shareOrDownloadBlob(name,blob);$('#bottomActionStatus').textContent=t('PDF listo para guardar/compartir.','PDF ready to save/share.');closePdfDialog();renderDashboard();renderMissing();renderSessionFinish()}catch(e){console.error(e);$('#pdfDialogStatus').textContent=t('No se pudo generar el PDF.','Could not generate PDF.')}finally{$('#pdfGenerateBtn').disabled=false}}
+  syncStateFromDom();const selected=state.units.filter(u=>ids.includes(u.id)),type=selected.every(u=>u.meta?.completedAt)&&selectedDom.every(u=>u.dataset.missing==='0')?'final':'preliminary';const reportMeta={generatedAt,type,language:LANG,inspectionType:sessionMeta.inspectionType||'baseline_fleet',inspectionRevision:sessionMeta.revision||1,includedUnitIds:ids,allSessionUnits:allSelected};state.reports.push(reportMeta);await saveNow();$('#pdfGenerateBtn').disabled=true;$('#pdfDialogStatus').textContent=t('Generando PDF…','Generating PDF…');try{const blob=await buildPdfBlob(selected,reportMeta);const name=(LANG==='es'?'Clover-Reporte-Inspeccion-':'Clover-Inspection-Report-')+(state.session.date||new Date().toISOString().slice(0,10))+'.pdf';await shareOrDownloadBlob(name,blob);$('#bottomActionStatus').textContent=t('PDF listo para guardar/compartir.','PDF ready to save/share.');closePdfDialog();renderDashboard();renderMissing();renderSessionFinish()}catch(e){console.error(e);$('#pdfDialogStatus').textContent=t('No se pudo generar el PDF.','Could not generate PDF.')}finally{$('#pdfGenerateBtn').disabled=false}}
 
 function applyTheme(value){let theme=value||'light';if(theme==='system')theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.body.dataset.theme=theme;const sel=$('#themeSelect');if(sel&&sel.value!==value)sel.value=value||'light'}
 async function load(){try{let raw=null;try{const rec=await idbGet(STATE_STORE,'latest');raw=rec?.raw||null}catch(e){console.warn(e)}if(!raw)try{raw=localStorage.getItem(STATE_KEY)}catch(e){console.warn(e)}if(raw)state=migrateState(JSON.parse(raw));else state=migrateState(state)}catch(e){console.error(e);state=migrateState({})}applyState();let theme='light';try{theme=localStorage.getItem(THEME_KEY)||'light'}catch(e){}applyTheme(theme);setSave('ok',UI.saved,UI.savedSub+nowTime())}
@@ -768,6 +797,94 @@ function bindGlobal(){
   $('#persistBtn').onclick=async()=>{if(navigator.storage?.persist){const ok=await navigator.storage.persist();alert(ok?t('Almacenamiento persistente solicitado correctamente.','Persistent storage requested successfully.'):t('El navegador no garantizó almacenamiento persistente. Descarga respaldos periódicos.','The browser did not guarantee persistent storage. Download periodic backups.'))}else alert(t('Este navegador no ofrece esta función.','This browser does not provide this function.'))};
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveNow()});window.addEventListener('pagehide',saveNow);matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{if($('#themeSelect')?.value==='system')applyTheme('system')});
 }
-applyStaticI18n();bindGlobal();load();
+
+
+// ---------- Local inspection workspace (v0.9.0 DEV) ----------
+let currentJobId='';
+let workspaceReady=false;
+let calendarDate=new Date().toISOString().slice(0,10);
+function ensureInspectionMeta(){
+  if(!sessionMeta||typeof sessionMeta!=='object')sessionMeta={};
+  if(!sessionMeta.jobId)sessionMeta.jobId=currentJobId||uid();
+  if(!sessionMeta.inspectionType)sessionMeta.inspectionType='baseline_fleet';
+  if(!sessionMeta.createdAt)sessionMeta.createdAt=nowIso();
+  if(!sessionMeta.revision)sessionMeta.revision=1;
+  currentJobId=sessionMeta.jobId;
+  try{localStorage.setItem(WORKSPACE_KEY,currentJobId)}catch(e){}
+}
+function jobProgressFromState(s){
+  const us=s?.units||[];let total=0,done=0;
+  for(const u of us){const m=requiredMetricsFromState(u);total+=m.total;done+=m.done}
+  return{done,total,pct:total?Math.round(done/total*100):0,units:us.length};
+}
+function jobRecordFromState(s,raw=JSON.stringify(s)){
+  const meta=s?.session?.meta||{};let pr=jobProgressFromState(s);if(meta.jobId&&meta.jobId===currentJobId&&$('#units')){const dus=$$('#units .unit');if(dus.length){let total=0,done=0;for(const u of dus){total+=Number(u.dataset.total||0);done+=Number(u.dataset.done||0)}pr={done,total,pct:total?Math.round(done/total*100):0,units:dus.length}}}
+  return{id:meta.jobId||currentJobId||uid(),raw,updatedAt:nowIso(),createdAt:meta.createdAt||nowIso(),inspectionType:meta.inspectionType||'baseline_fleet',scheduledAt:meta.scheduledAt||'',client:s?.session?.client||'',location:s?.session?.location||'',technician:s?.session?.tech||'',date:s?.session?.date||'',completedAt:meta.completedAt||'',revision:meta.revision||1,progress:pr};
+}
+async function allJobs(){try{return (await idbGetAll(JOB_STORE)).sort((a,b)=>String(b.updatedAt||'').localeCompare(String(a.updatedAt||'')))}catch(e){console.warn(e);return[]}}
+function hasMeaningfulInspection(s){return !!(s?.session?.client||s?.session?.location||(s?.units||[]).some(u=>Object.values(u.fields||{}).some(v=>String(v||'').trim())))}
+function blankInspection(opts={}){
+  const id=uid(),meta={jobId:id,inspectionType:opts.inspectionType||'baseline_fleet',createdAt:nowIso(),scheduledAt:opts.scheduledAt||'',revision:1};
+  return migrateState({schemaVersion:VERSION,session:{client:opts.client||'',location:opts.location||'',tech:opts.tech||'',date:opts.date||new Date().toISOString().slice(0,10),notes:opts.notes||'',meta,efficiency:{}},units:[],reports:[]});
+}
+function workspaceStatus(job){if(job.completedAt)return t('Finalizada · pendiente de entrega/sincronización','Finalized · pending delivery/sync');return job.progress?.pct===100?t('Lista para finalizar','Ready to finalize'):t('En progreso','In progress')}
+function jobCard(job,{compact=false}={}){
+  const pr=job.progress||{pct:0,units:0};const title=job.client||t('Cliente sin nombre','Unnamed client');
+  return `<article class="work-card" data-job-id="${escapeHtml(job.id)}"><div class="work-card-top"><div><div class="work-client">${escapeHtml(title)}</div><div class="work-type">${escapeHtml(inspectionTypeLabel(job.inspectionType))}</div></div><span class="work-status ${job.completedAt?'done':''}">${escapeHtml(workspaceStatus(job))}</span></div><div class="work-meta">${escapeHtml(job.location||t('Ubicación pendiente','Location pending'))} · ${escapeHtml(job.date||'—')} · ${pr.units||0} ${t('equipo(s)','unit(s)')}</div><div class="work-progress"><div style="width:${Math.max(0,Math.min(100,pr.pct||0))}%"></div></div><div class="work-card-bottom"><span>${pr.pct||0}%</span><button type="button" class="open-job">${job.completedAt?t('Abrir','Open'):t('Continuar','Continue')}</button></div></article>`;
+}
+async function refreshWorkspace(){
+  if(!workspaceReady)return;const jobs=await allJobs();
+  const today=new Date().toISOString().slice(0,10),todayJobs=jobs.filter(j=>(j.date||String(j.scheduledAt||'').slice(0,10))===today);
+  const active=jobs.filter(j=>!j.completedAt);
+  const tbox=$('#todayJobs'),abox=$('#activeJobs');if(tbox)tbox.innerHTML=todayJobs.length?todayJobs.map(j=>jobCard(j)).join(''):`<div class="empty-state">${t('No hay inspecciones programadas para hoy.','No inspections scheduled for today.')}</div>`;if(abox)abox.innerHTML=active.length?active.map(j=>jobCard(j)).join(''):`<div class="empty-state">${t('No hay trabajo activo.','No active work.')}</div>`;
+  const clients=new Map();for(const j of jobs){const key=(j.client||t('Cliente sin nombre','Unnamed client')).trim();const arr=clients.get(key)||[];arr.push(j);clients.set(key,arr)}
+  const cbox=$('#clientsList');if(cbox)cbox.innerHTML=[...clients.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([name,arr])=>`<button type="button" class="client-row" data-client="${escapeHtml(name)}"><span><b>${escapeHtml(name)}</b><small>${arr.length} ${t('inspección(es)','inspection(s)')}</small></span><span>›</span></button>`).join('')||`<div class="empty-state">${t('Aún no hay clientes locales.','No local clients yet.')}</div>`;
+  renderCalendarJobs(jobs);
+  $$('.open-job').forEach(b=>b.onclick=()=>openJob(b.closest('[data-job-id]').dataset.jobId));
+  $$('.client-row').forEach(b=>b.onclick=()=>showClientJobs(b.dataset.client,jobs));
+  const badge=$('#activeWorkBadge');if(badge)badge.textContent=active.length?String(active.length):'';
+}
+function renderCalendarJobs(jobs){
+  const label=$('#calendarDateLabel');if(label){const d=new Date(calendarDate+'T12:00:00');label.textContent=d.toLocaleDateString(LANG==='es'?'es-MX':'en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})}
+  const list=jobs.filter(j=>(j.date||String(j.scheduledAt||'').slice(0,10))===calendarDate);const box=$('#calendarJobs');if(box)box.innerHTML=list.length?list.map(j=>jobCard(j,{compact:true})).join(''):`<div class="empty-state">${t('Sin inspecciones para esta fecha.','No inspections for this date.')}</div>`;
+}
+function showClientJobs(name,jobs){const pane=$('#clientDetail');if(!pane)return;const rows=jobs.filter(j=>(j.client||t('Cliente sin nombre','Unnamed client'))===name);pane.innerHTML=`<div class="workspace-section-head"><button type="button" id="clientBack">←</button><h2>${escapeHtml(name)}</h2></div>${rows.map(j=>jobCard(j)).join('')}`;$('#clientsList').classList.add('hidden');pane.classList.remove('hidden');$('#clientBack').onclick=()=>{pane.classList.add('hidden');$('#clientsList').classList.remove('hidden')};$$(pane,'.open-job').forEach(b=>b.onclick=()=>openJob(b.closest('[data-job-id]').dataset.jobId))}
+function showWorkspaceTab(tab){
+  $$('.workspace-pane').forEach(p=>p.classList.toggle('hidden',p.dataset.workspacePane!==tab));$$('.workspace-nav button').forEach(b=>b.classList.toggle('active',b.dataset.workspaceTab===tab));showWorkspace();
+}
+function showWorkspace(){
+  $('#workspaceView')?.classList.remove('hidden');$('#inspectionView')?.classList.add('hidden');$('#workspaceNav')?.classList.remove('hidden');document.body.classList.remove('inspection-open');
+  const h=$('#headerTitle');if(h)h.textContent=t('Clover Inspecciones','Clover Inspections');const s=$('#headerSub');if(s)s.textContent=t('Trabajo de campo · Offline · Evidencia · Reportes','Field work · Offline · Evidence · Reports');window.scrollTo({top:0,behavior:'auto'});refreshWorkspace();
+}
+function showInspection(){
+  $('#workspaceView')?.classList.add('hidden');$('#inspectionView')?.classList.remove('hidden');$('#workspaceNav')?.classList.add('hidden');document.body.classList.add('inspection-open');
+  const h=$('#headerTitle');if(h)h.textContent=inspectionTypeLabel(sessionMeta.inspectionType||'baseline_fleet');const s=$('#headerSub');if(s)s.textContent=t('Inspección activa · Guardado automático local','Active inspection · Automatic local saving');const type=$('#currentInspectionType');if(type)type.textContent=inspectionTypeLabel(sessionMeta.inspectionType||'baseline_fleet');window.scrollTo({top:0,behavior:'auto'});
+}
+async function openJob(id){
+  await saveNow();const rec=await idbGet(JOB_STORE,id);if(!rec)return;try{state=migrateState(JSON.parse(rec.raw));currentJobId=id;sessionMeta={...(state.session?.meta||{}),jobId:id};applyState();ensureInspectionMeta();try{localStorage.setItem(WORKSPACE_KEY,id)}catch(e){}showInspection()}catch(e){console.error(e);alert(t('No se pudo abrir esta inspección.','Could not open this inspection.'))}
+}
+async function createNewInspection(){
+  const type=$('#newInspectionType').value,client=$('#newInspectionClient').value.trim(),location=$('#newInspectionLocation').value.trim(),date=$('#newInspectionDate').value||new Date().toISOString().slice(0,10),time=$('#newInspectionTime').value||'',tech=$('#newInspectionTech').value.trim();
+  await saveNow();state=blankInspection({inspectionType:type,client,location,date,tech,scheduledAt:time?`${date}T${time}:00`:''});currentJobId=state.session.meta.jobId;sessionMeta={...state.session.meta};applyState();await saveNow();$('#newInspectionDialog').close();showInspection();
+}
+async function ensureWorkspaceJob(){
+  ensureInspectionMeta();let id='';try{id=localStorage.getItem(WORKSPACE_KEY)||''}catch(e){};if(state.session?.meta?.jobId)id=state.session.meta.jobId;if(!id)id=sessionMeta.jobId;currentJobId=id;sessionMeta.jobId=id;state.session.meta={...sessionMeta};const raw=JSON.stringify(state);if(hasMeaningfulInspection(state)||!(await allJobs()).length)await idbPut(JOB_STORE,jobRecordFromState(state,raw));try{localStorage.setItem(WORKSPACE_KEY,id)}catch(e){}
+}
+function bindWorkspace(){
+  $$('.workspace-nav button').forEach(b=>b.onclick=()=>showWorkspaceTab(b.dataset.workspaceTab));
+  $$('.new-inspection').forEach(b=>b.onclick=()=>{$('#newInspectionDialog').showModal();$('#newInspectionDate').value=new Date().toISOString().slice(0,10);$('#newInspectionTech').value=$('#tech')?.value||''});
+  $('#newInspectionCancel').onclick=()=>$('#newInspectionDialog').close();$('#newInspectionCreate').onclick=createNewInspection;$('#backToWorkspace').onclick=async()=>{await saveNow();showWorkspace()};
+  $('#calendarPrev').onclick=()=>{const d=new Date(calendarDate+'T12:00:00');d.setDate(d.getDate()-1);calendarDate=d.toISOString().slice(0,10);refreshWorkspace()};$('#calendarNext').onclick=()=>{const d=new Date(calendarDate+'T12:00:00');d.setDate(d.getDate()+1);calendarDate=d.toISOString().slice(0,10);refreshWorkspace()};$('#calendarToday').onclick=()=>{calendarDate=new Date().toISOString().slice(0,10);refreshWorkspace()};
+}
+async function initWorkspace(){applyStaticI18n();bindGlobal();bindWorkspace();await load();ensureInspectionMeta();await ensureWorkspaceJob();workspaceReady=true;await refreshWorkspace();showWorkspace();}
+initWorkspace();
 })();
-if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(console.error);
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
+  let refreshing=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(refreshing)return;refreshing=true;location.reload()});
+  navigator.serviceWorker.register('./sw.js').then(reg=>{
+    const offer=worker=>{if(!navigator.serviceWorker.controller||!worker)return;const bar=document.getElementById('updateBanner');if(!bar)return;bar.classList.remove('hidden');document.getElementById('updateNow').onclick=async()=>{try{const fs=document.getElementById('floatSave');if(fs)fs.click();await new Promise(r=>setTimeout(r,650));worker.postMessage({type:'SKIP_WAITING'})}catch(e){console.error(e)}};document.getElementById('updateLater').onclick=()=>bar.classList.add('hidden')};
+    if(reg.waiting)offer(reg.waiting);reg.addEventListener('updatefound',()=>{const w=reg.installing;if(w)w.addEventListener('statechange',()=>{if(w.state==='installed')offer(w)})});
+  }).catch(console.error)
+}
+

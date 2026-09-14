@@ -1,0 +1,46 @@
+Clover Inspection PWA v0.9.0 DEV
+
+New workspace model
+- Today
+- Active Work
+- Clients
+- Calendar (single-day navigation, not endless scroll)
+- Multiple local inspection jobs stored in IndexedDB
+- One bilingual package; language controls UI and PDF
+
+Inspection types / report outputs
+- Fleet baseline condition
+- Pre-sale / warranty baseline
+- Acquisition / intake
+- Rental out
+- Rental return
+- Preventive maintenance (PM)
+- Delivery handoff
+- Incident / damage
+- Warranty claim
+
+v0.9.0 uses the current full inspection checklist for every type so field coverage is not accidentally reduced. The selected type is persisted and changes the report purpose/title. Future releases can introduce approved type-specific applicability profiles.
+
+Data protection
+- DEV uses an isolated IndexedDB/localStorage/cache namespace and does not touch the current production technician data.
+- Service-worker updates wait for explicit user approval; they no longer activate immediately during field work.
+- Current jobs are snapshotted to a local jobs store.
+
+Report refinements included
+- Spanish PDF dates use DD/MM/YYYY and 24-hour time.
+- English PDF dates use MM/DD/YYYY and AM/PM.
+- Spanish accents/tildes corrected in touched report labels.
+- Standard-photo pages compact captured photos; missing optional slots are omitted.
+- Preliminary reports list missing required evidence compactly rather than showing empty photo frames.
+- Section 9 no longer appears accidentally skipped when Power Type is not yet selected; a configuration-required placeholder is shown.
+
+Not yet connected in this DEV build
+- Clover central authentication
+- Supabase/Mission Control synchronization
+- server-side evidence upload / retries
+- review/approval queue
+- shared customer/site/equipment records
+- warranty-claim comparison against a prior pre-sale baseline
+- acquisition inspection -> inventory make-ready/service scope handoff
+
+Those require the approved shared schema/event/auth contracts and should be integrated without weakening offline field continuity.

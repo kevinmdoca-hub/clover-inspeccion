@@ -1,0 +1,7 @@
+Clover Inspection PWA v0.9.0 DEV
+
+Single bilingual development package.
+
+Adds a local Inspection Workspace with Today, Active Work, Clients and Calendar; multiple local inspection jobs; inspection-type/output profiles; safe user-approved service-worker updates; and isolated development storage.
+
+This build is LOCAL-FIRST. It does not yet upload to Supabase or Mission Control. Cloud sync/auth must use the approved Clover central contracts in a later integration step.
