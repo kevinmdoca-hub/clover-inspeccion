@@ -1,0 +1,14 @@
+Clover Inspection PWA — v0.9.2 DEV QA
+
+1. Open on iPhone at normal zoom. Confirm the app cannot pan left/right.
+2. Try pinch zoom. Confirm the installed app remains at its intended scale.
+3. Tap +. Scroll the New Inspection sheet. Confirm only vertical scrolling occurs and no horizontal scrollbar appears.
+4. Rotate/return to portrait if desired; confirm the sheet remains contained.
+5. Select Fleet baseline: fields should read Client, Location, Inspection Date, Scheduled Time, Technician.
+6. Select Acquisition / intake: fields should change to Bought From, Intake Location, Intake Date, Scheduled Time, Technician.
+7. Switch from Fleet baseline to Acquisition after typing a Client. Confirm the incompatible party/location fields clear rather than relabeling the client as seller.
+8. Create Acquisition with Bought From = Ritchie Bros., Intake Location = Acayuca. Confirm its workspace card is titled Ritchie Bros. and it does not appear as a Client in the Clients tab.
+9. Select Incident / damage: confirm Client / Owner, Incident Location, Incident Date, Incident Time.
+10. Select Rental out/return, Delivery handoff, PM, Warranty claim and confirm the labels adapt to purpose.
+11. Confirm Settings bottom sheet still opens/closes normally and cannot pan horizontally.
+12. Open an inspection and confirm the proven inspection form, autosave, evidence and guided-photo workflow are unchanged.
