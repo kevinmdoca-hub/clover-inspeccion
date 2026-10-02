@@ -1,0 +1,54 @@
+name: Verify live Inspection v0.9.3 DEV
+on:
+  push:
+    branches: [release/inspection-v093-prepare]
+    paths: [.github/workflows/verify-inspection-v093.yml]
+permissions:
+  contents: read
+jobs:
+  verify-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch live Pages assets and verify exact release bytes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os, time, urllib.request
+          BASE='https://kevinmdoca-hub.github.io/clover-inspeccion/'
+          EXPECTED={
+            'index.html':'990eb58f12d6d3534cb6e82f31e63db35c04e421b31224f64a0bbb321faa2e2d',
+            'app.js':'639b62c83f979f682824e671ee8067099da5e824aa1512e08bd33c8840cd4ef2',
+            'styles.css':'7b0d0401f02b4583ababd98803489e3e903eaae13189c3433f183509937d831c',
+            'sw.js':'98530bb4115028f51913aba0c5410c4bd379274c41901fc896c06222e05db090',
+            'manifest.webmanifest':'30f54d5edd76decf55286f1b02ffff5bbe5b77a61c41388cad8640d194c4b857',
+            'brand-mark.png':'8ef7b679b08699f39cf9b00329a097ec8aea0685eece5ff1f89d233e20c646df',
+            'icon-192.png':'4deb3165297bafb38979aab0ed155f1d04265351cdec837f64a27a3e4c9cb82e',
+            'icon-512.png':'5941f4e9e52f541115528efe2ba7dd5862a7652c899c32caae108a6d81dec376'
+          }
+          def get(path):
+              req=urllib.request.Request(BASE+path,headers={'Cache-Control':'no-cache','User-Agent':'Clover-release-verification'})
+              with urllib.request.urlopen(req,timeout=20) as r:
+                  assert r.status==200
+                  return r.read()
+          for attempt in range(1,7):
+              try:
+                  assets={path:get(path+'?verify=093-'+str(int(time.time()))) for path in EXPECTED}
+                  for path,digest in EXPECTED.items():
+                      assert hashlib.sha256(assets[path]).hexdigest()==digest, 'Not approved bytes: '+path
+                  assert b"const VERSION='0.9.3-dev'" in assets['app.js']
+                  assert b"const BUILD='0.9.3-dev'" in assets['sw.js']
+                  manifest=json.loads(assets['manifest.webmanifest'])
+                  assert manifest['start_url']=='./index.html'
+                  assert hashlib.sha256(get('')).hexdigest()==EXPECTED['index.html'], 'Root page differs'
+                  break
+              except Exception as e:
+                  print('Attempt',attempt,type(e).__name__,str(e))
+                  if attempt==6: raise
+                  time.sleep(10)
+          for path,digest in EXPECTED.items(): print('LIVE_VERIFIED',path,digest)
+          print('LIVE_VERSION 0.9.3-dev')
+          print('LAUNCH',BASE)
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('## Live deployment verified\n\n'+BASE+'\n\nVersion **0.9.3-dev**. Root URL and all eight runtime assets returned HTTP 200; every file matched the approved package SHA-256.\n\nThis confirms deployed code delivery, not installed-iPhone migration or field acceptance.\n')
+          PY
