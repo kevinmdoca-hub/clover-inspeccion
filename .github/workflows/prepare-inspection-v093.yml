@@ -16,7 +16,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       SOURCE_COMMIT: ${{ github.sha }}
     steps:
-      - name: Reconstruct approved bytes, validate, and stage a clean release commit
+      - name: Verify approved files and stage a clean release commit
         shell: bash
         run: |
           python3 - <<'PY'
@@ -24,7 +24,7 @@ jobs:
           REPO = 'kevinmdoca-hub/clover-inspeccion'
           BASE = 'b142f0e8c3ad6882a3442db2b0b3e2cc5fe11220'
           TREE = '16b8b527171d7fb1f2947dce39509d1cb859600f'
-          PAYLOAD_SHA = '924b5e45f4fafcb1ee2a7c8bde92da80bcacaa3ab3ee5032d5dcac57ae4f8d1d'
+          PAYLOAD_SHA = '9e681b7e9907b9bd8411cb78a87622efe267aeed5d5e127360617996e4e49a51'
           assert os.environ['GITHUB_REPOSITORY'] == REPO
           def api(path, data=None):
               req = urllib.request.Request('https://api.github.com/repos/' + REPO + path,
@@ -43,6 +43,7 @@ jobs:
           payload = json.loads(raw)
           assert payload['base_commit'] == BASE and payload['base_tree'] == TREE
           assert payload['release'] == '0.9.3-dev'
+          assert payload['op_format'] == 'unicode-character-slices-v1'
           entries = {e['path']: e for e in api('/git/trees/' + TREE)['tree']}
           allowed = {'QA_v0.9.3_DEV.txt', 'README_v0.9.3_DEV.txt', 'app.js', 'brand-mark.png', 'icon-192.png', 'icon-512.png', 'index.html', 'manifest.webmanifest', 'styles.css', 'sw.js'}
           assert set(payload['files']) == allowed
@@ -58,8 +59,8 @@ jobs:
                       assert name not in entries, 'Unexpected existing path: ' + name
                   result = original
                   if 'ops' in spec:
-                      lines = original.decode('utf-8').splitlines(keepends=True)
-                      result = ''.join(''.join(lines[op[0]:op[1]]) if isinstance(op, list) else op for op in spec['ops']).encode('utf-8')
+                      source = original.decode('utf-8')
+                      result = ''.join(source[op[0]:op[1]] if isinstance(op, list) else op for op in spec['ops']).encode('utf-8')
                   assert len(result) == spec['size'], 'Size mismatch: ' + name
                   assert hashlib.sha256(result).hexdigest() == spec['sha256'], 'Approved file mismatch: ' + name
                   blob = hashlib.sha1(b'blob ' + str(len(result)).encode() + b'\0' + result).hexdigest()
