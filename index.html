@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Clover Inspecciones">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<link rel="stylesheet" href="./styles.css?v=092">
+<link rel="stylesheet" href="./styles.css?v=093">
 <title>Clover — Inspecciones</title>
 </head>
 <body>
@@ -24,11 +24,12 @@
     <button id="globalNewBtn" class="iconbtn primary-action" type="button" aria-label="Nueva inspección" title="Nueva inspección">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
     </button>
+    <button id="saveNowBtn" type="button" class="iconbtn" aria-label="Guardar localmente" title="Guardar localmente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h13l3 3v15H4zM8 3v6h8V3M8 21v-8h8v8"/></svg><span class="save-status-marker" aria-hidden="true"></span></button>
     <button id="settingsBtn" class="iconbtn" type="button" aria-label="Ajustes" title="Ajustes">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21h-4v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3.1 14H3v-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V3h4v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.1v4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
     </button>
   </div>
-  <span id="saveDot" class="hidden"></span><span id="saveMiniText" class="hidden"></span>
+
 </header>
 
 <main id="workspaceView" class="workspace-shell">
@@ -67,8 +68,6 @@
 
 <main id="inspectionView" class="inspection-shell hidden">
   <div class="work-mode-bar"><button id="backToWorkspace" type="button" class="work-back">← Trabajo</button><span id="currentInspectionType" class="inspection-type-pill"></span></div>
-  <div class="notice" id="pilotNotice"></div>
-  <div class="feedback" id="feedbackBox"></div>
 
   <section class="card">
     <h2 id="sessionHeading"></h2>
@@ -116,6 +115,6 @@
 <div class="hidden"><h1 id="headerTitle"></h1><p id="headerSub"></p><span id="versionChip"></span><div id="settingsHeading"></div><label id="languageLabel"></label><label id="themeLabel"></label><select id="languageSelect"><option value="es">Español</option><option value="en">English</option></select><select id="themeSelect"><option value="light">Claro</option><option value="dark">Oscuro</option><option value="system">Automático</option></select><div id="saveTitle"></div><div id="saveSub"></div><button id="settingsCloseBtn"></button><button id="persistBtn"></button><button id="importBtn"></button></div>
 
 <script>window.CLOVER_PACKAGE_LANG='es';</script>
-<script src="./app.js?v=092"></script>
+<script src="./app.js?v=093"></script>
 </body>
 </html>

@@ -1,0 +1,45 @@
+CLOVER INSPECTION — v0.9.3 DEV QA NOTES
+
+This is the correction boundary after the 7-card sequence stopped at Test 4.
+Tests 1 and 2 established user-observed iPhone record/photo return. Test 3 showed
+retained changes after airplane-mode use and reconnection, but Wi-Fi-off status
+was not independently established. Test 4 exposed the report/UI/mapping defects.
+This patch has NOT completed a new installed-iPhone acceptance cycle.
+
+Do not run all remaining tests at once. Keep the existing QA-SYN-ACQ-001 job.
+Never mark untested mechanical items Normal to reach completion.
+
+NEXT TARGETED RETEST — EXISTING RECORD (3–5 MINUTES)
+Only after the DEV deployment is identified/authorized, confirm v0.9.3-dev in Settings.
+1. Open QA-SYN-ACQ-001. Open Section 1.
+2. Read the specific Missing hint. If 1-B Equipment type is blank, choose the known
+   Forklift / Sit-down counterbalance — 4 wheel configuration. Do not guess on
+   real units. Re-enter Crown and C5 1050 only if the dependency reset clears them.
+3. Keep the existing data-plate photo. Tap the top-bar Save control; wait for
+   Saved locally. Force-close and reopen from the same Home Screen app.
+4. Confirm type, Crown/C5 1050, serial SYN-ACQ-0001 and the existing plate photo
+   remain. Section 1 should read 11/11 when all those existing fields are present.
+5. Send a screenshot of that section/count or the specific failing state.
+Stop there; do not begin another card until that result is reviewed.
+
+LATER REPORT RETEST (NOT PART OF THE ABOVE CARD)
+Generate the same incomplete acquisition report; supply the PDF for inspection.
+Check seller/context, Unknown, equipment type, actual image placement and the
+single header status. The report uses the selected Settings language.
+
+STILL BLOCKED
+Test 5 complete media recovery: JSON alone cannot restore the media store.
+Test 6 physical update survival: after a valid recovery path / controlled setup.
+Test 7 bounded real operator work: only after scripted/device acceptance.
+No reinstall or storage-clearing instruction is authorized by these notes.
+
+AUTOMATED EVIDENCE SCOPE
+The development container blocked browser navigation, including localhost.
+Rendered Chromium checks used the actual app code and DOM with QA-only storage/
+transport adapters. IndexedDB durability, connectivity loss, and transaction
+failures were simulated. The PDF bytes came from the app's PDF writer; the sample
+photos were extracted from the user's already-synthetic QA report. They are not
+new physical camera/offline evidence.
+
+A separate QA evidence pack contains scripts, exact fixture, results, hashes and
+sample EN/ES PDFs. No QA adapters or fixtures are injected into the app ZIP.
