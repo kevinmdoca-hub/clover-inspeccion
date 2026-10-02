@@ -1,0 +1,90 @@
+name: Prepare approved Inspection v0.9.3 DEV
+on:
+  push:
+    branches: [release/inspection-v093-prepare]
+    paths: [.release/payload-v093.txt]
+permissions:
+  contents: write
+concurrency:
+  group: prepare-inspection-v093
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_COMMIT: ${{ github.sha }}
+    steps:
+      - name: Reconstruct approved bytes, validate, and stage a clean release commit
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, json, os, pathlib, subprocess, tempfile, urllib.request, zlib
+          REPO = 'kevinmdoca-hub/clover-inspeccion'
+          BASE = 'b142f0e8c3ad6882a3442db2b0b3e2cc5fe11220'
+          TREE = '16b8b527171d7fb1f2947dce39509d1cb859600f'
+          PAYLOAD_SHA = '924b5e45f4fafcb1ee2a7c8bde92da80bcacaa3ab3ee5032d5dcac57ae4f8d1d'
+          assert os.environ['GITHUB_REPOSITORY'] == REPO
+          def api(path, data=None):
+              req = urllib.request.Request('https://api.github.com/repos/' + REPO + path,
+                  data=None if data is None else json.dumps(data).encode(),
+                  headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                           'Accept': 'application/vnd.github+json',
+                           'X-GitHub-Api-Version': '2022-11-28',
+                           'Content-Type': 'application/json',
+                           'User-Agent': 'Clover-approved-release'})
+              with urllib.request.urlopen(req, timeout=45) as response:
+                  return json.load(response)
+          assert api('/git/ref/heads/main')['object']['sha'] == BASE, 'Main changed: stop without publishing'
+          packed = api('/contents/.release/payload-v093.txt?ref=' + os.environ['SOURCE_COMMIT'])
+          raw = zlib.decompress(base64.b64decode(base64.b64decode(packed['content']).decode().strip(), validate=True))
+          assert hashlib.sha256(raw).hexdigest() == PAYLOAD_SHA, 'Payload checksum mismatch'
+          payload = json.loads(raw)
+          assert payload['base_commit'] == BASE and payload['base_tree'] == TREE
+          assert payload['release'] == '0.9.3-dev'
+          entries = {e['path']: e for e in api('/git/trees/' + TREE)['tree']}
+          allowed = {'QA_v0.9.3_DEV.txt', 'README_v0.9.3_DEV.txt', 'app.js', 'brand-mark.png', 'icon-192.png', 'icon-512.png', 'index.html', 'manifest.webmanifest', 'styles.css', 'sw.js'}
+          assert set(payload['files']) == allowed
+          outputs = {}
+          changes = []
+          with tempfile.TemporaryDirectory() as directory:
+              for name, spec in payload['files'].items():
+                  original = b''
+                  if spec['old_blob'] is not None:
+                      assert entries[name]['sha'] == spec['old_blob'], 'Unexpected base blob: ' + name
+                      original = base64.b64decode(api('/git/blobs/' + spec['old_blob'])['content'])
+                  else:
+                      assert name not in entries, 'Unexpected existing path: ' + name
+                  result = original
+                  if 'ops' in spec:
+                      lines = original.decode('utf-8').splitlines(keepends=True)
+                      result = ''.join(''.join(lines[op[0]:op[1]]) if isinstance(op, list) else op for op in spec['ops']).encode('utf-8')
+                  assert len(result) == spec['size'], 'Size mismatch: ' + name
+                  assert hashlib.sha256(result).hexdigest() == spec['sha256'], 'Approved file mismatch: ' + name
+                  blob = hashlib.sha1(b'blob ' + str(len(result)).encode() + b'\0' + result).hexdigest()
+                  assert blob == spec['blob'], 'Git blob mismatch: ' + name
+                  outputs[name] = result
+                  pathlib.Path(directory, name).write_bytes(result)
+                  print('VERIFIED', name, spec['sha256'])
+              for name in ('app.js', 'sw.js'):
+                  subprocess.run(['node', '--check', str(pathlib.Path(directory, name))], check=True)
+              json.loads(outputs['manifest.webmanifest'])
+              assert b"const VERSION='0.9.3-dev'" in outputs['app.js']
+              assert b"const DB_NAME='clover-inspection-dev-v090'" in outputs['app.js']
+              assert b"const DB_VERSION=4" in outputs['app.js']
+              for name, spec in payload['files'].items():
+                  if 'ops' not in spec:
+                      continue
+                  created = api('/git/blobs', {'content': base64.b64encode(outputs[name]).decode(), 'encoding': 'base64'})
+                  assert created['sha'] == spec['blob']
+                  changes.append({'path': name, 'mode': '100644', 'type': 'blob', 'sha': created['sha']})
+          assert api('/git/ref/heads/main')['object']['sha'] == BASE, 'Main changed during preparation'
+          new_tree = api('/git/trees', {'base_tree': TREE, 'tree': changes})
+          commit = api('/git/commits', {'message': 'Publish approved Clover Inspection v0.9.3 DEV\n\nExact package bytes verified against SHA-256 manifest. Preserve existing local database namespace. No runtime records or media are bundled or removed.', 'tree': new_tree['sha'], 'parents': [BASE]})
+          api('/git/refs', {'ref': 'refs/heads/release/inspection-v0.9.3-dev', 'sha': commit['sha']})
+          print('READY_COMMIT', commit['sha'])
+          print('READY_TREE', new_tree['sha'])
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('## Approved v0.9.3 DEV package prepared\n\nAll 10 package files verified byte-for-byte. Six changed/new files staged; unrelated repository files preserved.\n\nReady commit: `' + commit['sha'] + '`\n\nMain is unchanged; publication requires a separate fast-forward.\n')
+          PY
