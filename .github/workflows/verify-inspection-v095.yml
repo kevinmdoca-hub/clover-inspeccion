@@ -1,0 +1,47 @@
+name: Verify live Inspection v0.9.5 exact component
+on:
+  push:
+    branches: [release/inspection-v095-prepare]
+    paths: [.github/workflows/verify-inspection-v095.yml]
+permissions:
+  contents: read
+jobs:
+  verify-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify live Pages runtime and unchanged canonical component
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,re,time,urllib.request
+          base='https://kevinmdoca-hub.github.io/clover-inspeccion/'
+          expected_sw='162dffbcbe12a651454b938d1643f13537694a7d9baeaa0c9db8cffa723fa561'
+          expected_index='606ec5947f74ce62b6d1ac1946f8da652814b803b79e8f009a52a72c17230ae8'
+          expected_vendor='15f2cd0261c2363e61b34fbfc0c9a1c1132cb0d8998f7e132379e32abf24dcaa'
+          def get(path):
+            req=urllib.request.Request(base+path+'?release_check='+str(time.time_ns()),headers={'Cache-Control':'no-cache','User-Agent':'Clover-Release-Verification'})
+            with urllib.request.urlopen(req,timeout=20) as r:
+              assert r.status==200
+              return r.read()
+          for attempt in range(10):
+            try:
+              sw=get('sw.js')
+              assert hashlib.sha256(sw).hexdigest()==expected_sw,'Old/incomplete service worker'
+              assets=json.loads(re.search(r'const ASSET_SHA256=(\{.*?\});',sw.decode()).group(1))
+              assert len(assets)==10
+              assert assets['index.html']==expected_index
+              assert assets['shared/clover-ui/clover-shell-header.js']==expected_vendor
+              for path,want in assets.items():
+                data=get(path)
+                assert hashlib.sha256(data).hexdigest()==want,'Live hash mismatch: '+path
+                print('PASS HTTP 200 / SHA-256',path)
+              assert hashlib.sha256(get('')).hexdigest()==expected_index,'Homepage mismatch'
+              print('PASS homepage and service worker')
+              print('PASS exact shared component v1.0.0 unchanged from ZIP')
+              print('PASS v0.9.5-dev — all 10 runtime assets match reviewed release')
+              break
+            except Exception as exc:
+              print('Waiting for complete deployment:',exc,flush=True)
+              if attempt==9: raise
+              time.sleep(15)
+          PY
