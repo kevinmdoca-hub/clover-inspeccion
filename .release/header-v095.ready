@@ -1,0 +1,6 @@
+Approved: replace the locally recreated header with exact Clover UI Header Component v1.0.0; wire app attributes and events only.
+Base: 99ca2f621669cb045570cf740c1db579a5bbb73a
+Patch SHA-256: 0e713e9f8e6de436dd7fd922bd5cf0e9f865afd99190c824a4e80153be5278eb
+Vendor SHA-256: 15f2cd0261c2363e61b34fbfc0c9a1c1132cb0d8998f7e132379e32abf24dcaa
+Local evidence: 282 Chromium/component/isolated-storage assertions and 10 service-worker checks passed. Native iPhone acceptance remains pending. Canonical component overlap at 320 CSS px documented, not modified locally.
+No real records or photos are included. Preserve database identities and inspection/evidence/PDF engine.
