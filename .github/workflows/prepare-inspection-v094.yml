@@ -1,0 +1,76 @@
+name: Prepare Inspection v0.9.4 shared header
+on:
+  push:
+    branches: [release/inspection-v094-prepare]
+    paths: [.release/header-v094.ready]
+permissions:
+  contents: write
+concurrency:
+  group: prepare-inspection-v094
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Decode and verify reviewed patch
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, pathlib, zlib
+          parts=[pathlib.Path('.release/header-v094.part'+str(i)).read_text().strip() for i in range(1,4)]
+          patch=zlib.decompress(base64.b64decode(''.join(parts),validate=True))
+          assert hashlib.sha256(patch).hexdigest()=='6445b24196787af2fa96f4ebfcb9280da47093c9e21d0b8817cd05f8a1ddfd4c','Patch checksum mismatch'
+          pathlib.Path('/tmp/header-v094.patch').write_bytes(patch)
+          print('Reviewed patch bytes verified')
+          PY
+      - name: Apply to exact accepted base and check file integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout --detach 4df00415a5dc8c2434e369b55d86f1b7064141d5
+          git apply --check /tmp/header-v094.patch
+          git apply /tmp/header-v094.patch
+          node --check app.js
+          node --check shared-header.js
+          node --check sw.js
+          python3 - <<'PY'
+          import pathlib,hashlib,json,re
+          hashes={
+            'app.js':'1a6fc145ea06dc0ac4da543c1c5d917abb7983ae568f19f12ee6c100cc3608c7',
+            'index.html':'096bb6667799227cdcaaa42874c64884c55656b8868c16e0cd93af8f8c9f7e2a',
+            'sw.js':'a651f0479cf30038fedf8cd136f084a9853831932e0a1762758143b7cac3dbb0',
+            'shared-header.js':'3d7517f07f08134dbe74fbabf10ba5b6f4d1913a7d8ef6050b4578a88f1eccad',
+            'shared-header.css':'2f21fb61c29e3fc343f56d4a04cca695b0771b8f4983f3a9e97bb9c4a7b31a4c',
+            'README_v0.9.4_DEV.txt':'e0609c900e049bc5c440b841f400809b67ae10f873a61355d33e87f7c8504b6d',
+            'QA_v0.9.4_DEV.txt':'f8bfc3a8468b224f2cedd2a09c9c0b0fe367ec3a4fbe3c6665dc8d435020d772'
+          }
+          for path,want in hashes.items():
+            assert hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()==want,path
+            print('Verified release file',path)
+          sw=pathlib.Path('sw.js').read_text()
+          assets=json.loads(re.search(r'const ASSET_SHA256=(\{.*?\});',sw).group(1))
+          assert len(assets)==9
+          for path,want in assets.items():
+            assert hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()==want,path
+          app=pathlib.Path('app.js').read_text()
+          assert "const VERSION='0.9.4-dev'" in app
+          for token in ["const STATE_KEY='clover-inspection-dev-v090-state'","const DB_NAME='clover-inspection-dev-v090'","const WORKSPACE_KEY='clover-inspection-dev-v090-current-job'","const DB_VERSION=4"]:
+            assert token in app,token
+          json.loads(pathlib.Path('manifest.webmanifest').read_text())
+          print('9 cached assets, version, manifest and unchanged storage identities verified')
+          PY
+      - name: Stage clean release commit without preparation files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app.js index.html sw.js shared-header.js shared-header.css README_v0.9.4_DEV.txt QA_v0.9.4_DEV.txt
+          test "$(git diff --cached --name-only | wc -l)" -eq 7
+          git commit -m 'Implement approved Clover shared header v1.1 — Inspection v0.9.4 DEV' -m 'Exact reviewed patch verified by SHA-256. Preserve inspection engine, PDF generator, local storage namespace and existing evidence. Local-only status remains explicit; no backend sync or auth is introduced.'
+          git push origin HEAD:refs/heads/release/inspection-v0.9.4-dev
+          git rev-parse HEAD
