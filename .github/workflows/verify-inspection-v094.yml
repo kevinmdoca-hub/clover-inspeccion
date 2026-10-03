@@ -1,0 +1,45 @@
+name: Verify live Inspection v0.9.4 header
+on:
+  push:
+    branches: [release/inspection-v094-prepare]
+    paths: [.github/workflows/verify-inspection-v094.yml]
+permissions:
+  contents: read
+jobs:
+  verify-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fetch live Pages assets and verify exact release bytes
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, re, time, urllib.request
+          base='https://kevinmdoca-hub.github.io/clover-inspeccion/'
+          expected_sw='a651f0479cf30038fedf8cd136f084a9853831932e0a1762758143b7cac3dbb0'
+          expected_index='096bb6667799227cdcaaa42874c64884c55656b8868c16e0cd93af8f8c9f7e2a'
+          def get(path):
+            req=urllib.request.Request(base+path+'?release_check='+str(time.time_ns()),headers={'Cache-Control':'no-cache','User-Agent':'Clover-Release-Verification'})
+            with urllib.request.urlopen(req,timeout=20) as r:
+              assert r.status==200
+              return r.read()
+          for attempt in range(10):
+            try:
+              sw=get('sw.js')
+              assert hashlib.sha256(sw).hexdigest()==expected_sw,'Old/incomplete service worker'
+              assets=json.loads(re.search(r'const ASSET_SHA256=(\{.*?\});',sw.decode()).group(1))
+              assert len(assets)==9
+              assert assets['index.html']==expected_index
+              for path,want in assets.items():
+                body=get(path)
+                assert hashlib.sha256(body).hexdigest()==want,'Live hash mismatch: '+path
+                print('PASS HTTP 200 / SHA-256',path)
+              home=get('')
+              assert hashlib.sha256(home).hexdigest()==expected_index,'Homepage mismatch'
+              print('PASS homepage HTTP 200 / SHA-256')
+              print('PASS v0.9.4-dev — all 9 runtime assets plus service worker and homepage match reviewed build')
+              break
+            except Exception as exc:
+              print('Deployment not fully propagated yet:',exc,flush=True)
+              if attempt==9: raise
+              time.sleep(15)
+          PY
