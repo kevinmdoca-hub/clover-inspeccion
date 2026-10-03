@@ -1,0 +1,17 @@
+Header v1.1 acceptance — existing QA-SYN-ACQ-001 only, 3–5 minutes.
+
+Do not reinstall, clear storage, recreate the inspection, or retake its photos.
+1. From the existing installed PWA, apply Update when available after saves finish.
+   Settings > Application must say v0.9.4-dev. Wrong version: stop + screenshot.
+2. Open existing QA-SYN-ACQ-001 and scroll. Header must retain:
+   menu, standalone gold Clover, full Inspections, +, circular arrows, gear.
+   No Clover/subtitle block and no floppy disk. Capture one header screenshot.
+3. Tap circular arrows. Expect Local only / no server sync (gray, not synced green).
+   Tap Save now. Must confirm Saved locally without claiming server delivery.
+4. Close that panel. Tap +, then Cancel. Existing inspection must stay unchanged.
+5. Open Section 1 > 1-K. Original QA DATA PLATE TEST photo must still be there.
+   Screenshot that image + section completion (without replacing it).
+
+Reply Passed, Failed — note, or Could not start — reason, with 2–3 screenshots.
+This closes only the header smoke check, not backup recovery or field readiness.
+The wider seven-test ledger remains in place; PDF retest/recovery gates still pending.

@@ -5,31 +5,29 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#F4F5F7" id="themeMeta">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" id="statusBarMeta">
 <meta name="apple-mobile-web-app-title" content="Clover Inspecciones">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<link rel="stylesheet" href="./styles.css?v=093">
+<link rel="stylesheet" href="./styles.css?v=094">
+<link rel="stylesheet" href="./shared-header.css?v=094">
 <title>Clover — Inspecciones</title>
+<script>
+(()=>{let theme='light';try{theme=localStorage.getItem('clover-inspection-theme')||'light'}catch(e){}if(theme==='system')theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';const dark=theme==='dark';document.documentElement.dataset.theme=theme;document.documentElement.style.colorScheme=dark?'dark':'light';document.getElementById('themeMeta').content=dark?'#0F1117':'#F4F5F7';document.getElementById('statusBarMeta').content=dark?'black-translucent':'default'})();
+</script>
 </head>
 <body>
 <div id="updateBanner" class="update-banner hidden"><div><strong id="updateBannerText">Actualización disponible</strong><div class="small" id="updateBannerSub">Tus datos locales se conservarán.</div><div class="actions"><button id="updateLater" type="button">Más tarde</button><button id="updateNow" type="button" class="brand">Actualizar</button></div></div></div>
 
-<header class="app-topbar">
-  <div class="app-brand" aria-label="Clover Inspecciones">
-    <span class="app-brandmark" aria-hidden="true"><img src="./brand-mark.png" alt=""></span>
-    <div class="app-brand-copy"><strong>Clover</strong><small id="brandSubtitle">Inspecciones</small></div>
+<header id="cloverHeader" class="app-topbar shared-shell-header" data-header-contract="1.1">
+  <button id="workspaceMenuBtn" class="shell-iconbtn shell-menu shell-neutral" type="button" disabled aria-label="Cambiar espacio de trabajo" title="Cambiar espacio de trabajo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+  <button id="cloverHomeBtn" class="shell-brandmark" type="button" disabled aria-label="Inicio de Clover" title="Inicio de Clover"><img src="./brand-mark.png" alt="" aria-hidden="true"></button>
+  <div class="workspace-name"><strong id="brandSubtitle">Inspec<wbr>ciones</strong></div>
+  <div class="shell-actions">
+    <button id="globalNewBtn" class="shell-iconbtn shell-create" type="button" disabled aria-label="Nueva inspección" title="Nueva inspección"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button id="syncNowBtn" class="shell-iconbtn shell-sync shell-neutral sync-state-local" type="button" disabled aria-label="Datos y sincronización" title="Datos y sincronización"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-5V2"/><path d="M20 7a8 8 0 0 0-14.6-2.5L4 7"/><path d="M4 17h5v5"/><path d="M4 17a8 8 0 0 0 14.6 2.5L20 17"/></svg><span id="syncStatusDot" class="shell-status-dot" aria-hidden="true"></span></button>
+    <button id="settingsBtn" class="shell-iconbtn shell-settings shell-neutral" type="button" disabled aria-label="Ajustes" title="Ajustes"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21h-4v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3.1 14H3v-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V3h4v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.1v4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></button>
   </div>
-  <div class="app-top-actions">
-    <button id="globalNewBtn" class="iconbtn primary-action" type="button" aria-label="Nueva inspección" title="Nueva inspección">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-    </button>
-    <button id="saveNowBtn" type="button" class="iconbtn" aria-label="Guardar localmente" title="Guardar localmente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h13l3 3v15H4zM8 3v6h8V3M8 21v-8h8v8"/></svg><span class="save-status-marker" aria-hidden="true"></span></button>
-    <button id="settingsBtn" class="iconbtn" type="button" aria-label="Ajustes" title="Ajustes">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21h-4v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3.1 14H3v-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V3h4v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.1v4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
-    </button>
-  </div>
-
 </header>
 
 <main id="workspaceView" class="workspace-shell">
@@ -115,6 +113,7 @@
 <div class="hidden"><h1 id="headerTitle"></h1><p id="headerSub"></p><span id="versionChip"></span><div id="settingsHeading"></div><label id="languageLabel"></label><label id="themeLabel"></label><select id="languageSelect"><option value="es">Español</option><option value="en">English</option></select><select id="themeSelect"><option value="light">Claro</option><option value="dark">Oscuro</option><option value="system">Automático</option></select><div id="saveTitle"></div><div id="saveSub"></div><button id="settingsCloseBtn"></button><button id="persistBtn"></button><button id="importBtn"></button></div>
 
 <script>window.CLOVER_PACKAGE_LANG='es';</script>
-<script src="./app.js?v=093"></script>
+<script src="./shared-header.js?v=094"></script>
+<script src="./app.js?v=094"></script>
 </body>
 </html>

@@ -1,0 +1,65 @@
+/* Clover Shared Header — locked v1.1; geometry matches Advisor Prospects.
+   Header only. No checklist, evidence, report or database styles are replaced. */
+:root{--clover-header-control:44px;--clover-header-radius:13px;--clover-header-control-gap:6px;--shell-header-height:69px;--header-safe-top:env(safe-area-inset-top,0px)}
+html{background:#F4F5F7;color-scheme:light}
+html[data-theme="dark"]{background:#0F1117;color-scheme:dark}
+body{--shell-surface:#F4F5F7}
+body[data-theme="dark"]{--shell-surface:#0F1117}
+#cloverHeader.shared-shell-header{
+  position:sticky!important;top:0!important;z-index:35;display:grid;
+  grid-template-columns:auto auto minmax(0,1fr) auto;align-items:center;gap:7px;
+  padding:calc(12px + var(--header-safe-top)) max(10px,env(safe-area-inset-right,0px)) 12px max(10px,env(safe-area-inset-left,0px));
+  width:100%;max-width:100%;margin:0;background:var(--shell-surface);color:var(--advisor-text);
+  border:0;border-bottom:1px solid var(--advisor-line);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;isolation:isolate;
+}
+#cloverHeader .shell-actions{display:flex;align-items:center;gap:var(--clover-header-control-gap);min-width:0}
+#cloverHeader .shell-iconbtn{
+  position:relative;display:grid;place-items:center;flex:none;box-sizing:border-box;
+  width:var(--clover-header-control);height:var(--clover-header-control);min-width:var(--clover-header-control);min-height:var(--clover-header-control);
+  padding:0;margin:0;border:1px solid var(--advisor-line);border-radius:var(--clover-header-radius);
+  background:var(--advisor-card);color:var(--advisor-muted);box-shadow:none;cursor:pointer;
+}
+#cloverHeader .shell-iconbtn svg{display:block;width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+#cloverHeader .shell-iconbtn:active{background:var(--advisor-card2)}
+#cloverHeader .shell-iconbtn:disabled{opacity:.42;cursor:default}
+#cloverHeader .shell-brandmark{
+  display:grid;place-items:center;width:40px;height:var(--clover-header-control);min-width:40px;min-height:var(--clover-header-control);
+  padding:0;margin:0;border:0;border-radius:0;background:transparent;box-shadow:none;cursor:pointer;
+}
+#cloverHeader .shell-brandmark img{display:block;width:35px;height:35px;object-fit:contain}
+#cloverHeader .shell-brandmark:active{background:transparent;transform:scale(.96)}
+#cloverHeader .workspace-name{display:flex;align-items:center;min-width:0}
+#cloverHeader .workspace-name strong{display:block;min-width:0;font-size:16px;line-height:1.1;font-weight:800;letter-spacing:-.012em;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:normal;word-break:normal;color:var(--advisor-text)}
+#cloverHeader .shell-create{background:var(--advisor-card);border-color:rgba(212,175,55,.58);color:#D4AF37}
+/* On a light workspace the header create surface still follows the dark/gold contract. */
+body:not([data-theme="dark"]) #cloverHeader .shell-create{background:#131720}
+#cloverHeader .shell-settings{color:var(--advisor-text)}
+#cloverHeader .shell-sync{color:var(--advisor-muted)}
+.shell-status-dot{position:absolute;right:4px;bottom:4px;width:9px;height:9px;box-sizing:content-box;border:2px solid var(--advisor-card);border-radius:999px;background:#737985}
+.sync-state-synced .shell-status-dot{background:#2E7D32}
+.sync-state-pending .shell-status-dot,.sync-state-syncing .shell-status-dot{background:#D4AF37}
+.sync-state-offline .shell-status-dot,.sync-state-local .shell-status-dot{background:#737985}
+.sync-state-error .shell-status-dot{background:#FF4B4B}
+.sync-state-syncing svg{animation:cloverShellSyncSpin .85s linear infinite}
+@keyframes cloverShellSyncSpin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.sync-state-syncing svg{animation-duration:2.5s}}
+#cloverHeader button:focus-visible{outline:2px solid #D4AF37;outline-offset:2px}
+#headerSyncDetails .setting-action{margin-top:10px}
+.sync-details-status{display:flex;align-items:center;gap:11px;min-height:62px;margin:12px 0;padding:11px 12px;border:1px solid var(--advisor-line);border-radius:14px;background:var(--advisor-card)}
+.sync-details-status>span:last-child{display:flex;min-width:0;flex-direction:column;gap:3px}
+.sync-details-status b{font-size:14px}.sync-details-status small{font-size:11px;color:var(--advisor-muted);line-height:1.35}
+.sync-detail-dot{flex:none;width:10px;height:10px;border-radius:999px;background:#737985}
+.sync-detail-dot.state-pending{background:#D4AF37}.sync-detail-dot.state-error{background:#FF4B4B}
+.workspace-switch-list{display:grid;gap:8px;margin-top:14px}
+.workspace-switch{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:11px;width:100%;min-width:0;min-height:62px;text-align:left;border:1px solid var(--advisor-line);border-radius:14px;padding:12px;background:var(--advisor-card);color:var(--advisor-text)}
+.workspace-switch.current{border-color:rgba(212,175,55,.55)}
+.workspace-switch>span:first-child{display:flex;flex-direction:column;gap:4px;min-width:0}
+.workspace-switch b{font-size:14px}.workspace-switch small{font-size:12px;font-weight:400;line-height:1.4;color:var(--advisor-muted)}
+.workspace-switch:active{background:var(--advisor-card2)}
+/* Scroll targets are below the actual measured header, including two-line titles. */
+.step,.unit-card{scroll-margin-top:calc(var(--shell-header-height) + 12px)}
+@media(max-width:390px){
+  #cloverHeader.shared-shell-header{gap:5px;padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px))}
+  #cloverHeader .shell-actions{gap:4px}
+  #cloverHeader .workspace-name strong{font-size:15px}
+}

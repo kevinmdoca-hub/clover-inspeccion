@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 
-const VERSION='0.9.3-dev';
+const VERSION='0.9.4-dev';
 const PACKAGE_LANG=window.CLOVER_PACKAGE_LANG||'es';
 const STATE_KEY='clover-inspection-dev-v090-state';
 const DB_NAME='clover-inspection-dev-v090';
@@ -78,7 +78,7 @@ function openInspectionSettings(){
 const UI={
   headerTitle:t('Inspección de Condición Base y Planeación de Servicio','Baseline Condition & Service Planning Inspection'),
   headerSub:t('Aplicación de campo · Móvil · Offline · Guardado automático','Field app · Mobile · Offline · Automatic saving'),
-  version:t('Desarrollo v0.9.3','Development v0.9.3'),
+  version:t('Desarrollo v0.9.4','Development v0.9.4'),
   pilot:t('<b>Objetivo del piloto:</b> documentar la condición real de cada equipo, necesidades inmediatas, mantenimiento diferido y exposición probable de servicio sin pedir al técnico que determine precio o riesgo comercial.','<b>Pilot objective:</b> document each unit’s actual condition, immediate needs, deferred maintenance and likely service exposure without asking the technician to determine pricing or commercial risk.'),
   feedback:t('<b>Retroalimentación de campo:</b> confirma si el orden coincide con la inspección real, qué sobra o falta, qué debería resolverse con un toque y qué requiere herramientas adicionales.','<b>Field feedback:</b> confirm whether the order matches the real inspection, what is missing or redundant, what should take one tap, and what requires additional tools.'),
   sessionHeading:t('Sesión de inspección','Inspection session'), client:t('Cliente / empresa','Client / company'), location:t('Ubicación','Location'), tech:t('Técnico','Technician'), date:t('Fecha','Date'), sessionNotes:t('Notas de la sesión','Session notes'),
@@ -388,6 +388,7 @@ function migrateState(raw){
 let saveToastTimer=null;
 function setSave(kind,title,sub){
   lastSaveState={kind,title,sub:sub||''};
+  window.dispatchEvent(new CustomEvent('clover:local-save'));
   const saveButton=$('#saveNowBtn');if(saveButton){saveButton.dataset.saveState=kind;saveButton.title=title+' — '+t('Guardar ahora (solo local)','Save now (local only)');saveButton.setAttribute('aria-label',saveButton.title)}
   const dot=$('#saveDot'),settingsDot=$('.settings-save .dot'),f=$('#floatSave'),mini=$('#saveMiniText');
   for(const d of [dot,settingsDot])if(d)d.className='dot '+(kind==='ok'?'ok':kind==='bad'?'bad':'');
@@ -1057,7 +1058,7 @@ async function load(){
 }
 function bindGlobal(){
   ['client','location','tech','date','sessionNotes'].forEach(id=>{const el=$('#'+id);el.addEventListener('input',()=>{touchSession();if(sessionMeta.completedAt)sessionMeta.completedAt='';scheduleSave()});el.addEventListener('change',e=>{if(e.isTrusted)recordSessionAction('sessionFieldEdits')})});
-  const add=()=>{recordSessionAction('addUnitTaps');addUnit(null,{scroll:true});scheduleSave();renderDashboard();renderMissing()};$('#addUnit').onclick=add;$('#addUnitBottom').onclick=add;$('#backupBtn').onclick=()=>{recordSessionAction('jsonExportTaps');backup()};$('#findingsCsvBtn').onclick=()=>{recordSessionAction('csvExportTaps');exportCSV()};$('#pdfBtn').onclick=()=>{recordSessionAction('pdfDialogOpenTaps');openPdfDialog()};$('#floatSave').onclick=manualSave;$('#saveNowBtn').onclick=manualSave;$('#finishSessionBtn').onclick=()=>{recordSessionAction('finalizeSessionTaps');finishSession()};$('#pdfCancelBtn').onclick=closePdfDialog;$('#pdfGenerateBtn').onclick=()=>{recordSessionAction('pdfGenerateTaps');generateSelectedPdf()};
+  const add=()=>{recordSessionAction('addUnitTaps');addUnit(null,{scroll:true});scheduleSave();renderDashboard();renderMissing()};$('#addUnit').onclick=add;$('#addUnitBottom').onclick=add;$('#backupBtn').onclick=()=>{recordSessionAction('jsonExportTaps');backup()};$('#findingsCsvBtn').onclick=()=>{recordSessionAction('csvExportTaps');exportCSV()};$('#pdfBtn').onclick=()=>{recordSessionAction('pdfDialogOpenTaps');openPdfDialog()};$('#floatSave').onclick=manualSave;$('#saveNowBtn')?.addEventListener('click',manualSave);$('#finishSessionBtn').onclick=()=>{recordSessionAction('finalizeSessionTaps');finishSession()};$('#pdfCancelBtn').onclick=closePdfDialog;$('#pdfGenerateBtn').onclick=()=>{recordSessionAction('pdfGenerateTaps');generateSelectedPdf()};
   $('#guidedPhotoClose').onclick=closeGuidedPhotos;$('#guidedPhotoFinish').onclick=closeGuidedPhotos;$('#guidedPhotoInput').onchange=e=>guidedInputChanged(e.target);$('#guidedPhotoUse').onclick=()=>enqueueMedia(guidedUsePhoto);$('#guidedPhotoRetake').onclick=guidedRetake;$('#guidedPhotoSkip').onclick=guidedSkip;$('#guidedPhotoReviewSkipped').onclick=guidedReviewSkipped;$('#guidedPhotoOptional').onclick=guidedContinueOptional;$('#guidedPhotoDialog').addEventListener('close',()=>{guidedCleanupTemp();guidedPhotoSession=null});
   $('#settingsBtn').onclick=openInspectionSettings;
 
@@ -1153,11 +1154,11 @@ function showWorkspaceTab(tab){workspaceTab=tab;$$('.workspace-pane').forEach(p=
 function showWorkspace({preserveTab=false}={}){
   $('#workspaceView')?.classList.remove('hidden');$('#inspectionView')?.classList.add('hidden');$('#workspaceNav')?.classList.remove('hidden');$('#globalNewBtn')?.classList.remove('hidden');document.body.classList.remove('inspection-open');
   if(!preserveTab){workspaceTab=workspaceTab||'today';$$('.workspace-pane').forEach(p=>p.classList.toggle('hidden',p.dataset.workspacePane!==workspaceTab));$$('.navitem').forEach(b=>b.classList.toggle('active',b.dataset.workspaceTab===workspaceTab))}
-  $('#brandSubtitle').textContent=t('Inspecciones','Inspections');window.scrollTo({top:0,behavior:'auto'});refreshWorkspace();
+  $('#brandSubtitle').innerHTML=t('Inspec<wbr>ciones','Inspec<wbr>tions');window.scrollTo({top:0,behavior:'auto'});refreshWorkspace();
 }
 function showInspection(){
-  $('#workspaceView')?.classList.add('hidden');$('#inspectionView')?.classList.remove('hidden');$('#workspaceNav')?.classList.add('hidden');$('#globalNewBtn')?.classList.add('hidden');document.body.classList.add('inspection-open');
-  $('#brandSubtitle').textContent=t('Inspecciones','Inspections');const type=$('#currentInspectionType');if(type)type.textContent=inspectionTypeLabel(sessionMeta.inspectionType||'baseline_fleet');window.scrollTo({top:0,behavior:'auto'});
+  $('#workspaceView')?.classList.add('hidden');$('#inspectionView')?.classList.remove('hidden');$('#workspaceNav')?.classList.add('hidden');$('#globalNewBtn')?.classList.remove('hidden');document.body.classList.add('inspection-open');
+  $('#brandSubtitle').innerHTML=t('Inspec<wbr>ciones','Inspec<wbr>tions');const type=$('#currentInspectionType');if(type)type.textContent=inspectionTypeLabel(sessionMeta.inspectionType||'baseline_fleet');window.scrollTo({top:0,behavior:'auto'});
 }
 async function openJob(id){
   closeSheet();if(!await manualSave())return;const rec=await idbGet(JOB_STORE,id);if(!rec)return;try{state=migrateState(JSON.parse(rec.raw));currentJobId=id;sessionMeta={...(state.session?.meta||{}),jobId:id};await applyState();ensureInspectionMeta();try{localStorage.setItem(WORKSPACE_KEY,id)}catch(e){}showInspection()}catch(e){console.error(e);alert(t('No se pudo abrir esta inspección.','Could not open this inspection.'))}
@@ -1192,7 +1193,11 @@ window.cloverPrepareUpdate=async()=>{
   await idbPut(STATE_STORE,{key:'last-update-checkpoint',raw:JSON.stringify(state),jobs:await idbGetAll(JOB_STORE),mediaManifest:media.map(r=>({id:r.id,unitId:r.unitId,key:r.key,size:r.blob.size})),createdAt:nowIso()});
   return true;
 };
-initWorkspace();
+initWorkspace().then(()=>window.CloverSharedHeader?.mount({
+  lang:LANG, getSaveState:()=>lastSaveState, save:manualSave,
+  openSheet,closeSheet,openSettings:openInspectionSettings,openNew:openNewInspectionSheet,
+  showHome:()=>showWorkspaceTab('today')
+}));
 })();
 
 if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
