@@ -1,0 +1,4 @@
+Approved header reconciliation v1.1; seven runtime/documentation changes only.
+Base: 4df00415a5dc8c2434e369b55d86f1b7064141d5
+Patch SHA-256: 6445b24196787af2fa96f4ebfcb9280da47093c9e21d0b8817cd05f8a1ddfd4c
+Local evidence: 257 Chromium/test-adapter assertions and 9 service-worker checks passed. Native iPhone acceptance remains pending. No real records or media are bundled.
