@@ -1,0 +1,19 @@
+v0.9.5-dev — exact shared component; physical-device card (3–5 minutes)
+Keep existing inspection QA-SYN-ACQ-001 and its photos. No new test record.
+
+1. In the existing Home Screen PWA, let saving finish, accept the update if
+   offered, then confirm v0.9.5-dev in Settings. Stop if the older build remains;
+   no reinstall, clearing storage or importing over the pending inspection.
+2. Open QA-SYN-ACQ-001. Scroll and capture the visible header. Open its Sync
+   control, use Save now and confirm it says Local only / No server sync.
+3. Close the panel. Open Settings once, then close it. Tap + and Cancel without
+   creating an inspection. Tap the hamburger and Clover mark to check their
+   existing drawer/local Home actions; do not leave to another app.
+4. Open Section 1, view the ORIGINAL data-plate photograph and capture it with
+   the section status. Keep unknown condition unchanged. Do not replace media.
+
+Evidence requested: header + local sync details + original photo (3 screenshots).
+Reply Passed or Failed with a short note. This card is not full recovery proof.
+Existing PDF recheck, complete media recovery and real field acceptance remain
+open. A known 320-CSS-px title overlap exists in the supplied standalone component
+and is referred upstream, not patched in the consumer app.

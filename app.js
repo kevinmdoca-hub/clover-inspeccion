@@ -1,7 +1,7 @@
 (() => {
 'use strict';
 
-const VERSION='0.9.4-dev';
+const VERSION='0.9.5-dev';
 const PACKAGE_LANG=window.CLOVER_PACKAGE_LANG||'es';
 const STATE_KEY='clover-inspection-dev-v090-state';
 const DB_NAME='clover-inspection-dev-v090';
@@ -1060,7 +1060,7 @@ function bindGlobal(){
   ['client','location','tech','date','sessionNotes'].forEach(id=>{const el=$('#'+id);el.addEventListener('input',()=>{touchSession();if(sessionMeta.completedAt)sessionMeta.completedAt='';scheduleSave()});el.addEventListener('change',e=>{if(e.isTrusted)recordSessionAction('sessionFieldEdits')})});
   const add=()=>{recordSessionAction('addUnitTaps');addUnit(null,{scroll:true});scheduleSave();renderDashboard();renderMissing()};$('#addUnit').onclick=add;$('#addUnitBottom').onclick=add;$('#backupBtn').onclick=()=>{recordSessionAction('jsonExportTaps');backup()};$('#findingsCsvBtn').onclick=()=>{recordSessionAction('csvExportTaps');exportCSV()};$('#pdfBtn').onclick=()=>{recordSessionAction('pdfDialogOpenTaps');openPdfDialog()};$('#floatSave').onclick=manualSave;$('#saveNowBtn')?.addEventListener('click',manualSave);$('#finishSessionBtn').onclick=()=>{recordSessionAction('finalizeSessionTaps');finishSession()};$('#pdfCancelBtn').onclick=closePdfDialog;$('#pdfGenerateBtn').onclick=()=>{recordSessionAction('pdfGenerateTaps');generateSelectedPdf()};
   $('#guidedPhotoClose').onclick=closeGuidedPhotos;$('#guidedPhotoFinish').onclick=closeGuidedPhotos;$('#guidedPhotoInput').onchange=e=>guidedInputChanged(e.target);$('#guidedPhotoUse').onclick=()=>enqueueMedia(guidedUsePhoto);$('#guidedPhotoRetake').onclick=guidedRetake;$('#guidedPhotoSkip').onclick=guidedSkip;$('#guidedPhotoReviewSkipped').onclick=guidedReviewSkipped;$('#guidedPhotoOptional').onclick=guidedContinueOptional;$('#guidedPhotoDialog').addEventListener('close',()=>{guidedCleanupTemp();guidedPhotoSession=null});
-  $('#settingsBtn').onclick=openInspectionSettings;
+
 
   $('#clearBtn').onclick=async()=>{if(confirm(t('¿Cerrar esta vista y volver a Trabajo? La inspección y su evidencia se conservan.','Close this view and return to Work? The inspection and evidence are kept.'))){if(await manualSave())showWorkspace()}};
   $('#importBtn').onclick=()=>$('#importFile').click();$('#importFile').onchange=async()=>{const f=$('#importFile').files[0];if(!f)return;try{state=migrateState(JSON.parse(await f.text()));applyState();await saveNow();alert(t('Respaldo importado.','Backup imported.'))}catch(e){alert(t('No se pudo importar el respaldo.','Could not import backup.'))}finally{$('#importFile').value=''}};
@@ -1152,13 +1152,13 @@ function showClientJobs(name,jobs){
 }
 function showWorkspaceTab(tab){workspaceTab=tab;$$('.workspace-pane').forEach(p=>p.classList.toggle('hidden',p.dataset.workspacePane!==tab));$$('.navitem').forEach(b=>b.classList.toggle('active',b.dataset.workspaceTab===tab));showWorkspace({preserveTab:true})}
 function showWorkspace({preserveTab=false}={}){
-  $('#workspaceView')?.classList.remove('hidden');$('#inspectionView')?.classList.add('hidden');$('#workspaceNav')?.classList.remove('hidden');$('#globalNewBtn')?.classList.remove('hidden');document.body.classList.remove('inspection-open');
+  $('#workspaceView')?.classList.remove('hidden');$('#inspectionView')?.classList.add('hidden');$('#workspaceNav')?.classList.remove('hidden');document.body.classList.remove('inspection-open');
   if(!preserveTab){workspaceTab=workspaceTab||'today';$$('.workspace-pane').forEach(p=>p.classList.toggle('hidden',p.dataset.workspacePane!==workspaceTab));$$('.navitem').forEach(b=>b.classList.toggle('active',b.dataset.workspaceTab===workspaceTab))}
-  $('#brandSubtitle').innerHTML=t('Inspec<wbr>ciones','Inspec<wbr>tions');window.scrollTo({top:0,behavior:'auto'});refreshWorkspace();
+  window.scrollTo({top:0,behavior:'auto'});refreshWorkspace();
 }
 function showInspection(){
-  $('#workspaceView')?.classList.add('hidden');$('#inspectionView')?.classList.remove('hidden');$('#workspaceNav')?.classList.add('hidden');$('#globalNewBtn')?.classList.remove('hidden');document.body.classList.add('inspection-open');
-  $('#brandSubtitle').innerHTML=t('Inspec<wbr>ciones','Inspec<wbr>tions');const type=$('#currentInspectionType');if(type)type.textContent=inspectionTypeLabel(sessionMeta.inspectionType||'baseline_fleet');window.scrollTo({top:0,behavior:'auto'});
+  $('#workspaceView')?.classList.add('hidden');$('#inspectionView')?.classList.remove('hidden');$('#workspaceNav')?.classList.add('hidden');document.body.classList.add('inspection-open');
+  const type=$('#currentInspectionType');if(type)type.textContent=inspectionTypeLabel(sessionMeta.inspectionType||'baseline_fleet');window.scrollTo({top:0,behavior:'auto'});
 }
 async function openJob(id){
   closeSheet();if(!await manualSave())return;const rec=await idbGet(JOB_STORE,id);if(!rec)return;try{state=migrateState(JSON.parse(rec.raw));currentJobId=id;sessionMeta={...(state.session?.meta||{}),jobId:id};await applyState();ensureInspectionMeta();try{localStorage.setItem(WORKSPACE_KEY,id)}catch(e){}showInspection()}catch(e){console.error(e);alert(t('No se pudo abrir esta inspección.','Could not open this inspection.'))}
@@ -1180,7 +1180,7 @@ async function ensureWorkspaceJob(){
   ensureInspectionMeta();let id='';try{id=localStorage.getItem(WORKSPACE_KEY)||''}catch(e){}if(state.session?.meta?.jobId)id=state.session.meta.jobId;if(!id)id=sessionMeta.jobId;currentJobId=id;sessionMeta.jobId=id;state.session.meta={...sessionMeta};const raw=JSON.stringify(state);if(hasMeaningfulInspection(state))await idbPut(JOB_STORE,jobRecordFromState(state,raw));try{if(hasMeaningfulInspection(state))localStorage.setItem(WORKSPACE_KEY,id);else localStorage.removeItem(WORKSPACE_KEY)}catch(e){}
 }
 function bindWorkspace(){
-  $$('.navitem').forEach(b=>b.onclick=()=>showWorkspaceTab(b.dataset.workspaceTab));$('#globalNewBtn').onclick=openNewInspectionSheet;$('#backToWorkspace').onclick=async()=>{if(await manualSave())showWorkspace()};
+  $$('.navitem').forEach(b=>b.onclick=()=>showWorkspaceTab(b.dataset.workspaceTab));$('#backToWorkspace').onclick=async()=>{if(await manualSave())showWorkspace()};
   $('#workSearch').addEventListener('input',e=>{workQuery=e.target.value;refreshWorkspace()});$$('[data-work-filter]').forEach(b=>b.onclick=()=>{workFilter=b.dataset.workFilter;$$('[data-work-filter]').forEach(x=>x.classList.toggle('active',x===b));refreshWorkspace()});
   $('#calendarPrev').onclick=()=>{const d=new Date(calendarDate+'T12:00:00');d.setMonth(d.getMonth()-1);d.setDate(1);calendarDate=d.toISOString().slice(0,10);refreshWorkspace()};$('#calendarNext').onclick=()=>{const d=new Date(calendarDate+'T12:00:00');d.setMonth(d.getMonth()+1);d.setDate(1);calendarDate=d.toISOString().slice(0,10);refreshWorkspace()};$('#calendarToday').onclick=()=>{calendarDate=new Date().toISOString().slice(0,10);refreshWorkspace()};
 }
@@ -1193,7 +1193,7 @@ window.cloverPrepareUpdate=async()=>{
   await idbPut(STATE_STORE,{key:'last-update-checkpoint',raw:JSON.stringify(state),jobs:await idbGetAll(JOB_STORE),mediaManifest:media.map(r=>({id:r.id,unitId:r.unitId,key:r.key,size:r.blob.size})),createdAt:nowIso()});
   return true;
 };
-initWorkspace().then(()=>window.CloverSharedHeader?.mount({
+initWorkspace().then(()=>window.CloverInspectionHeader?.mount({
   lang:LANG, getSaveState:()=>lastSaveState, save:manualSave,
   openSheet,closeSheet,openSettings:openInspectionSettings,openNew:openNewInspectionSheet,
   showHome:()=>showWorkspaceTab('today')
