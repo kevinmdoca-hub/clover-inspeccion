@@ -1,0 +1,64 @@
+name: Publish exact Clover header 1.1.2
+on:
+  push:
+    branches: [main, phase-ab-foundation-needs-v0.3.0]
+    paths: ['.github/workflows/publish-header-v112.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: clover-header-112-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.ref_name }}
+      - run: python -m pip install Pillow==11.3.0
+      - name: Apply checksum-verified shared files and preserve approved icons
+        shell: python
+        run: |
+          import hashlib,json,os,subprocess,urllib.request
+          from pathlib import Path
+          name=os.environ['GITHUB_REPOSITORY'].split('/')[-1]
+          allowed=['clover-inspeccion','clover-prospect-pilot','clover-location-visual-review','clover-commercial-workspace','clover-service-pilot','clover-cost-pricing-pilot','clover-market-intelligence','clover-routing-field-ops-pilot']
+          assert name in allowed
+          mi=name=='clover-market-intelligence'
+          assert os.environ['GITHUB_REF_NAME']==('phase-ab-foundation-needs-v0.3.0' if mi else 'main')
+          root='public' if name in ['clover-service-pilot','clover-cost-pricing-pilot'] else '.'
+          component=str(Path(root)/'shared/clover-ui'/('dist' if name=='clover-commercial-workspace' else '')/'clover-shell-header.js')
+          config={'root':root,'component':component,'mi':mi,'routes':name=='clover-routing-field-ops-pilot'}
+          p=Path(os.environ['RUNNER_TEMP'])/'clover-header-112';p.mkdir(exist_ok=True)
+          base='https://raw.githubusercontent.com/kevinmdoca-hub/clover-inspeccion/c5ba9f61809de3077b43924c6f5d740fc47a1319/shared/clover-ui/releases/1.1.2/'
+          checks={'install_header.py':'466e11180aad7a618b4121377f808dc9c06ba73585e5fd8634d4f2ffacbafc39','clover-shell-header.js':'3d45770b85171429cbdc76f9533eb087f5cd73a87287768be9cca5e542cb6e87','clover-shell-header.css':'b73a45c45cb4bab633668b5bd6be28876fe56fdeb48f4d475164bf9167a05a04','shell-browser-chrome.js':'6a0c11bfa94c04518975f68a069aae6433f91276116707ba50a0d859a34465d1','shell-browser-chrome.css':'27ea3edc822d58956f551579aabd1839290b46fc9453d763ffa0f5535296dcca'}
+          for filename,expected in checks.items():
+            with urllib.request.urlopen(base+filename,timeout=30) as response:data=response.read()
+            assert hashlib.sha256(data).hexdigest()==expected,filename
+            (p/filename).write_bytes(data)
+          subprocess.run(['python',str(p/'install_header.py'),str(p),json.dumps(config)],check=True)
+      - name: Validate affected static builds
+        run: |
+          case "$GITHUB_REPOSITORY" in
+            */clover-market-intelligence) npm test && npm run build ;;
+            */clover-routing-field-ops-pilot) npm ci --ignore-scripts && npm run build ;;
+            */clover-service-pilot) npm run build ;;
+          esac
+      - name: Commit only header, cache, integration and verification updates
+        shell: python
+        run: |
+          import json,subprocess
+          from pathlib import Path
+          r=json.loads(Path('CLOVER_UI_RELEASE_REPORT.json').read_text())
+          folder=Path(r['component']).parent
+          subprocess.run(['git','add','-u'],check=True)
+          subprocess.run(['git','add',str(folder/'clover-brand-mark-v1.png'),str(folder/'manifest.json'),'CLOVER_UI_RELEASE_REPORT.json'],check=True)
+          if r['mi_browser_chrome_adapter']:
+            subprocess.run(['git','add','foundation/shell-browser-chrome.js','foundation/shell-browser-chrome.css'],check=True)
+          if subprocess.run(['git','diff','--cached','--quiet']).returncode==0:raise SystemExit(0)
+          subprocess.run(['git','config','user.name','Clover Visual Reconciliation'],check=True)
+          subprocess.run(['git','config','user.email','41898282+github-actions[bot]@users.noreply.github.com'],check=True)
+          subprocess.run(['git','commit','-m','fix(ui): exact sign-in Clover in header 1.1.2; preserve approved app icons'],check=True)
+          subprocess.run(['git','push','origin','HEAD'],check=True)
