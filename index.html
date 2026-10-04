@@ -8,13 +8,14 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" id="statusBarMeta">
 <meta name="apple-mobile-web-app-title" content="Clover Inspecciones">
 <link rel="manifest" href="./manifest.webmanifest">
-<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icons/clover-v111/apple-touch-icon-180.png" sizes="180x180" type="image/png">
 <link rel="stylesheet" href="./styles.css?v=095">
 <link rel="stylesheet" href="./header-integration.css?v=095">
 <title>Clover — Inspecciones</title>
 <script>
 (()=>{let theme='light';try{theme=localStorage.getItem('clover-inspection-theme')||'light'}catch(e){}if(theme==='system')theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';const dark=theme==='dark';document.documentElement.dataset.theme=theme;document.documentElement.style.colorScheme=dark?'dark':'light';document.getElementById('themeMeta').content=dark?'#0F1117':'#F4F5F7';document.getElementById('statusBarMeta').content=dark?'black-translucent':'default'})();
 </script>
+<link rel="icon" href="./icons/clover-v111/icon-192.png" sizes="192x192" type="image/png">
 </head>
 <body>
 <div id="updateBanner" class="update-banner hidden"><div><strong id="updateBannerText">Actualización disponible</strong><div class="small" id="updateBannerSub">Tus datos locales se conservarán.</div><div class="actions"><button id="updateLater" type="button">Más tarde</button><button id="updateNow" type="button" class="brand">Actualizar</button></div></div></div>

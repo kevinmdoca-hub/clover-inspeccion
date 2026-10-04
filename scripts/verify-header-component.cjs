@@ -4,7 +4,7 @@ const root=path.resolve(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p));
 const text=p=>read(p).toString('utf8');
 const assert=(ok,msg)=>{if(!ok)throw new Error(msg);console.log('PASS '+msg)};
-const expected='15f2cd0261c2363e61b34fbfc0c9a1c1132cb0d8998f7e132379e32abf24dcaa';
+const expected='db4b8232c0ce1cfc993b4a77017428e110817292e91541b7ffee48ce533008fe';
 assert(crypto.createHash('sha256').update(read('shared/clover-ui/clover-shell-header.js')).digest('hex')===expected,'canonical component bytes match supplied ZIP');
 assert(JSON.parse(text('shared/clover-ui/manifest.json')).sha256===expected,'canonical manifest agrees');
 const html=text('index.html'),adapter=text('header-adapter.js'),app=text('app.js'),css=text('header-integration.css');

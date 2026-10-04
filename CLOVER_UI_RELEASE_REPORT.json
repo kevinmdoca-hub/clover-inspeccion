@@ -1,0 +1,27 @@
+{
+  "header_version": "1.1.1",
+  "component": "shared/clover-ui/clover-shell-header.js",
+  "js_sha256": "db4b8232c0ce1cfc993b4a77017428e110817292e91541b7ffee48ce533008fe",
+  "css_sha256": "e012c44acd41e5dbea2e9764d54ee88fa0088e73eed0150d52f95eb6b7053b98",
+  "existing_event_handlers_detected": {
+    "menu": true,
+    "home": true,
+    "create": true,
+    "sync": true,
+    "settings": true
+  },
+  "icons": {
+    "status": "exported",
+    "source": "ui-artwork/inspections-fullbleed-v111.webp",
+    "source_blob": "2902d6a283366372d968206d48ca37eb27fe4d5c",
+    "crop": null,
+    "files": {
+      "apple-touch-icon-180.png": "915e60d81c9d749de072f3de86e9bdf99f9c019d455d0d545a4922652850816d",
+      "icon-1024.png": "d5b2d45becf78e69617671f15b6b1acb7323bd861975d46c750ed07b3d8abb6d",
+      "icon-512.png": "ea82c55b7d80946621ee5e51449be26504060e6ffe20938bef21ee7e0d1f1e3b",
+      "icon-192.png": "7346b736832f933910009717905862cbed9fc5e6ac27f87bc799229e9eb89362"
+    },
+    "identity_preserved": true
+  },
+  "no_business_logic_or_user_data_changes": true
+}

@@ -1,7 +1,12 @@
 {
   "name": "clover-shell-header",
-  "version": "1.0.0",
-  "sha256": "15f2cd0261c2363e61b34fbfc0c9a1c1132cb0d8998f7e132379e32abf24dcaa",
-  "canonical_file": "dist/clover-shell-header.js",
-  "rule": "consume unchanged; wire events only"
+  "version": "1.1.1",
+  "sha256": "db4b8232c0ce1cfc993b4a77017428e110817292e91541b7ffee48ce533008fe",
+  "css_sha256": "e012c44acd41e5dbea2e9764d54ee88fa0088e73eed0150d52f95eb6b7053b98",
+  "required_files": [
+    "clover-shell-header.js",
+    "clover-shell-header.css"
+  ],
+  "canonical_file": "shared/clover-ui/clover-shell-header.js",
+  "rule": "Consume unchanged; preserve the five clover-* event handlers."
 }
