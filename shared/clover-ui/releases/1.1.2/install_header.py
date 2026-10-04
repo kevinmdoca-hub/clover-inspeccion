@@ -41,7 +41,14 @@ if folder.name=='dist' and (folder.parent/'manifest.json').exists():save(folder.
 index=root/'index.html';text=index.read_text()
 pattern=r'(clover-shell-header\.js)(?:\?[^\s\"\'<>]*)?(?=[\"\'])'
 text,n=re.subn(pattern,r'\1?v=1.1.2',text)
-assert n==1,'Expected one existing header import; refusing to create duplicate headers'
+if n==0:
+ # Service imports the component from its ES-module entry point, not index.html.
+ entry=root/'app.js';code=entry.read_text()
+ first="import './shared/clover-ui/clover-shell-header.js';"
+ assert code.startswith(first),'Expected one verified Service module import'
+ save(entry,code.replace(first,"import './shared/clover-ui/clover-shell-header.js?v=1.1.2';",1))
+else:
+ assert n==1,'Expected one existing header import; refusing to create duplicate headers'
 if cfg.get('mi'):
  for ext in ('js','css'):
   src=release/('shell-browser-chrome.'+ext);dest=root/'foundation'/src.name;shutil.copyfile(src,dest)
@@ -72,7 +79,8 @@ if cfg.get('routes'):
  if 'clover-brand-mark-v1.png' not in text:text=text.replace(needle,needle+"\nawait copyFile('shared/clover-ui/clover-brand-mark-v1.png','dist/shared/clover-ui/clover-brand-mark-v1.png');")
  save(p,text)
 # Keep each app's existing cache/activation behavior; change only version and static list.
-for worker_name in ('sw.js','service-worker.js'):
+# MI's legacy worker only unregisters itself and is not part of the review build.
+for worker_name in (() if cfg.get('mi') else ('sw.js','service-worker.js')):
  worker=root/worker_name
  if not worker.exists():continue
  text=worker.read_text();match=re.search(r'const\s+(ASSETS|SHELL|CORE|PRECACHE)\s*=\s*(\[[\s\S]*?\]);',text)
