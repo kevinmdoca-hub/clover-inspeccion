@@ -33,8 +33,8 @@ jobs:
           component=str(Path(root)/'shared/clover-ui'/('dist' if name=='clover-commercial-workspace' else '')/'clover-shell-header.js')
           config={'root':root,'component':component,'mi':mi,'routes':name=='clover-routing-field-ops-pilot'}
           p=Path(os.environ['RUNNER_TEMP'])/'clover-header-112';p.mkdir(exist_ok=True)
-          base='https://raw.githubusercontent.com/kevinmdoca-hub/clover-inspeccion/c5ba9f61809de3077b43924c6f5d740fc47a1319/shared/clover-ui/releases/1.1.2/'
-          checks={'install_header.py':'466e11180aad7a618b4121377f808dc9c06ba73585e5fd8634d4f2ffacbafc39','clover-shell-header.js':'3d45770b85171429cbdc76f9533eb087f5cd73a87287768be9cca5e542cb6e87','clover-shell-header.css':'b73a45c45cb4bab633668b5bd6be28876fe56fdeb48f4d475164bf9167a05a04','shell-browser-chrome.js':'6a0c11bfa94c04518975f68a069aae6433f91276116707ba50a0d859a34465d1','shell-browser-chrome.css':'27ea3edc822d58956f551579aabd1839290b46fc9453d763ffa0f5535296dcca'}
+          base='https://raw.githubusercontent.com/kevinmdoca-hub/clover-inspeccion/d52cd852de0560594bdf22618f880e9961c84029/shared/clover-ui/releases/1.1.2/'
+          checks={'install_header.py':'f8ea1c956fd8296387af1fb95de0798269f114410d26bb24eeef8f397722d68a','clover-shell-header.js':'3d45770b85171429cbdc76f9533eb087f5cd73a87287768be9cca5e542cb6e87','clover-shell-header.css':'b73a45c45cb4bab633668b5bd6be28876fe56fdeb48f4d475164bf9167a05a04','shell-browser-chrome.js':'6a0c11bfa94c04518975f68a069aae6433f91276116707ba50a0d859a34465d1','shell-browser-chrome.css':'27ea3edc822d58956f551579aabd1839290b46fc9453d763ffa0f5535296dcca'}
           for filename,expected in checks.items():
             with urllib.request.urlopen(base+filename,timeout=30) as response:data=response.read()
             assert hashlib.sha256(data).hexdigest()==expected,filename
