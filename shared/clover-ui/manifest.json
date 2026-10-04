@@ -1,12 +1,25 @@
 {
   "name": "clover-shell-header",
-  "version": "1.1.1",
-  "sha256": "db4b8232c0ce1cfc993b4a77017428e110817292e91541b7ffee48ce533008fe",
-  "css_sha256": "e012c44acd41e5dbea2e9764d54ee88fa0088e73eed0150d52f95eb6b7053b98",
+  "version": "1.1.2",
+  "sha256": "3d45770b85171429cbdc76f9533eb087f5cd73a87287768be9cca5e542cb6e87",
+  "css_sha256": "b73a45c45cb4bab633668b5bd6be28876fe56fdeb48f4d475164bf9167a05a04",
+  "brand_sha256": "5d7096e05bad83996c9c5ea2a56afc4d039b984b67cbb47ad3944dd458e2fc65",
   "required_files": [
     "clover-shell-header.js",
-    "clover-shell-header.css"
+    "clover-shell-header.css",
+    "clover-brand-mark-v1.png"
   ],
   "canonical_file": "shared/clover-ui/clover-shell-header.js",
-  "rule": "Consume unchanged; preserve the five clover-* event handlers."
+  "rule": "Consume unchanged; preserve five clover-* event handlers.",
+  "source_brand": {
+    "url": "https://raw.githubusercontent.com/kevinmdoca-hub/clover-inspeccion/16a12c10d3a9fe46feaacc59ebd6023e9635a59c/brand-mark.png",
+    "sha256": "8ef7b679b08699f39cf9b00329a097ec8aea0685eece5ff1f89d233e20c646df",
+    "crop": [
+      85,
+      86,
+      412,
+      412
+    ],
+    "pixel_identity_verified": true
+  }
 }

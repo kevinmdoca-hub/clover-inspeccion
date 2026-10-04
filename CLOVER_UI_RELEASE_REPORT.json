@@ -1,8 +1,8 @@
 {
-  "header_version": "1.1.1",
+  "header_version": "1.1.2",
   "component": "shared/clover-ui/clover-shell-header.js",
-  "js_sha256": "db4b8232c0ce1cfc993b4a77017428e110817292e91541b7ffee48ce533008fe",
-  "css_sha256": "e012c44acd41e5dbea2e9764d54ee88fa0088e73eed0150d52f95eb6b7053b98",
+  "js_sha256": "3d45770b85171429cbdc76f9533eb087f5cd73a87287768be9cca5e542cb6e87",
+  "css_sha256": "b73a45c45cb4bab633668b5bd6be28876fe56fdeb48f4d475164bf9167a05a04",
   "existing_event_handlers_detected": {
     "menu": true,
     "home": true,
@@ -23,5 +23,12 @@
     },
     "identity_preserved": true
   },
-  "no_business_logic_or_user_data_changes": true
+  "no_business_logic_or_user_data_changes": true,
+  "brand_sha256": "5d7096e05bad83996c9c5ea2a56afc4d039b984b67cbb47ad3944dd458e2fc65",
+  "sign_in_brand_source_sha256": "8ef7b679b08699f39cf9b00329a097ec8aea0685eece5ff1f89d233e20c646df",
+  "approved_app_icons_unchanged": true,
+  "manifest_identity_unchanged": true,
+  "header_business_handlers_unchanged": true,
+  "mi_browser_chrome_adapter": false,
+  "physical_header_acceptance": "pending"
 }
