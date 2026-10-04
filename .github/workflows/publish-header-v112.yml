@@ -1,5 +1,6 @@
 name: Publish exact Clover header 1.1.2
 on:
+  workflow_call:
   push:
     branches: [main, phase-ab-foundation-needs-v0.3.0]
     paths: ['.github/workflows/publish-header-v112.yml']
