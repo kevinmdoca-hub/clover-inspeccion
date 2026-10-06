@@ -58,6 +58,18 @@ function settingsSaveRow(){
   return `<div class="setting-row"><span class="save-row"><span class="dot ${dotClass}"></span><span><b>${escapeHtml(lastSaveState.title||UI.saved)}</b><small>${escapeHtml(lastSaveState.sub||'')}</small></span></span></div>`;
 }
 function openInspectionSettings(){
+ closeSheet();window.CloverSettings.open({id:'inspections',name:['Inspections','Inspecciones'],colors:{"bg": "var(--advisor-bg)", "surface": "var(--advisor-card)", "raised": "var(--advisor-card2)", "input": "var(--advisor-input)", "text": "var(--advisor-text)", "muted": "var(--advisor-muted)", "line": "var(--advisor-line)", "gold": "var(--advisor-gold)"},
+ systemAppearance:true,
+ read:()=>({version:VERSION,language:LANG,appearance:localStorage.getItem(THEME_KEY)||'light',resolvedAppearance:document.body.dataset.theme,user:null,local:true,storageStatus:t('Solo en este dispositivo. No hay sincronización con el servidor.','Local to this device. Server sync is not connected.'),pending:lastSaveState.kind==='saving'?1:lastSaveState.kind==='bad'?null:0}),
+ setLanguage:async value=>{if(!await manualSave())throw Error(t('Guarda el trabajo antes de cambiar el idioma.','Save work before changing language.'));localStorage.setItem(LANG_KEY,value);location.reload()},
+ setAppearance:value=>{localStorage.setItem(THEME_KEY,value);applyTheme(value)},
+ backupLabel:['Export inspection backup','Exportar respaldo de inspecciones'],backupHelp:['Inspection answers only; photos and videos excluded','Solo respuestas; no incluye fotos ni videos'],
+ unusedCaches:()=>CloverSettings.unusedCaches('clover-inspection-dev-','clover-inspection-dev-v095--ui111-8f5d1d28-header112-settings100'+new URL('./',location.href).pathname.replace(/[^a-z0-9]/gi,'_'),new URL('./',location.href).pathname.replace(/[^a-z0-9]/gi,'_')),
+ actions:{save:async()=>{if(!await manualSave())throw Error(t('No se pudo guardar. Mantén esta página abierta.','Save failed. Keep this page open.'))},backup:()=>backup(),restore:()=>$('#importFile').click()}
+ });
+}
+
+function legacyInspectionSettings(){
   let theme='light';try{theme=localStorage.getItem(THEME_KEY)||'light'}catch(e){}
   const updateVisible=!$('#updateBanner')?.classList.contains('hidden');
   openSheet(`<span class="kicker">Clover</span><h2>${t('Ajustes','Settings')}</h2><p class="muted small">${t('Preferencias, guardado local y aplicación.','Preferences, local storage and app information.')}</p>
@@ -1216,3 +1228,4 @@ if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
     if(reg.waiting)offer(reg.waiting);reg.addEventListener('updatefound',()=>{const w=reg.installing;if(w)w.addEventListener('statechange',()=>{if(w.state==='installed')offer(w)})});
   }).catch(console.error)
 }
+

@@ -1,0 +1,39 @@
+name: Verify approved Settings 1.0.0
+on:
+  push:
+    branches: [release/settings-v1-20261006]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Existing checks and static builds
+        shell: bash
+        run: |
+          case "$GITHUB_REPOSITORY" in
+            */clover-inspeccion) node scripts/verify-header-component.cjs ;;
+            */clover-location-visual-review) node --test tests/*.test.cjs ;;
+            */clover-commercial-workspace) node --check app.js ;;
+            */clover-service-pilot) npm test && npm run build ;;
+            */clover-cost-pricing-pilot) node --test tests/*.test.mjs ;;
+            */clover-market-intelligence) npm test && npm run build ;;
+            */clover-routing-field-ops-pilot) npm ci --ignore-scripts && npm test && npm run build ;;
+          esac
+      - name: Install isolated browser checker
+        run: |
+          npm install --prefix "$RUNNER_TEMP/clover-settings-qa" --no-package-lock --ignore-scripts playwright@1.62.1
+          "$RUNNER_TEMP/clover-settings-qa/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Verify app Settings, palettes, storage and exports
+        run: |
+          mkdir -p settings-qa
+          NODE_PATH="$RUNNER_TEMP/clover-settings-qa/node_modules" node tools/verify-settings.cjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: settings-${{ github.event.repository.name }}-${{ github.sha }}
+          path: settings-qa/
+          if-no-files-found: ignore
