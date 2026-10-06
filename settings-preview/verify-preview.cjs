@@ -163,7 +163,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
   assert.deepEqual(requests,[],'all network requests');
   checks.push('Inline light/dark text contrasts >=4.5 in both host themes, including text-fill inheritance');
   checks.push('Inline sample export is readable at 320px and stays hidden from the team persona');
-  fs.writeFileSync(path.join(qa,'verification.json'),JSON.stringify({preview:'0.1.1',engine:'Chromium',checks,status:'passed',limitations:['Sample visibility is not backend authorization','Local file and simulated host preview; not an iPhone installed-PWA test','No live account, reports or inspection workflows changed']},null,2)+'\n');
+  fs.writeFileSync(path.join(qa,'verification.json'),JSON.stringify({preview:'0.1.2',engine:'Chromium',checks,status:'passed',limitations:['Sample visibility is not backend authorization','Local file and simulated host preview; not an iPhone installed-PWA test','No live account, reports or inspection workflows changed']},null,2)+'\n');
   console.log(JSON.stringify({status:'passed',checks},null,2));
   await browser.close();
 })().catch(error=>{console.error(error);process.exit(1)});
