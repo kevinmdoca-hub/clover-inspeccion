@@ -1,0 +1,34 @@
+name: Verify isolated Settings preview
+on:
+  push:
+    branches: [design/settings-preview-v0.1]
+    paths:
+      - 'settings-preview/settings-preview.html'
+      - 'settings-preview/verify-preview.cjs'
+      - '.github/workflows/settings-preview-qa.yml'
+permissions:
+  contents: read
+concurrency:
+  group: inspections-settings-preview-qa
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install isolated browser test dependency
+        run: npm install --prefix "$RUNNER_TEMP/settings-preview-test" --ignore-scripts --no-audit --no-fund playwright@1.62.1
+      - name: Install Chromium
+        run: node "$RUNNER_TEMP/settings-preview-test/node_modules/playwright/cli.js" install --with-deps --only-shell chromium
+      - name: Verify disconnected preview and capture mobile views
+        env:
+          PLAYWRIGHT_PACKAGE: ${{ runner.temp }}/settings-preview-test/node_modules/playwright
+        run: node settings-preview/verify-preview.cjs
+      - name: Save preview QA evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: settings-preview-qa
+          path: settings-preview/qa/
+          if-no-files-found: warn
