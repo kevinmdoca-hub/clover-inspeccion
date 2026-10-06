@@ -77,6 +77,23 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
   const team = await page.locator('.stats-grid .stat strong').first().innerText();
   assert.notEqual(all,team);
   checks.push('Usage starts with all users and filters illustrative values');
+  await page.selectOption('#period','30');
+  await page.locator('[data-action="usage-export"]').click();
+  await page.locator('[data-action="preview-report"]').click();
+  const report=JSON.parse(await page.locator('#reportJson').inputValue());
+  assert.equal(report.data_mode,'sample');
+  assert.equal(report.app.id,'inspections');
+  assert.equal(report.scope.period_days,30);
+  assert.equal(report.scope.user_filter,'team');
+  assert.equal(report.scope.includes_all_users,false);
+  assert.equal(report.summary[0].value,15);
+  assert.equal(report.coverage.status,'not_connected');
+  assert.equal(report.completion.rate,null);
+  assert.equal(report.app.app_version,null);
+  assert.deepEqual(report.events,[]);
+  await page.locator('[data-action="back"]').click();
+  assert.equal(await page.locator('#pageTitle').innerText(),'Usage & usability');
+  checks.push('Sample export honors app, period and user filters; unknown coverage and rates remain null');
   for (const width of [320,390,768]) {
     await page.setViewportSize({width,height:844});
     for (const lang of ['en','es']) {
@@ -104,7 +121,49 @@ const { chromium } = require(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
   assert.deepEqual(requests,[],'network requests');
   assert.deepEqual(await page.evaluate(()=>window.__sensitiveAccess),[],'production storage reads/writes');
   checks.push('No browser errors, HTTP requests or sensitive storage access');
-  fs.writeFileSync(path.join(qa,'verification.json'),JSON.stringify({preview:'0.1.0',engine:'Chromium',checks,status:'passed',limitations:['Sample visibility is not backend authorization','Local file preview; not a deployed PWA route','No live account, reports or inspection workflows changed']},null,2)+'\n');
+  const inline=fs.readFileSync(path.join(root,'settings-preview-inline.html'),'utf8');
+  const inlinePage=await context.newPage();
+  inlinePage.on('pageerror',e=>failures.push(e.message));
+  inlinePage.on('request',r=>{if(/^https?:/.test(r.url()))requests.push(r.url());});
+  for(const hostTheme of ['dark','light']){
+    const hostColor=hostTheme==='dark'?'#eeeeee':'#222222';
+    await inlinePage.setContent(`<!doctype html><html style="color-scheme:${hostTheme}"><head><style>body{margin:0;color:${hostColor}}h1,h2,h3,label,select{color:${hostColor};-webkit-text-fill-color:${hostColor}}</style></head><body>${inline}</body></html>`);
+    await inlinePage.locator('[data-action="preferences"]').click();
+    for(const theme of ['light','dark']){
+      await inlinePage.selectOption('#appearance',theme);
+      const low=await inlinePage.evaluate(()=>{
+        const luminance=c=>{const rgb=c.match(/[\d.]+/g).slice(0,3).map(Number).map(v=>{v/=255;return v<=.04045?v/12.92:((v+.055)/1.055)**2.4});return .2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2]};
+        return [...document.querySelectorAll('#pageTitle,.form-field>span,.form-field>small,.form-field>select')].map(el=>{
+          const style=getComputedStyle(el);let bg=style.backgroundColor,p=el;
+          while(bg==='rgba(0, 0, 0, 0)'&&p.parentElement){p=p.parentElement;bg=getComputedStyle(p).backgroundColor}
+          const text=luminance(style.webkitTextFillColor||style.color),back=luminance(bg);
+          return {label:el.textContent.slice(0,60),contrast:(Math.max(text,back)+.05)/(Math.min(text,back)+.05)};
+        }).filter(x=>x.contrast<4.5);
+      });
+      assert.deepEqual(low,[],'Inline contrast: host '+hostTheme+', app '+theme);
+    }
+  }
+  await inlinePage.selectOption('#appearance','light');
+  await inlinePage.screenshot({path:path.join(qa,'inline-preferences-light.png'),fullPage:true});
+  await inlinePage.locator('[data-action="back"]').click();
+  await inlinePage.locator('[data-action="usage"]').click();
+  await inlinePage.locator('[data-action="usage-export"]').click();
+  await inlinePage.locator('[data-action="preview-report"]').click();
+  const inlineReport=JSON.parse(await inlinePage.locator('#reportJson').inputValue());
+  assert.equal(inlineReport.scope.includes_all_users,true);
+  assert.equal(inlineReport.data_mode,'sample');
+  await inlinePage.setViewportSize({width:320,height:844});
+  assert.equal(await inlinePage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'Inline export fits 320px');
+  await inlinePage.setViewportSize({width:390,height:844});
+  await inlinePage.screenshot({path:path.join(qa,'inline-usage-export-light.png'),fullPage:true});
+  await inlinePage.selectOption('#personaSelect','team');
+  assert.equal(await inlinePage.locator('[data-action="usage"]').count(),0);
+  assert.equal(await inlinePage.locator('[data-action="usage-export"]').count(),0);
+  assert.deepEqual(failures,[],'all browser errors');
+  assert.deepEqual(requests,[],'all network requests');
+  checks.push('Inline light/dark text contrasts >=4.5 in both host themes, including text-fill inheritance');
+  checks.push('Inline sample export is readable at 320px and stays hidden from the team persona');
+  fs.writeFileSync(path.join(qa,'verification.json'),JSON.stringify({preview:'0.1.1',engine:'Chromium',checks,status:'passed',limitations:['Sample visibility is not backend authorization','Local file and simulated host preview; not an iPhone installed-PWA test','No live account, reports or inspection workflows changed']},null,2)+'\n');
   console.log(JSON.stringify({status:'passed',checks},null,2));
   await browser.close();
 })().catch(error=>{console.error(error);process.exit(1)});
