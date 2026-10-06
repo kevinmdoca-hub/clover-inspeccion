@@ -1,0 +1,266 @@
+<div id="clover-settings-preview-v2" lang="en" data-theme="system">
+<style>
+#clover-settings-preview-v2{font-family:Arial,Helvetica,sans-serif;color-scheme:inherit;--clover-bg:light-dark(#f0f2f1,#090d0f);--clover-surface:light-dark(#fff,#151a1d);--clover-raised:light-dark(#f4f6f5,#1b2226);--clover-line:light-dark(#d9dfdc,#303a3f);--clover-text:light-dark(#202924,#f2eee2);--clover-muted:light-dark(#5c6962,#b8c1c5);--clover-gold:light-dark(#846513,#e1bd4b);--clover-gold-bg:light-dark(#faf1d5,#302b1c);--clover-green:light-dark(#367354,#91c6aa);--clover-danger:light-dark(#a83838,#efaaaa);--clover-shadow:none;--clover-primary-text:light-dark(#fff,#15160f)}
+#clover-settings-preview-v2 *{box-sizing:border-box}
+#clover-settings-preview-v2{margin:0;background:var(--clover-bg);color:var(--clover-text);font-size:16px}
+#clover-settings-preview-v2 button,#clover-settings-preview-v2 select,#clover-settings-preview-v2 input{font:inherit}
+#clover-settings-preview-v2 button,#clover-settings-preview-v2 select{color:inherit}
+#clover-settings-preview-v2 button:disabled{cursor:default;opacity:.48}
+#clover-settings-preview-v2 button{touch-action:manipulation}
+#clover-settings-preview-v2 h1,#clover-settings-preview-v2 h2,#clover-settings-preview-v2 h3,#clover-settings-preview-v2 p{margin:0}
+#clover-settings-preview-v2 small{font-size:13px}
+#clover-settings-preview-v2 select{width:100%;border:1px solid var(--clover-line);border-radius:12px;background:var(--clover-raised);padding:12px;min-height:46px}
+#clover-settings-preview-v2 input{accent-color:var(--clover-gold)}
+#clover-settings-preview-v2 .muted{color:var(--clover-muted)}
+#clover-settings-preview-v2 .preview-bar{max-width:1000px;margin:auto;padding:20px 24px;display:flex;gap:28px;align-items:center}
+#clover-settings-preview-v2 .preview-title{flex:1;min-width:180px}
+#clover-settings-preview-v2 .preview-title strong{font-size:17px}
+#clover-settings-preview-v2 .preview-title p{color:var(--clover-muted);font-size:12px;line-height:1.5;margin-top:5px}
+#clover-settings-preview-v2 .preview-controls{display:flex;gap:12px}
+#clover-settings-preview-v2 .preview-controls label{font-size:11px;color:var(--clover-muted);min-width:148px}
+#clover-settings-preview-v2 .preview-controls select{margin-top:5px;font-size:13px;padding:10px;min-height:40px}
+#clover-settings-preview-v2 .stage{padding:10px 20px 28px;display:flex;justify-content:center}
+#clover-settings-preview-v2 .app{width:440px;height:calc(100dvh - 125px);min-height:460px;max-height:890px;border:1px solid var(--clover-line);border-radius:24px;background:var(--clover-bg);box-shadow:var(--clover-shadow);display:flex;flex-direction:column;overflow:hidden}
+#clover-settings-preview-v2 .app-head{display:flex;align-items:center;gap:12px;padding:17px 20px;border-bottom:1px solid var(--clover-line);flex-shrink:0;background:var(--clover-surface)}
+#clover-settings-preview-v2 .app-head .titles{flex:1;min-width:0}
+#clover-settings-preview-v2 .app-head h1{font-size:20px;letter-spacing:-.3px;overflow-wrap:anywhere}
+#clover-settings-preview-v2 .app-head .eyebrow{font-size:11px;font-weight:600;color:var(--clover-gold);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+#clover-settings-preview-v2 .icon-button{width:42px;height:42px;border:0;background:transparent;display:grid;place-items:center;border-radius:50%;padding:0}
+#clover-settings-preview-v2 .icon-button:hover{background:var(--clover-raised)}
+#clover-settings-preview-v2 .content{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:24px 20px 32px;scrollbar-width:thin}
+#clover-settings-preview-v2 .account{display:flex;flex-direction:column;align-items:center;width:100%;background:transparent;border:0;color:var(--clover-text);padding:0 0 23px}
+#clover-settings-preview-v2 .avatar{width:68px;height:68px;border-radius:50%;display:grid;place-items:center;font-size:24px;font-weight:600;background:var(--clover-gold-bg);color:var(--clover-gold);border:1px solid color-mix(in srgb,var(--clover-gold) 30%,transparent);margin-bottom:12px}
+#clover-settings-preview-v2 .account strong{font-size:20px;line-height:1.3}
+#clover-settings-preview-v2 .account .role{font-size:13px;color:var(--clover-muted);margin-top:5px}
+#clover-settings-preview-v2 .account .account-link{font-size:12px;color:var(--clover-gold);margin-top:10px;display:flex;align-items:center;gap:4px}
+#clover-settings-preview-v2 .section{margin-top:20px}
+#clover-settings-preview-v2 .section:first-child{margin-top:0}
+#clover-settings-preview-v2 .section-title{text-transform:uppercase;letter-spacing:1.2px;font-size:10px;color:var(--clover-muted);font-weight:700;margin:0 0 9px 3px}
+#clover-settings-preview-v2 .group{background:var(--clover-surface);border:1px solid var(--clover-line);border-radius:16px;overflow:hidden}
+#clover-settings-preview-v2 .row{display:flex;align-items:center;gap:13px;text-align:left;padding:16px;width:100%;background:transparent;border:0;color:var(--clover-text);min-height:67px}
+#clover-settings-preview-v2 .row+.row,#clover-settings-preview-v2 .line-item+.line-item{border-top:1px solid var(--clover-line)}
+#clover-settings-preview-v2 .row:hover{background:var(--clover-raised)}
+#clover-settings-preview-v2 .row>.row-icon{color:var(--clover-gold);display:flex}
+#clover-settings-preview-v2 .row-copy{flex:1;min-width:0}
+#clover-settings-preview-v2 .row-copy strong{font-size:15px;font-weight:500;line-height:1.35;display:block}
+#clover-settings-preview-v2 .row-copy small{display:block;font-size:12px;color:var(--clover-muted);line-height:1.4;margin-top:4px}
+#clover-settings-preview-v2 .row>.chevron{width:15px;height:15px;color:var(--clover-muted)}
+#clover-settings-preview-v2 .tag{padding:4px 7px;border-radius:6px;background:var(--clover-gold-bg);color:var(--clover-gold);font-size:10px;white-space:nowrap}
+#clover-settings-preview-v2 .footnote{font-size:12px;color:var(--clover-muted);line-height:1.6;margin:16px 3px 0}
+#clover-settings-preview-v2 .notice{border:1px solid var(--clover-line);border-radius:12px;padding:13px 14px;font-size:13px;line-height:1.55;color:var(--clover-muted);margin-bottom:18px;background:var(--clover-surface)}
+#clover-settings-preview-v2 .notice.gold{background:var(--clover-gold-bg);border-color:transparent;color:var(--clover-text)}
+#clover-settings-preview-v2 .form-field{display:block;margin-bottom:20px}
+#clover-settings-preview-v2 .form-field>span{display:block;margin-bottom:9px;font-size:14px}
+#clover-settings-preview-v2 .form-field>small{display:block;margin-top:7px;font-size:12px;color:var(--clover-muted);line-height:1.5}
+#clover-settings-preview-v2 .line-item{padding:15px 16px;display:flex;justify-content:space-between;gap:18px;font-size:13px;line-height:1.4}
+#clover-settings-preview-v2 .line-item span{color:var(--clover-muted)}
+#clover-settings-preview-v2 .line-item strong{font-weight:500;text-align:right}
+#clover-settings-preview-v2 .primary,#clover-settings-preview-v2 .secondary,#clover-settings-preview-v2 .danger{border:1px solid var(--clover-line);border-radius:12px;padding:14px 16px;min-height:48px;font-weight:600;width:100%;margin-top:12px;background:var(--clover-surface);color:var(--clover-text)}
+#clover-settings-preview-v2 .primary{background:var(--clover-gold);color:#15160f;border-color:var(--clover-gold)}
+#clover-settings-preview-v2 .danger{color:var(--clover-danger)}
+#clover-settings-preview-v2 .stat{padding:17px;border:1px solid var(--clover-line);border-radius:16px;background:var(--clover-surface)}
+#clover-settings-preview-v2 .stat h2{font-size:29px;letter-spacing:-1px;margin:8px 0}
+#clover-settings-preview-v2 .stat>p{font-size:12px;color:var(--clover-muted)}
+#clover-settings-preview-v2 .storage-track{height:9px;border-radius:5px;background:var(--clover-line);overflow:hidden;margin:15px 0}
+#clover-settings-preview-v2 .storage-fill{height:100%;background:var(--clover-gold);width:26.5%;border-radius:5px}
+#clover-settings-preview-v2 .legend{font-size:12px;color:var(--clover-muted);display:flex;justify-content:space-between;gap:12px}
+#clover-settings-preview-v2 .usage-filters{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+#clover-settings-preview-v2 .usage-filters .form-field{margin:0}
+#clover-settings-preview-v2 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#clover-settings-preview-v2 .stats-grid .stat{padding:15px}
+#clover-settings-preview-v2 .stats-grid .stat strong{font-size:26px;display:block;margin:8px 0}
+#clover-settings-preview-v2 .stats-grid .stat small{font-size:11px;color:var(--clover-muted);line-height:1.4;display:block}
+#clover-settings-preview-v2 .chart-row{padding:15px 16px}
+#clover-settings-preview-v2 .chart-row+.chart-row{border-top:1px solid var(--clover-line)}
+#clover-settings-preview-v2 .chart-label{display:flex;justify-content:space-between;gap:12px;font-size:12px;margin-bottom:8px}
+#clover-settings-preview-v2 .chart-track{height:5px;border-radius:3px;background:var(--clover-line)}
+#clover-settings-preview-v2 .chart-track i{display:block;height:100%;border-radius:3px;background:var(--clover-gold)}
+#clover-settings-preview-v2 .switch-row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:14px 16px;min-height:64px}
+#clover-settings-preview-v2 .switch-row+.switch-row{border-top:1px solid var(--clover-line)}
+#clover-settings-preview-v2 .switch-row strong{font-size:14px;font-weight:500}
+#clover-settings-preview-v2 .switch-row small{display:block;color:var(--clover-muted);font-size:11px;margin-top:4px}
+#clover-settings-preview-v2 .toggle{border:1px solid var(--clover-line);border-radius:10px;display:flex;padding:3px;gap:2px;background:var(--clover-raised)}
+#clover-settings-preview-v2 .toggle button{border:0;background:transparent;color:var(--clover-muted);font-size:12px;padding:8px 10px;border-radius:7px;min-width:41px}
+#clover-settings-preview-v2 .toggle button[aria-pressed=true]{background:var(--clover-gold-bg);color:var(--clover-gold);font-weight:700}
+#clover-settings-preview-v2 .welcome{padding:40px 8px;text-align:center}
+#clover-settings-preview-v2 .welcome h2{font-size:24px;margin:10px 0}
+#clover-settings-preview-v2 .welcome p{font-size:14px;line-height:1.65;color:var(--clover-muted);margin-bottom:20px}
+#clover-settings-preview-v2 .flow{padding-left:21px;font-size:14px;line-height:1.7}
+#clover-settings-preview-v2 .flow li{padding:0 0 14px 8px}
+#clover-settings-preview-v2 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);max-width:min(460px,calc(100vw - 32px));background:var(--clover-text);color:var(--clover-bg);padding:14px 20px;border-radius:12px;font-size:13px;line-height:1.45;box-shadow:var(--clover-shadow);z-index:20}
+#clover-settings-preview-v2 .toast:empty{display:none}
+#clover-settings-preview-v2 dialog{background:var(--clover-surface);color:var(--clover-text);border:1px solid var(--clover-line);border-radius:20px;padding:24px;max-width:min(400px,calc(100vw - 32px))}
+#clover-settings-preview-v2 dialog::backdrop{background:#0008}
+#clover-settings-preview-v2 dialog h2{font-size:20px;margin-bottom:12px}
+#clover-settings-preview-v2 dialog p{font-size:14px;color:var(--clover-muted);line-height:1.6}
+#clover-settings-preview-v2 .dialog-actions{display:flex;gap:10px}
+#clover-settings-preview-v2 .dialog-actions button{flex:1}
+#clover-settings-preview-v2 .sample-strip{padding:9px 12px;text-align:center;font-size:10px;color:var(--clover-muted);border-top:1px solid var(--clover-line);background:var(--clover-surface);flex-shrink:0;letter-spacing:.2px}
+@media(max-width:600px){#clover-settings-preview-v2 .preview-bar{padding:12px 16px;display:block}
+#clover-settings-preview-v2 .preview-title{display:flex;align-items:baseline;gap:10px}
+#clover-settings-preview-v2 .preview-title strong{font-size:13px}
+#clover-settings-preview-v2 .preview-title p{margin:0;font-size:10px}
+#clover-settings-preview-v2 .preview-controls{margin-top:9px;gap:10px}
+#clover-settings-preview-v2 .preview-controls label{flex:1;min-width:0}
+#clover-settings-preview-v2 .preview-controls select{font-size:12px;min-height:38px;padding:8px}
+#clover-settings-preview-v2 .stage{padding:0}
+#clover-settings-preview-v2 .app{height:calc(100dvh - 122px);max-height:none;min-height:350px;width:100%;border-radius:0;border-left:0;border-right:0;box-shadow:none}
+#clover-settings-preview-v2 .content{padding:22px 20px}
+#clover-settings-preview-v2 .app-head{padding:12px 16px}
+#clover-settings-preview-v2 .account{padding-bottom:18px}
+#clover-settings-preview-v2 .preview-controls label>span{font-size:10px}
+#clover-settings-preview-v2 .sample-strip{padding-bottom:max(9px,env(safe-area-inset-bottom))}
+#clover-settings-preview-v2 .toast{bottom:30px}}
+@media(prefers-reduced-motion:no-preference){#clover-settings-preview-v2 button{transition:background .12s ease}
+#clover-settings-preview-v2 .content{scroll-behavior:smooth}}
+#clover-settings-preview-v2 { background:transparent; width:100%; margin:0; }
+#clover-settings-preview-v2[data-theme="light"] { color-scheme:light; }
+#clover-settings-preview-v2[data-theme="dark"] { color-scheme:dark; }
+#clover-settings-preview-v2 .preview-bar { max-width:480px; padding:12px 16px; display:block; }
+#clover-settings-preview-v2 .preview-title { display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; }
+#clover-settings-preview-v2 .preview-title strong { font-size:16px; }
+#clover-settings-preview-v2 .preview-title p { margin:0; font-size:12px; }
+#clover-settings-preview-v2 .preview-controls { margin-top:12px; gap:10px; }
+#clover-settings-preview-v2 .preview-controls label { flex:1; min-width:0; font-size:12px; }
+#clover-settings-preview-v2 .preview-controls label>span { font-size:12px; }
+#clover-settings-preview-v2 .preview-controls select { font-size:16px; min-height:44px; padding:10px; }
+#clover-settings-preview-v2 .stage { padding:14px; }
+#clover-settings-preview-v2 .app { width:100%; max-width:440px; height:auto; min-height:0; max-height:none; border:1px solid var(--clover-line); border-radius:22px; overflow:visible; box-shadow:none; }
+#clover-settings-preview-v2 .app-head { border-radius:22px 22px 0 0; }
+#clover-settings-preview-v2 .content { overflow:visible; padding:24px 18px; }
+#clover-settings-preview-v2 .sample-strip { border-radius:0 0 22px 22px; font-size:11px; line-height:1.5; padding:12px; }
+#clover-settings-preview-v2 .section-title, #clover-settings-preview-v2 .tag { font-size:11px; }
+#clover-settings-preview-v2 .icon-button { min-width:44px; min-height:44px; }
+#clover-settings-preview-v2 .toggle button { min-width:44px; min-height:44px; }
+#clover-settings-preview-v2 .toast { position:static; transform:none; max-width:440px; margin:10px auto 0; }
+#clover-settings-preview-v2 .toast:empty { display:none; }
+#clover-settings-preview-v2 dialog { width:calc(100% - 24px); max-width:390px; }
+#clover-settings-preview-v2 .primary { color:var(--clover-primary-text); }
+#clover-settings-preview-v2 .row-icon { min-width:22px; }
+#clover-settings-preview-v2 .row-copy, #clover-settings-preview-v2 .form-field, #clover-settings-preview-v2 .stat { min-width:0; overflow-wrap:break-word; }
+
+#clover-settings-preview-v2 .app,#clover-settings-preview-v2 .app-head,#clover-settings-preview-v2 .content,#clover-settings-preview-v2 .preview-bar {color:var(--clover-text)}
+#clover-settings-preview-v2 .app h1,#clover-settings-preview-v2 .app h2,#clover-settings-preview-v2 .app h3,#clover-settings-preview-v2 .app label,#clover-settings-preview-v2 .app label>span,#clover-settings-preview-v2 .app select,#clover-settings-preview-v2 .app option,#clover-settings-preview-v2 .app input,#clover-settings-preview-v2 .app textarea,#clover-settings-preview-v2 .app .stat strong,#clover-settings-preview-v2 .app .line-item strong {color:var(--clover-text);-webkit-text-fill-color:currentColor}
+#clover-settings-preview-v2 .app .section-title {color:var(--clover-muted)}
+#clover-settings-preview-v2 .preview-controls label {color:var(--clover-muted)}
+#clover-settings-preview-v2 .preview-controls select {color:var(--clover-text);-webkit-text-fill-color:currentColor}
+#clover-settings-preview-v2 .export-entry {display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 18px}
+#clover-settings-preview-v2 .form-field textarea {display:block;width:100%;max-width:100%;padding:12px;box-sizing:border-box;resize:vertical;border:1px solid var(--clover-line);border-radius:12px;background:var(--clover-raised);font:13px/1.55 monospace;overflow-wrap:anywhere;white-space:pre-wrap}
+#clover-settings-preview-v2[data-theme=light]{--clover-bg:#f0f2f1;--clover-surface:#fff;--clover-raised:#f4f6f5;--clover-line:#d9dfdc;--clover-text:#202924;--clover-muted:#5c6962;--clover-gold:#846513;--clover-gold-bg:#faf1d5;--clover-green:#367354;--clover-danger:#a83838;}
+#clover-settings-preview-v2[data-theme=dark]{--clover-bg:#090d0f;--clover-surface:#151a1d;--clover-raised:#1b2226;--clover-line:#303a3f;--clover-text:#f2eee2;--clover-muted:#b8c1c5;--clover-gold:#e1bd4b;--clover-gold-bg:#302b1c;--clover-green:#91c6aa;--clover-danger:#efaaaa;}
+#clover-settings-preview-v2 .preview-bar{background:var(--clover-bg);border-radius:16px;margin:0 auto 8px}
+#clover-settings-preview-v2 .form-field textarea{font-size:16px}
+</style>
+<header class="preview-bar">
+  <div class="preview-title"><strong>Clover · Settings</strong><p id="previewCaption">Design preview · sample data only</p></div>
+  <div class="preview-controls">
+    <label><span id="appLabel">Preview app</span><select id="appSelect" aria-label="Preview app"></select></label>
+    <label><span id="personLabel">Preview as</span><select id="personaSelect" aria-label="Preview as"><option value="kevin">Kevin</option><option value="team">Team member</option><option value="management">Management</option></select></label>
+  </div>
+</header>
+<div class="stage viz-dotted-background"><main class="app" aria-label="Settings preview"><div class="app-head" id="head"></div><div class="content" id="content"></div><div class="sample-strip" id="sampleStrip">Sample users and values · changes last only while this preview is open</div></main></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<dialog id="dialog" aria-labelledby="dialogTitle"><h2 id="dialogTitle"></h2><p id="dialogCopy"></p><div class="dialog-actions"><button class="secondary" id="dialogCancel">Cancel</button><button class="primary" id="dialogConfirm">Continue</button></div></dialog>
+<script>
+(()=>{
+
+'use strict';
+// Disconnected design prototype. All state is ephemeral. No identity, storage,
+// network, telemetry, service worker, real credential or production-data access.
+const APPS={
+ inspections:{name:['Inspections','Inspecciones'],role:['Technician','Técnico'],person:'Oscar',local:true,backup:['Export inspection backup','Exportar respaldo de inspecciones'],backupHelp:['Inspection answers only; photos and videos excluded','Solo respuestas; no incluye fotos ni videos'],metrics:[['Completed inspections','Inspecciones completadas',14],['Median active time','Tiempo activo mediano','18m'],['Save failures','Errores al guardar',2],['Missing evidence returns','Regresos por evidencia faltante',7]],friction:[['Evidence capture','Captura de evidencia',66],['Jump to missing','Ir a faltantes',44],['PDF generation','Generación de PDF',20]]},
+ prospects:{name:['Prospects','Prospectos'],role:['Advisor','Asesor'],person:'Alin',local:false,testing:true,backup:null,metrics:[['Completed follow-ups','Seguimientos completados',36],['Median save time','Tiempo mediano de guardado','2s'],['Sync retries','Reintentos de sincronización',3],['Abandoned forms','Formularios abandonados',5]],friction:[['Contact editing','Edición de contactos',62],['Follow-up scheduling','Programar seguimiento',36],['Search & filters','Búsqueda y filtros',22]]},
+ review:{name:['Review','Revisión'],role:['Reviewer','Revisor'],person:'Alex',local:false,backup:['Export review backup','Exportar respaldo de revisión'],backupHelp:['Candidate work and saved reviews','Trabajo de candidatos y revisiones guardadas'],metrics:[['Completed reviews','Revisiones completadas',72],['Median active time','Tiempo activo mediano','3m'],['Answer revisions','Cambios de respuesta',18],['Blocked saves','Guardados bloqueados',4]],friction:[['Source loading','Carga de fuentes',74],['Answer revisions','Cambios de respuesta',42],['Blocked completion','Finalización bloqueada',18]]},
+ rental:{name:['Rental','Rentas'],role:['Advisor','Asesor'],person:'Alex',local:false,backup:['Export local quote backup','Exportar respaldo local de cotizaciones'],backupHelp:['Local quotes and preferences','Cotizaciones locales y preferencias'],metrics:[['Completed quotes','Cotizaciones completadas',19],['Median active time','Tiempo activo mediano','8m'],['Validation blocks','Bloqueos de validación',6],['Sync retries','Reintentos de sincronización',2]],friction:[['Equipment selection','Selección de equipo',60],['Quote validation','Validación de cotización',35],['Document generation','Generación de documentos',20]]},
+ service:{name:['Service','Servicio'],role:['Technician','Técnico'],person:'Alex',local:true,backup:['Export service backup','Exportar respaldo de servicio'],backupHelp:['Local service work','Trabajo de servicio local'],metrics:[['Completed work','Trabajos completados',17],['Median active time','Tiempo activo mediano','12m'],['Save failures','Errores al guardar',1],['Abandoned forms','Formularios abandonados',3]],friction:[['Work capture','Captura de trabajo',55],['Parts entry','Captura de piezas',38],['Completion','Finalización',24]]},
+ intelligence:{name:['Market Intelligence','Inteligencia de mercado'],role:['Advisor','Asesor'],person:'Alex',local:false,backup:null,metrics:[['Completed tasks','Tareas completadas',28],['Median active time','Tiempo activo mediano','5m'],['Repeated searches','Búsquedas repetidas',8],['Sync retries','Reintentos de sincronización',2]],friction:[['Search & filters','Búsqueda y filtros',64],['Qualification','Calificación',40],['Question handoff','Transferencia de preguntas',19]]},
+ costs:{name:['Cost & Pricing','Costos y precios'],role:['Finance','Finanzas'],person:'Janet',local:false,backup:['Export private backup','Exportar respaldo privado'],backupHelp:['Includes original documents and private cost data','Incluye documentos originales y costos privados'],metrics:[['Reviewed documents','Documentos revisados',32],['Median active time','Tiempo activo mediano','6m'],['Manual corrections','Correcciones manuales',11],['Validation blocks','Bloqueos de validación',3]],friction:[['Document correction','Corrección de documentos',68],['Cost reconciliation','Conciliación de costos',46],['Price publication','Publicación de precios',17]]},
+ routes:{name:['Field Routes','Rutas de campo'],role:['Advisor','Asesor'],person:'Alex',local:false,backup:null,metrics:[['Completed routes','Rutas completadas',12],['Median planning time','Tiempo mediano de planeación','4m'],['Planning retries','Reintentos de planeación',3],['Navigation handoffs','Aperturas de navegación',48]],friction:[['Stop selection','Selección de paradas',58],['Route planning','Planeación de rutas',37],['Visit completion','Finalización de visitas',23]]}
+};
+const state={app:'inspections',persona:'kevin',lang:'en',theme:'system',view:'settings',zone:'auto',manualZone:'America/Mexico_City',map:'system',browser:'system',period:'7',user:'all',cache:8,caches:Object.fromEntries(Object.keys(APPS).map(k=>[k,8])),testing:false,pending:2,eligibility:{Alin:true,'Juan Pablo':false,Jacqui:false,Adri:false,Karla:false,Oscar:false,Robert:false}};
+const root=document.getElementById('clover-settings-preview-v2');
+const $=id=>root.querySelector('#'+id),t=(en,es)=>state.lang==='es'?es:en,arr=a=>a[state.lang==='es'?1:0],esc=x=>String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iconNames={chevron:'chevron-right',back:'chevron-left',close:'x',sliders:'sliders-horizontal',storage:'database',info:'info',chart:'chart-no-axes-column',key:'key-round',lock:'lock-keyhole',exit:'log-out',check:'check',flask:'flask-conical',download:'download',sync:'refresh-cw',users:'users'};
+const icon=(name,cls='')=>`<i class="${cls}" data-lucide="${iconNames[name]||'info'}" aria-hidden="true"></i>`;
+const app=()=>APPS[state.app],isKevin=()=>state.persona==='kevin',isManager=()=>state.persona!=='team';
+const person=()=>isKevin()?'Kevin':state.persona==='management'?'Sandra A.':app().person;
+const role=()=>isKevin()?t('Administrator','Administrador'):state.persona==='management'?t('Management','Administración'):arr(app().role);
+const line=(label,value)=>`<div class="line-item"><span>${label}</span><strong>${value}</strong></div>`;
+const section=(label,body)=>`<section class="section">${label?`<h2 class="section-title">${label}</h2>`:''}<div class="group">${body}</div></section>`;
+const row=(action,label,sub,ico='info',tag='')=>`<button type="button" class="row" data-action="${action}"><span class="row-icon">${icon(ico)}</span><span class="row-copy"><strong>${label}</strong>${sub?`<small>${sub}</small>`:''}</span>${tag?`<span class="tag">${tag}</span>`:''}${icon('chevron','chevron')}</button>`;
+const opts=(values,current)=>values.map(([value,label])=>`<option value="${esc(value)}" ${value===current?'selected':''}>${esc(label)}</option>`).join('');
+const select=(id,label,values,current,help='')=>`<label class="form-field"><span>${label}</span><select id="${id}">${opts(values,current)}</select>${help?`<small>${help}</small>`:''}</label>`;
+function toast(text){$('toast').textContent=text;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').textContent='',4000)}
+function go(view){state.view=view;render();$('content').scrollTop=0}
+function titles(){return {settings:t('Settings','Ajustes'),account:t('Account','Cuenta'),preferences:t('Preferences','Preferencias'),storage:t('Data & storage','Datos y almacenamiento'),usage:t('Usage & usability','Uso y usabilidad'),'usage-export':t('Export usage report','Exportar informe de uso'),about:t('App information','Información de la app'),testing:t('Test mode','Modo de prueba'),management:t('Prospect allocation','Asignación de prospectos'),password:t('Clover password','Contraseña de Clover'),device:t('Device code','Código del dispositivo'),lock:t('App locked','App bloqueada'),signout:t('Signed out','Sesión cerrada'),home:arr(app().name)}[state.view]||t('Settings','Ajustes')}
+function render(){
+ clearTimeout(toast.timer);$('toast').textContent='';
+ if((['usage','usage-export','testing'].includes(state.view)&&!isKevin())||(state.view==='management'&&(!isManager()||state.app!=='prospects')))state.view='settings';
+ root.dataset.theme=state.theme;root.lang=state.lang;
+ $('previewCaption').textContent=t('Design preview · sample data only','Vista de diseño · solo datos de ejemplo');$('appLabel').textContent=t('Preview app','App de ejemplo');$('personLabel').textContent=t('Preview as','Ver como');$('sampleStrip').textContent=t('Sample users and values · changes last only while this preview is open','Usuarios y datos de ejemplo · cambios solo durante esta vista');
+ $('appSelect').innerHTML=opts(Object.entries(APPS).map(([k,v])=>[k,arr(v.name)]),state.app);$('personaSelect').innerHTML=opts([['kevin','Kevin'],['team',t('Team member','Miembro del equipo')],['management',t('Management','Administración')]],state.persona);
+ $('head').innerHTML=`${!['settings','home'].includes(state.view)?`<button class="icon-button" data-action="back" aria-label="${t('Back','Volver')}">${icon('back')}</button>`:''}<div class="titles"><p class="eyebrow">${arr(app().name)}</p><h1 id="pageTitle">${titles()}</h1></div>${state.view!=='home'?`<button class="icon-button" data-action="home" aria-label="${t('Close settings','Cerrar ajustes')}">${icon('close')}</button>`:''}`;
+ const pages={settings:settingsPage,account:accountPage,preferences:preferencesPage,storage:storagePage,usage:usagePage,'usage-export':exportPage,about:aboutPage,testing:testingPage,management:managementPage,password:passwordPage,device:devicePage,lock:lockedPage,signout:signedOutPage,home:homePage};$('content').innerHTML=(pages[state.view]||settingsPage)();
+ root.querySelectorAll('button,select').forEach(el=>el.classList.add('cursor-interaction'));
+ if(typeof lucide!=='undefined')lucide.createIcons({attrs:{width:18,height:18}});
+}
+function settingsPage(){return `<button class="account" data-action="account" aria-label="${t('Open account for','Abrir cuenta de')} ${person()}"><span class="avatar">${esc(person().slice(0,2).toUpperCase())}</span><strong>${person()}</strong><span class="role">${role()}</span><span class="account-link">${t('Manage account','Administrar cuenta')}${icon('chevron')}</span></button>`+section('',row('preferences',t('Preferences','Preferencias'),t('Language, appearance and defaults','Idioma, apariencia y opciones predeterminadas'),'sliders')+row('storage',t('Data & storage','Datos y almacenamiento'),app().local?t('Saved on this device','Guardado en este dispositivo'):t('Sync, pending work and storage','Sincronización, pendientes y almacenamiento'),'storage')+row('about',t('App information','Información de la app'),t('Version, updates and support details','Versión, actualizaciones y detalles de soporte'),'info'))+(isKevin()?section(t('Your tools','Tus herramientas'),row('usage',t('Usage & usability','Uso y usabilidad'),t('Across all users of this app','De todos los usuarios de esta app'),'chart',t('Kevin only','Solo Kevin'))+(app().testing?row('testing',t('Test mode','Modo de prueba'),t('Separate sample work','Trabajo de ejemplo separado'),'flask',t('Kevin only','Solo Kevin')):'')):'')+`<p class="footnote">${t('Preferences apply to your Clover experience. Management tools live in the workspace.','Las preferencias personalizan tu experiencia en Clover. Las herramientas de administración están en el espacio de trabajo.')}</p>`}
+function accountPage(){return `<div class="account"><span class="avatar">${person().slice(0,2).toUpperCase()}</span><strong>${person()}</strong><span class="role">${role()}</span></div><div class="notice">${t('Sample account. These actions show the proposed flows; they do not change a real account.','Cuenta de ejemplo. Estas acciones muestran los flujos propuestos; no modifican una cuenta real.')}</div>`+section(t('Security','Seguridad'),row('password',t('Clover password','Contraseña de Clover'),t('Change or recover your password','Cambiar o recuperar tu contraseña'),'key')+row('device',t('Device code','Código del dispositivo'),t('One code for your Clover apps on this phone','Un código para tus apps de Clover en este teléfono'),'lock'))+section(t('This session','Esta sesión'),row('lock',t('Lock app','Bloquear app'),t('Return with your device code','Volver con tu código del dispositivo'),'lock')+row('signout',t('Sign out','Cerrar sesión'),t('Sign in again to return','Iniciar sesión de nuevo para volver'),'exit'))+`<p class="footnote">${t('Lock and sign-out scope are shown as design proposals. Saved work must be preserved.','El alcance del bloqueo y cierre de sesión es una propuesta de diseño. El trabajo guardado debe conservarse.')}</p>`}
+function preferencesPage(){return select('language',t('Language','Idioma'),[['en','English'],['es','Español']],state.lang,state.app==='inspections'?t('Controls the app and inspection PDF language.','Controla el idioma de la app y del PDF de inspección.'):'')+select('appearance',t('Appearance','Apariencia'),[['system',t('System','Sistema')],['light',t('Light','Claro')],['dark',t('Dark','Oscuro')]],state.theme)+select('maps',t('Preferred maps','Mapas preferidos'),[['system',t('System default','Predeterminado del sistema')],['google','Google Maps'],['apple','Apple Maps'],['waze','Waze']],state.map,t('Used when opening an address from Clover. Availability depends on the device.','Al abrir una dirección desde Clover. La disponibilidad depende del dispositivo.'))+select('browser',t('Preferred browser','Navegador preferido'),[['system',t('System default','Predeterminado del sistema')],['safari','Safari'],['chrome','Chrome']],state.browser,t('Clover link preference; the phone controls which browsers can open links.','Preferencia para enlaces de Clover; el teléfono determina los navegadores disponibles.'))+(state.app==='routes'?select('zone',t('Time zone','Zona horaria'),[['auto',t('Automatic (device)','Automática (dispositivo)')],['manual',t('Choose manually','Elegir manualmente')]],state.zone)+(state.zone==='manual'?select('manualZone',t('Choose time zone','Elegir zona horaria'),[['America/Mexico_City','Mexico City'],['America/Chicago','Chicago'],['America/New_York','New York'],['America/Los_Angeles','Los Angeles']],state.manualZone):`<div class="notice">${t('Current device zone','Zona actual del dispositivo')}: ${esc(Intl.DateTimeFormat().resolvedOptions().timeZone)}</div>`)+`<p class="footnote">${t('Changing the display zone preserves the actual times of scheduled visits.','Cambiar la zona de visualización conserva las horas reales de las visitas programadas.')}</p>`:'')}
+function storagePage(){const cached=state.caches[state.app];const used=263+cached;return `<div class="notice">${app().local?t('Local saving only. This app currently has no server sync.','Solo guardado local. Esta app aún no tiene sincronización con servidor.'):t('Sample sync status: 2 changes waiting to upload.','Estado de ejemplo: 2 cambios pendientes de subir.')}</div><div class="stat"><p>${t('Estimated site storage · sample','Almacenamiento estimado del sitio · ejemplo')}</p><h2>${used} <span class="muted" style="font-size:16px;letter-spacing:0">MB / 1 GB</span></h2><div class="storage-track"><div class="storage-fill" style="width:${used/10.24}%"></div></div><div class="legend"><span>${t('Saved work','Trabajo guardado')}: 263 MB</span><span>${t('Cache','Caché')}: ${cached} MB</span></div></div><p class="footnote">${t('Browsers estimate storage for a site. This is not a reading of the phone’s total free space.','El navegador estima el almacenamiento del sitio. No indica el espacio libre total del teléfono.')}</p>`+section(t('Your work','Tu trabajo'),line(t('Pending local changes','Cambios locales pendientes'),String(state.pending))+line(t('Last saved','Último guardado'),t('Just now · sample','Ahora · ejemplo'))+row('save',app().local?t('Save now','Guardar ahora'):t('Sync now','Sincronizar ahora'),'',app().local?'check':'sync'))+section(t('Maintenance','Mantenimiento'),row('clear-cache',t('Clear downloaded cache','Borrar caché descargada'),t('Keeps saved work, photos and preferences','Conserva trabajo guardado, fotos y preferencias'),'storage')+(app().local||state.app==='costs'?row('protect',t('Protect storage','Proteger almacenamiento'),t('Request browser storage protection','Solicitar protección al navegador'),'lock'):''))+(app().backup?section(t('Backup & recovery','Respaldo y recuperación'),row('backup',arr(app().backup),arr(app().backupHelp),'download')+(app().local?row('restore',t('Restore backup','Restaurar respaldo'),t('Review backup before restoring','Revisar respaldo antes de restaurar'),'sync'):'')):'')}
+function usagePage(){const scale=(state.period==='30'?3:1)*(state.user==='all'?1:.35);return `<button class="secondary export-entry" data-action="usage-export">${icon('download')}<span>${t('Export usage report','Exportar informe de uso')}</span></button><div class="notice gold">${t('Kevin only · all users of','Solo Kevin · todos los usuarios de')} ${arr(app().name)}<br><small>${t('Illustrative metrics, not live reporting.','Métricas ilustrativas, no informes reales.')}</small></div><div class="usage-filters">${select('period',t('Period','Período'),[['7',t('Last 7 days','Últimos 7 días')],['30',t('Last 30 days','Últimos 30 días')]],state.period)}${select('reportUser',t('Users','Usuarios'),[['all',t('All users','Todos los usuarios')],['kevin','Kevin'],['team',app().person]],state.user)}</div><div class="stats-grid">${app().metrics.map(([en,es,value])=>`<div class="stat"><small>${t(en,es)}</small><strong>${typeof value==='number'?Math.max(1,Math.round(value*scale)):value}</strong><small>${t('Sample value','Valor de ejemplo')}</small></div>`).join('')}</div>`+section(t('Where users need more effort','Dónde se requiere más esfuerzo'),app().friction.map(([en,es,n])=>`<div class="chart-row"><div class="chart-label"><span>${t(en,es)}</span><span>${Math.round(n*(state.user==='all'?1:.5))} ${t('events','eventos')}</span></div><div class="chart-track"><i style="width:${n}%"></i></div></div>`).join(''))+`<p class="footnote">${t('Use these patterns to improve the workflow. Each app needs defined events and reporting coverage before these values can be real.','Usa estos patrones para mejorar el flujo de trabajo. Cada app necesita eventos definidos y cobertura de informes antes de mostrar datos reales.')}</p>`}
+function usageReport(){
+ const days=Number(state.period),end=new Date(),start=new Date(end.getTime()-days*86400000);
+ const scale=(days===30?3:1)*(state.user==='all'?1:.35);
+ return {
+  schema_version:'clover.usability-report/0.1',data_mode:'sample',generated_at:end.toISOString(),
+  app:{id:state.app,name:app().name[0],app_version:null,preview_version:'0.1.1'},
+  scope:{start_inclusive:start.toISOString(),end_exclusive:end.toISOString(),time_zone:Intl.DateTimeFormat().resolvedOptions().timeZone,period_days:days,user_filter:state.user,includes_all_users:state.user==='all'},
+  environment:{browser:null,operating_system:null,device_class:null},
+  coverage:{status:'not_connected',reporting_users:null,reporting_devices:null,pending_offline_events:null,note:'Illustrative values only. No production telemetry has been collected by this preview.'},
+  summary:app().metrics.map(([label,,value])=>({metric:label.toLowerCase().replace(/[^a-z0-9]+/g,'_'),label,value:typeof value==='number'?Math.max(1,Math.round(value*scale)):value,sample:true})),
+  workflow_effort:app().friction.map(([label,,count])=>({workflow:label,sample_event_count:Math.round(count*(state.user==='all'?1:.5))})),
+  completion:{completed:null,eligible_attempts:null,rate:null,note:'Completion rates require an agreed definition and denominator.'},
+  definitions:{active_time:'Exclude idle time; exact idle threshold must be defined per workflow.',error_count:'Count failures separately from successful retries.',missing_values:'Null means unavailable; it does not mean zero.'},
+  events:[],
+  excluded_content:['passwords','device_codes','session_tokens','customer_notes','photos','documents','precise_locations']
+ };
+}
+function exportPage(){
+ const report=usageReport();
+ return `<div class="notice gold">${t('Sample export · Kevin only','Exportación de ejemplo · solo Kevin')}</div>`+
+ section(t('Report scope','Alcance del informe'),line(t('App','App'),arr(app().name))+line(t('Period','Período'),t('Last '+state.period+' days','Últimos '+state.period+' días'))+line(t('Users','Usuarios'),state.user==='all'?t('All users','Todos los usuarios'):state.user==='kevin'?'Kevin':app().person)+line(t('Time zone','Zona horaria'),esc(report.scope.time_zone)))+
+ section(t('Report contents','Contenido del informe'),line(t('Workflow results','Resultados del flujo'),t('Completion, time and repeated steps','Finalización, tiempo y pasos repetidos'))+line(t('Reliability','Confiabilidad'),t('Errors, retries and affected steps','Errores, reintentos y pasos afectados'))+line(t('Context','Contexto'),t('App version, device/browser and coverage','Versión, dispositivo/navegador y cobertura'))+line(t('Format','Formato'),t('JSON · one analysis file','JSON · un archivo de análisis')))+
+ `<p class="footnote">${t('Upload the report in this conversation so we can identify friction and compare results after a change. It excludes passwords, customer notes and photos.','Sube el informe a esta conversación para identificar dificultades y comparar resultados después de un cambio. No incluye contraseñas, notas de clientes ni fotos.')}</p>`+
+ `<button class="primary" data-action="preview-report">${t('View sample report','Ver informe de ejemplo')}</button>`+
+ `<p class="footnote">${t('Live reporting is not connected. Missing values remain unavailable, not zero.','Los informes reales aún no están conectados. Los valores faltantes se indican como no disponibles, no como cero.')}</p>`+
+ `<div id="sampleReport" hidden><section class="section"><h2 class="section-title">${t('Sample report','Informe de ejemplo')}</h2><label class="form-field"><span>${t('Report contents · sample data only','Contenido del informe · solo datos de ejemplo')}</span><textarea id="reportJson" readonly rows="14" spellcheck="false"></textarea></label></section></div>`;
+}
+
+function aboutPage(){return section('',line(t('App','App'),arr(app().name))+line(t('Preview version','Versión de vista previa'),'0.1.1')+line(t('Data source','Origen de datos'),t('Sample data only','Solo datos de ejemplo'))+line(t('Live connection','Conexión real'),t('None','Ninguna')))+section(t('Support','Soporte'),row('updates',t('Check for updates','Buscar actualizaciones'),'', 'sync')+row('support',t('Support details','Detalles de soporte'),t('App version, save state and environment','Versión, estado de guardado y entorno'),'info'))+`<p class="footnote">${t('This prototype runs independently of the inspection engine, its photos and saved inspections.','Este prototipo funciona separado del motor de inspección, sus fotos y las inspecciones guardadas.')}</p>`}
+function testingPage(){return `<div class="notice gold">${t('Kevin-only control. Test work uses a separate sample workspace.','Control exclusivo de Kevin. El trabajo de prueba usa un espacio de ejemplo separado.')}</div>`+section('',`<div class="switch-row"><strong>${t('Test mode','Modo de prueba')}</strong>${toggle('test',state.testing)}</div>`)+`<p class="footnote">${t('Shown only in apps that support a test workflow. This preview never enters a real test or production workspace.','Solo aparece en apps con un flujo de pruebas. Esta vista no accede a un espacio real de pruebas o producción.')}</p>`}
+function toggle(name,enabled){return `<div class="toggle" role="group" aria-label="${esc(name==='test'?t('Test mode','Modo de prueba'):t('Receive new prospects: ','Recibir prospectos nuevos: ')+name)}"><button data-toggle="${esc(name)}" data-value="yes" aria-pressed="${enabled}">${t('Yes','Sí')}</button><button data-toggle="${esc(name)}" data-value="no" aria-pressed="${!enabled}">${t('No','No')}</button></div>`}
+function managementPage(){return `<div class="notice">${t('Management workspace · sample policy. These switches do not change real assignments.','Espacio de administración · política de ejemplo. Estos controles no cambian asignaciones reales.')}</div>`+section(t('Receive new prospects','Recibir prospectos nuevos'),Object.entries(state.eligibility).map(([name,on])=>`<div class="switch-row"><span><strong>${name}</strong>${name==='Robert'?`<small>${t('Existing assignments retained','Conserva sus asignaciones actuales')}</small>`:''}</span>${toggle(name,on)}</div>`).join(''))+`<p class="footnote">${t('The existing allocator chooses the enabled advisor with the fewest prospects, then uses contactability-based workload to break ties. Enabling someone does not redistribute existing work.','El asignador actual elige al asesor habilitado con menos prospectos y usa la carga según contactabilidad para desempatar. Habilitar a alguien no redistribuye trabajo existente.')}</p><button class="primary" data-action="save-allocation">${t('Apply sample policy','Aplicar política de ejemplo')}</button>`}
+function passwordPage(){return `<div class="notice">${t('Account flow preview. No real password is requested or stored.','Vista del flujo de cuenta. No se solicita ni guarda una contraseña real.')}</div><h2 style="font-size:18px">${t('Change password','Cambiar contraseña')}</h2><ol class="flow"><li>${t('Verify your current Clover password.','Verificar tu contraseña actual de Clover.')}</li><li>${t('Enter and confirm the new password.','Escribir y confirmar la nueva contraseña.')}</li><li>${t('Confirm the account update.','Confirmar la actualización de la cuenta.')}</li></ol><button class="secondary" data-action="recover">${t('Forgot password?','¿Olvidaste tu contraseña?')}</button>`}
+function devicePage(){return `<div class="notice gold">${t('One eight-digit code for your authorized Clover apps on this phone. Other devices are enrolled separately.','Un código de ocho dígitos para tus apps autorizadas de Clover en este teléfono. Otros dispositivos se registran por separado.')}</div>`+section('',row('change-code',t('Change device code','Cambiar código del dispositivo'),t('Verify the current code, then set a new one','Verificar el código actual y definir uno nuevo'),'lock')+row('reset-code',t('Forgot device code?','¿Olvidaste el código del dispositivo?'),t('Verify your Clover account to reset','Verificar tu cuenta de Clover para restablecer'),'key'))+`<p class="footnote">${t('Shared enrollment, offline updates and reset verification still need implementation. This preview does not change any code.','Falta implementar el registro compartido, las actualizaciones sin conexión y la verificación. Esta vista no cambia ningún código.')}</p>`}
+function lockedPage(){return `<div class="welcome">${icon('lock')}<h2>${t('Lock flow preview','Vista del bloqueo')}</h2><p>${t('Lock keeps the session and saved work. Returning requires the device code.','El bloqueo conserva la sesión y el trabajo guardado. Para volver se requiere el código del dispositivo.')}</p><button class="primary" data-action="settings">${t('Return to preview','Volver a la vista previa')}</button></div>`}
+function signedOutPage(){return `<div class="welcome">${icon('exit')}<h2>${t('Sign-out flow preview','Vista del cierre de sesión')}</h2><p>${t('Sign out ends the selected app session. Returning requires signing in. Unsent work must be preserved and explained before sign-out.','Cerrar sesión termina la sesión de la app seleccionada. Para volver se debe iniciar sesión. El trabajo no enviado debe conservarse y explicarse antes de cerrar.')}</p><button class="primary" data-action="settings">${t('Return to preview','Volver a la vista previa')}</button></div>`}
+function homePage(){return `<div class="welcome"><h2>${arr(app().name)}</h2><p>${t('This is the disconnected Settings design preview. Use the selectors above to compare each app and user view.','Esta es la vista de diseño independiente de Ajustes. Usa los selectores para comparar cada app y tipo de usuario.')}</p><button class="primary" data-action="settings">${t('Open Settings','Abrir Ajustes')}</button>${state.app==='prospects'&&isManager()?`<button class="secondary" data-action="management">${t('Management · Prospect allocation','Administración · Asignación de prospectos')}</button>`:''}</div>`}
+function confirmAction(title,copy,onConfirm){$('dialogTitle').textContent=title;$('dialogCopy').textContent=copy;$('dialogCancel').textContent=t('Cancel','Cancelar');$('dialogConfirm').textContent=t('Continue','Continuar');$('dialogConfirm').onclick=()=>{$('dialog').close();onConfirm()};$('dialog').showModal()}
+$('dialogCancel').onclick=()=>$('dialog').close();
+root.addEventListener('click',event=>{
+ const tog=event.target.closest('[data-toggle]');if(tog){if(tog.dataset.toggle==='test'){if(!isKevin())return;state.testing=tog.dataset.value==='yes'}else{if(!isManager()||state.app!=='prospects')return;state.eligibility[tog.dataset.toggle]=tog.dataset.value==='yes'}render();return}
+ const el=event.target.closest('[data-action]');if(!el)return;const action=el.dataset.action;
+ if(action==='back'){go(state.view==='usage-export'?'usage':['password','device','lock','signout'].includes(state.view)?'account':state.view==='management'?'home':'settings');return}
+ if(['home','settings','account','preferences','storage','usage','usage-export','about','testing','management','password','device','lock','signout'].includes(action)){go(action);return}
+ if(action==='clear-cache'){if(!state.caches[state.app]){toast(t('No sample cache to clear.','No hay caché de ejemplo para borrar.'));return}confirmAction(t('Clear downloaded cache?','¿Borrar caché descargada?'),t('Preview only: remove 8 MB of downloaded cache. Inspection work, photos, pending edits, preferences and account data stay in place.','Solo ejemplo: borrar 8 MB de caché descargada. Se conservan inspecciones, fotos, ediciones pendientes, preferencias y datos de cuenta.'),()=>{state.caches[state.app]=0;render();toast(t('Sample cache cleared. Saved work retained.','Caché de ejemplo borrada. Trabajo guardado conservado.'))});return}
+ if(action==='preview-report'){if(!isKevin())return;$('reportJson').value=JSON.stringify(usageReport(),null,2);$('sampleReport').hidden=false;return}
+ const messages={save:app().local?t('Save flow shown. No real inspection data was accessed.','Flujo de guardado mostrado. No se accedió a inspecciones reales.'):t('Sync flow shown. This preview has no server connection.','Flujo de sincronización mostrado. Esta vista no tiene conexión al servidor.'),protect:t('In the real app, this requests persistent storage from the browser.','En la app real, se solicita almacenamiento persistente al navegador.'),backup:t('Backup flow preview. No real backup was created.','Vista del respaldo. No se creó un respaldo real.'),restore:t('Restore flow preview: inspect the file, explain replacement scope, then confirm.','Vista de restauración: revisar el archivo, explicar el alcance y confirmar.'),updates:t('Preview version 0.1.1. Live update checks are disabled.','Vista previa 0.1.1. No se buscan actualizaciones reales.'),support:t('Support details include version, device/browser and save/sync status. No passwords or customer notes.','Los detalles incluyen versión, dispositivo/navegador y estado de guardado. Sin contraseñas ni notas de clientes.'),recover:t('Recovery sends a verified account-recovery link. No email is sent by this preview.','La recuperación envía un enlace verificado. Esta vista no envía correos.'),'change-code':t('Proposed flow: current code → new eight-digit code → confirmation.','Flujo propuesto: código actual → nuevo código de ocho dígitos → confirmación.'),'reset-code':t('Proposed flow: verify Clover account → reset this phone’s shared code.','Flujo propuesto: verificar cuenta de Clover → restablecer código compartido del teléfono.'),'save-allocation':t('Sample policy applied in this preview only.','Política de ejemplo aplicada solo en esta vista.')};toast(messages[action]||t('Preview action','Acción de ejemplo'));
+});
+root.addEventListener('change',event=>{const el=event.target;const map={language:'lang',appearance:'theme',maps:'map',browser:'browser',zone:'zone',manualZone:'manualZone',period:'period',reportUser:'user',appSelect:'app',personaSelect:'persona'};if(!map[el.id])return;state[map[el.id]]=el.value;if(['appSelect','personaSelect'].includes(el.id)){state.view='settings';state.user='all'}const position=$('content').scrollTop;render();$('content').scrollTop=position;$(el.id)?.focus({preventScroll:true})});
+root.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('dialog').open&&state.view!=='settings')go('settings')});
+render();
+
+})();
+</script>
+</div>
