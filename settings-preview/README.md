@@ -1,4 +1,4 @@
-# Clover Settings design preview 0.1.1
+# Clover Settings design preview 0.1.2
 
 An isolated, self-contained preview for the shared Settings discussion. Start
 with Inspections; the app selector includes all eight proposed menus. The
@@ -50,3 +50,11 @@ identity and restoration of existing local work.
 Prospects and all other app releases remain on hold in this workstream. Kevin's
 October 6 authorization permits Inspections-only code pushes and deployment;
 it does not authorize changes to another app or shared production data.
+
+## Existing app palette
+
+Colors are copied from the current Inspections workspace tokens in `styles.css`
+(blob `b830165159e11eabe36edede7bb31902e40f39e0`), recorded in `palette-reference.json`.
+Use the existing app theme variables during integration. Gold remains #D4AF37
+in both appearances; primary gold buttons use dark text. Existing text colors
+provide readable light-mode labels. The shared header 1.1.2 remains unchanged.
