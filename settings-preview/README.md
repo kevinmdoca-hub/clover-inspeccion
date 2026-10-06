@@ -1,4 +1,4 @@
-# Clover Settings design preview 0.1.0
+# Clover Settings design preview 0.1.1
 
 An isolated, self-contained preview for the shared Settings discussion. Start
 with Inspections; the app selector includes all eight proposed menus. The
@@ -19,6 +19,13 @@ forms are deliberately represented as flow descriptions.
 - Management allocation example under the sample Prospects workspace, reached
   by closing Settings. Uses Yes/No eligibility; it does not change real rules.
 - Language and appearance controls are functional within the preview.
+- Explicit component text colors prevent a dark host from washing out light-mode
+  headings, labels and native select values. The inline variant includes this fix.
+- Kevin-only Usage & usability includes Export usage report, preserving the
+  selected app, period and user filter. View sample report displays one structured
+  JSON example with scope, metrics, definitions, version and coverage fields.
+  Missing coverage and completion denominators remain null; the sample makes no
+  claim of a completed live export or collected user telemetry.
 
 Every displayed person, metric, role check, storage value and assignment toggle
 is illustrative. Kevin-only visibility here is a client-side design simulation,
