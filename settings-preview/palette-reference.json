@@ -1,0 +1,40 @@
+{
+  "source": "kevinmdoca-hub/clover-inspeccion",
+  "path": "styles.css",
+  "blob": "b830165159e11eabe36edede7bb31902e40f39e0",
+  "usage": "Use existing app theme tokens on integration; these copies keep the disconnected preview self-contained. The frozen shared header owns its own palette and remains unchanged.",
+  "tokens": {
+    "light": {
+      "advisor-bg": "#F4F5F7",
+      "advisor-bg2": "#FFFFFF",
+      "advisor-card": "#FFFFFF",
+      "advisor-card2": "#F0F2F5",
+      "advisor-gold": "#D4AF37",
+      "advisor-text": "#15181E",
+      "advisor-muted": "#666D78",
+      "advisor-danger": "#E24B4B",
+      "advisor-ok": "#5CA66F",
+      "advisor-blue": "#5AA7E8",
+      "advisor-line": "#D6DAE1",
+      "advisor-input": "#FFFFFF",
+      "advisor-overlay": "rgba(22,25,31,.36)",
+      "advisor-shadow": "rgba(18,22,28,.10)"
+    },
+    "dark": {
+      "advisor-bg": "#0F1117",
+      "advisor-bg2": "#0B0E13",
+      "advisor-card": "#131720",
+      "advisor-card2": "#191E28",
+      "advisor-gold": "#D4AF37",
+      "advisor-text": "#F6F7F9",
+      "advisor-muted": "#A6ABB5",
+      "advisor-danger": "#E24B4B",
+      "advisor-ok": "#5CA66F",
+      "advisor-blue": "#5AA7E8",
+      "advisor-line": "#2B313D",
+      "advisor-input": "#151A23",
+      "advisor-overlay": "rgba(0,0,0,.62)",
+      "advisor-shadow": "rgba(0,0,0,.22)"
+    }
+  }
+}
