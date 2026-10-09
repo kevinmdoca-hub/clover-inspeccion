@@ -64,7 +64,7 @@ function openInspectionSettings(){
  setLanguage:async value=>{if(!await manualSave())throw Error(t('Guarda el trabajo antes de cambiar el idioma.','Save work before changing language.'));localStorage.setItem(LANG_KEY,value);location.reload()},
  setAppearance:value=>{localStorage.setItem(THEME_KEY,value);applyTheme(value)},
  backupLabel:['Export inspection backup','Exportar respaldo de inspecciones'],backupHelp:['Inspection answers only; photos and videos excluded','Solo respuestas; no incluye fotos ni videos'],
- unusedCaches:()=>CloverSettings.unusedCaches('clover-inspection-dev-','clover-inspection-dev-v095--ui111-8f5d1d28-header112-settings100'+new URL('./',location.href).pathname.replace(/[^a-z0-9]/gi,'_'),new URL('./',location.href).pathname.replace(/[^a-z0-9]/gi,'_')),
+ unusedCaches:()=>CloverSettings.unusedCaches('clover-inspection-dev-','clover-inspection-dev-v095--ui111-8f5d1d28-header112-settings101'+new URL('./',location.href).pathname.replace(/[^a-z0-9]/gi,'_'),new URL('./',location.href).pathname.replace(/[^a-z0-9]/gi,'_')),
  actions:{save:async()=>{if(!await manualSave())throw Error(t('No se pudo guardar. Mantén esta página abierta.','Save failed. Keep this page open.'))},backup:()=>backup(),restore:()=>$('#importFile').click()}
  });
 }
@@ -1228,4 +1228,5 @@ if('serviceWorker' in navigator&&location.protocol.startsWith('http')){
     if(reg.waiting)offer(reg.waiting);reg.addEventListener('updatefound',()=>{const w=reg.installing;if(w)w.addEventListener('statechange',()=>{if(w.state==='installed')offer(w)})});
   }).catch(console.error)
 }
+
 

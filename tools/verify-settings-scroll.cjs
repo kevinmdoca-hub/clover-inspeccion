@@ -1,0 +1,44 @@
+'use strict';
+// Isolated DOM fixture: no accounts, customer records, network services or data writes.
+const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict');
+const {chromium,webkit}=require('playwright');
+const repo=process.env.GITHUB_REPOSITORY?.split('/')[1]||process.argv[2];
+const base=path.resolve(['clover-service-pilot','clover-cost-pricing-pilot'].includes(repo)?'public':repo==='clover-routing-field-ops-pilot'?'dist':'.');
+const folder=path.join(base,'shared/clover-settings'),out=path.resolve('settings-qa');fs.mkdirSync(out,{recursive:true});
+const fixture=`<!doctype html><html style="overflow-x:hidden;scroll-behavior:smooth;--qa-root:kept"><head><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>
+*{box-sizing:border-box}body{margin:0;font:16px Arial;background:#0f1117;color:#f6f7f9;--bg:#0f1117;--surface:#131720;--raised:#191e28;--text:#f6f7f9;--muted:#a6abb5;--line:#2b313d;--gold:#d4af37}body.light{--bg:#f4f5f7;--surface:#fff;--raised:#f0f2f5;--text:#15181e;--muted:#666d78;--line:#d6dae1}#open-settings{position:fixed;top:12px;right:12px;z-index:10}#spacer{height:1500px}#marker{height:110px;background:#222}#workspace-scroll{height:150px;overflow:auto}#workspace-scroll>div{height:1100px}.after{height:1400px}
+</style><script src="/shared/clover-settings/clover-settings.js"></script></head><body style="--qa-body:kept"><button id="open-settings">Settings</button><div id="spacer"></div><div id="marker">Workspace</div><textarea id="draft">Unsaved field notes</textarea><div id="workspace-scroll"><div>Another workspace scroller</div></div><div class="after"></div><script>
+window.__appearance='dark';window.__adapter={id:'scroll-fixture',name:['Settings fixture','Prueba de ajustes'],maps:true,timeZone:true,colors:{bg:'var(--bg)',surface:'var(--surface)',raised:'var(--raised)',input:'var(--surface)',text:'var(--text)',muted:'var(--muted)',line:'var(--line)',gold:'var(--gold)'},read:()=>({version:'fixture',language:'en',appearance:__appearance,user:{id:'2a9e64c4-ac6b-48ba-9060-a595d68aa80d',name:'Kevin',role:'Administrator'},local:true}),setLanguage:()=>{},setAppearance:value=>{__appearance=value;document.body.classList.toggle('light',value==='light');document.body.style.setProperty('--qa-theme-change','kept')}};
+document.getElementById('open-settings').onclick=()=>CloverSettings.open(__adapter);
+</script></body></html>`;
+const server=http.createServer((req,res)=>{const url=new URL(req.url,'http://localhost');if(url.pathname==='/'){res.setHeader('Content-Type','text/html');return res.end(fixture)}const name=path.basename(url.pathname);if(!['clover-settings.js','clover-settings.css'].includes(name)){res.writeHead(404);return res.end()}res.setHeader('Content-Type',name.endsWith('.js')?'text/javascript':'text/css');res.end(fs.readFileSync(path.join(folder,name)));});
+const report={settings_version:'1.0.1',engines:[],checks:[],scope:'isolated browser fixture; no real iPhone or production data'};
+const panel='clover-settings-panel';
+async function state(page){return page.evaluate(()=>({x:scrollX,y:scrollY,marker:document.getElementById('marker').getBoundingClientRect().top,nested:document.getElementById('workspace-scroll').scrollTop,draft:document.getElementById('draft').value,bodyPosition:document.body.style.position,rootX:document.documentElement.style.overflowX,rootY:document.documentElement.style.overflowY,behavior:document.documentElement.style.scrollBehavior}));}
+async function settled(page){await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));}
+async function restored(page,before){await settled(page);const after=await state(page);for(const key of ['x','y','nested','draft','bodyPosition','rootX','rootY','behavior'])assert.equal(after[key],before[key],key);assert(Math.abs(after.marker-before.marker)<1,'Workspace position changed');}
+(async()=>{await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));const origin=`http://127.0.0.1:${server.address().port}`;
+ for(const [engine,type]of [['chromium',chromium],['webkit',webkit]]){
+  const browser=await type.launch({headless:true});try{
+   const context=await browser.newContext({viewport:{width:390,height:844},hasTouch:true,serviceWorkers:'block'}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(origin);
+   await page.evaluate(()=>{document.getElementById('workspace-scroll').scrollTop=250;scrollTo({top:620,behavior:'instant'})});await settled(page);const before=await state(page);assert.equal(before.y,620);
+   await page.locator('#open-settings').click();await page.locator(panel+' dialog').waitFor();await page.waitForFunction(()=>getComputedStyle(document.querySelector('clover-settings-panel').shadowRoot.querySelector('dialog')).position==='fixed');
+   const locked=await state(page);assert.equal(locked.bodyPosition,'fixed');assert(Math.abs(locked.marker-before.marker)<1);
+   const head=page.locator(panel+' .app-head');await head.hover();await page.mouse.wheel(0,700);await settled(page);assert.deepEqual(await state(page),locked,'Header wheel moved the workspace');
+   await page.locator(panel+' [data-action=preferences]').click();const content=page.locator(panel+' .content');await content.hover();await page.mouse.wheel(0,400);await page.waitForFunction(()=>document.querySelector('clover-settings-panel').shadowRoot.querySelector('.content').scrollTop>0);
+   assert.deepEqual(await state(page),locked,'Settings scroll moved the workspace');
+   const gestures=await page.evaluate(()=>{const r=document.querySelector('clover-settings-panel').shadowRoot,c=r.querySelector('.content'),h=r.querySelector('.app-head');function move(target,from,to,count=1){const event=(name,y)=>{const e=new Event(name,{bubbles:true,composed:true,cancelable:true});Object.defineProperty(e,'touches',{value:Array.from({length:count},()=>({clientX:100,clientY:y}))});target.dispatchEvent(e);return e.defaultPrevented};event('touchstart',from);return event('touchmove',to)}c.scrollTop=0;const top=move(c,100,160),inside=move(c,160,100);c.scrollTop=c.scrollHeight;const bottom=move(c,160,100),header=move(h,160,100),pinch=move(h,160,100,2);return {top,bottom,header,inside,pinch}});
+   assert.deepEqual(gestures,{top:true,bottom:true,header:true,inside:false,pinch:false});
+   await page.locator(panel+' [data-pref=appearance]').selectOption('light');await page.waitForFunction(()=>document.querySelector('clover-settings-panel').shadowRoot.querySelector('dialog').getAttribute('aria-busy')==='false');
+   await page.setViewportSize({width:390,height:430});await page.waitForFunction(()=>{const r=document.querySelector('clover-settings-panel').shadowRoot.querySelector('dialog').getBoundingClientRect();return r.height<=visualViewport.height&&r.bottom<=visualViewport.height+1});
+   await page.locator(panel+' [data-pref=zoneMode]').focus();await page.keyboard.press('Tab');assert(await page.evaluate(()=>document.activeElement.tagName==='CLOVER-SETTINGS-PANEL'),'Focus escaped the modal');
+   await page.screenshot({path:path.join(out,`scroll-${engine}-short.png`)});await page.keyboard.press('Escape');await restored(page,before);assert.equal(await page.evaluate(()=>document.activeElement.id),'open-settings');assert.equal(await page.evaluate(()=>document.body.style.getPropertyValue('--qa-theme-change')),'kept');
+   await page.setViewportSize({width:390,height:844});await page.locator('#open-settings').click();await page.locator(panel+' [data-action=close]').click();await restored(page,before);
+   await page.evaluate(()=>{CloverSettings.open(__adapter);CloverSettings.close();CloverSettings.open(__adapter)});await settled(page);assert.equal((await state(page)).bodyPosition,'fixed','Stale close event released a reopened modal');await page.evaluate(()=>document.querySelector('clover-settings-panel').shadowRoot.querySelector('dialog').close());await restored(page,before);
+   await page.locator('#open-settings').click();await page.evaluate(()=>document.querySelector('clover-settings-panel').remove());await restored(page,before);
+   await page.locator('#open-settings').click();await page.locator(panel+' [data-action=close]').click();await restored(page,before);assert.deepEqual(errors,[]);
+   report.engines.push(engine);report.checks.push(`${engine}: frozen workspace; independent pane scrolling; touch boundaries and pinch; viewport resize; focus containment; theme preservation; Escape, Close, native close, immediate reopen and removal restore scroll/styles/draft`);await context.close();
+  }finally{await browser.close()}
+ }
+ fs.writeFileSync(path.join(out,'scroll-report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
+})().catch(error=>{console.error(error);process.exitCode=1}).finally(()=>server.close());
