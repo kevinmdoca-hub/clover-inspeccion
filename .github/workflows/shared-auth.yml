@@ -1,0 +1,24 @@
+name: Inspections shared auth candidate
+on:
+  pull_request:
+    paths:
+      - '*.js'
+      - '*.mjs'
+      - 'index.html'
+      - 'shared-device/**'
+      - 'tests/auth_browser.py'
+      - '.github/workflows/shared-auth.yml'
+permissions:
+  contents: read
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install playwright==1.55.0
+      - run: python -m playwright install --with-deps chromium
+      - run: python tests/auth_browser.py
