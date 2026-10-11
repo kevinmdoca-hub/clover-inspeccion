@@ -1,0 +1,2 @@
+/* Approved entry screens inherit this app's palette. */
+html[data-clover-auth-page]{--bg:var(--advisor-bg);--card:var(--advisor-card);--text:var(--advisor-text);--line:var(--advisor-line);--muted:var(--advisor-muted);--gold:var(--advisor-gold);}

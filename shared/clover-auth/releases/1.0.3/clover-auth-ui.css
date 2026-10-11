@@ -1,0 +1,62 @@
+/* Clover Auth UI 1.0.3 — approved visual update.
+ * Reuses host app tokens; fallbacks match the current Advisor workspace.
+ * Page chrome is owned only while mounted. Auth behavior is unchanged. */
+html[data-clover-auth-page="dark"]{--clover-auth-page-bg:var(--bg,#0F1117);color-scheme:dark}
+html[data-clover-auth-page="light"]{--clover-auth-page-bg:var(--bg,#F4F5F7);color-scheme:light}
+html[data-clover-auth-page],html[data-clover-auth-page] body{background:var(--clover-auth-page-bg)!important;overflow:hidden!important;overscroll-behavior:none}
+html[data-clover-auth-page] body{position:fixed;inset:0;width:100%}
+[data-clover-auth-mount]{background:var(--clover-auth-page-bg)!important;overflow:hidden!important}
+clover-auth-shell{--ca-bg:var(--bg,#0F1117);--ca-field:var(--card,#131720);--ca-border:var(--line,#2B313D);--ca-text:var(--text,#F6F7F9);--ca-muted:var(--muted,#A6ABB5);--ca-gold:var(--gold,#D4AF37);--ca-label:var(--ca-muted);--ca-action:var(--ca-gold);--ca-off:#353941;--ca-off-text:#858a92;--ca-font:var(--clover-ui-font,-apple-system,BlinkMacSystemFont,"SF Pro Text",Inter,system-ui,sans-serif);display:block;min-height:100%;color:var(--ca-text);color-scheme:dark;background:var(--ca-bg);font:400 16px/1.45 var(--ca-font);text-align:left;-webkit-text-size-adjust:100%;overflow-wrap:anywhere}
+clover-auth-shell[data-theme="light"]{--ca-bg:var(--bg,#F4F5F7);--ca-field:var(--card,#FFFFFF);--ca-border:var(--line,#D6DAE1);--ca-text:var(--text,#15181E);--ca-muted:var(--muted,#666D78);--ca-action:var(--ca-text);color-scheme:light}
+clover-auth-shell *,clover-auth-shell *::before,clover-auth-shell *::after{box-sizing:border-box}
+/* The safe edges sit OUTSIDE the scroller, so branding cannot pass behind them. */
+clover-auth-shell{--ca-safe-top:env(safe-area-inset-top,0px);--ca-safe-bottom:env(safe-area-inset-bottom,0px);--ca-safe-left:env(safe-area-inset-left,0px);--ca-safe-right:env(safe-area-inset-right,0px);position:fixed;z-index:1000;top:var(--ca-viewport-top,0px);left:0;right:0;min-height:0;height:100vh;height:var(--ca-viewport-height,100dvh);overflow:hidden;isolation:isolate}
+clover-auth-shell .ca-viewport{position:absolute;inset:var(--ca-safe-top) var(--ca-safe-right) var(--ca-safe-bottom) var(--ca-safe-left);overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scroll-padding-block:20px}
+clover-auth-shell[data-keyboard] .ca-viewport{bottom:0}
+clover-auth-shell .ca-wrap{width:min(100%,460px);min-height:100%;margin:0 auto;padding:48px 28px 30px;display:flex;flex-direction:column;justify-content:flex-start}
+clover-auth-shell .ca-brand{width:280px;max-width:100%;margin:0 auto 38px;text-align:center;flex:none}
+clover-auth-shell .ca-mark{display:block;width:98px;height:98px;object-fit:contain;margin:0 auto 22px}
+clover-auth-shell .ca-lockup{display:block;width:100%;height:auto;overflow:visible;fill:var(--ca-gold)}
+clover-auth-shell .ca-wordmark{font:700 83px Arial,Helvetica,sans-serif;letter-spacing:-3px}
+clover-auth-shell .ca-tagline{font:600 14px Arial,Helvetica,sans-serif;letter-spacing:1.2px}
+/* Sign-in carries the full lockup; other entry screens use the same simple symbol as break. */
+clover-auth-shell:not([data-view="login"]) .ca-brand{width:72px;margin-bottom:38px}
+clover-auth-shell:not([data-view="login"]) .ca-mark{width:72px;height:72px;margin-bottom:0}
+clover-auth-shell .ca-card{width:100%;min-width:0}
+clover-auth-shell h1{font:700 25px/1.25 var(--ca-font);margin:0 0 18px;text-align:center;color:var(--ca-text)}
+clover-auth-shell .ca-name{font-size:17px;font-weight:700;color:var(--ca-text);text-align:center;margin:0 0 25px}
+clover-auth-shell form{display:block;margin:0;width:100%;min-width:0}
+clover-auth-shell .ca-field{display:block;margin:0 0 19px;color:var(--ca-label);font-weight:600;font-size:12px;line-height:1.4;text-align:left}
+clover-auth-shell .ca-field>span:first-child{display:block;margin:0 0 8px}
+clover-auth-shell .ca-input-wrap{display:block;position:relative;width:100%}
+clover-auth-shell input{appearance:none;-webkit-appearance:none;width:100%;min-width:0;height:46px;min-height:46px;display:block;margin:0;border:1px solid var(--ca-border);border-radius:12px;padding:10px 12px;background:var(--ca-field);color:var(--ca-text);font:400 16px/1.3 var(--ca-font);outline:0;box-shadow:none;scroll-margin-block:20px;letter-spacing:normal}
+clover-auth-shell input[data-secret]{padding-right:76px}
+clover-auth-shell input[data-field="code"],clover-auth-shell input[data-field="confirmCode"],clover-auth-shell input[data-field="otp"]{font-variant-numeric:tabular-nums;letter-spacing:.24em}
+clover-auth-shell input:focus{border-color:var(--ca-gold);box-shadow:0 0 0 2px color-mix(in srgb,var(--ca-gold) 22%,transparent)}
+clover-auth-shell input[readonly]{opacity:1}
+clover-auth-shell input:-webkit-autofill,clover-auth-shell input:-webkit-autofill:hover,clover-auth-shell input:-webkit-autofill:focus{box-shadow:0 0 0 1000px var(--ca-field) inset;-webkit-text-fill-color:var(--ca-text);caret-color:var(--ca-text);animation:ca-autofilled .01s}
+clover-auth-shell input:autofill{box-shadow:0 0 0 1000px var(--ca-field) inset;color:var(--ca-text);animation:ca-autofilled .01s}
+@keyframes ca-autofilled{from{opacity:.99}to{opacity:1}}
+clover-auth-shell button,clover-auth-shell a{font-family:var(--ca-font);touch-action:manipulation;-webkit-tap-highlight-color:transparent;cursor:pointer;text-decoration:none;letter-spacing:normal}
+clover-auth-shell button:focus-visible,clover-auth-shell a:focus-visible{outline:2px solid var(--ca-gold);outline-offset:3px}
+clover-auth-shell .ca-reveal{position:absolute;right:7px;top:1px;min-width:58px;min-height:44px;padding:0 6px;margin:0;border:0;border-radius:8px;background:transparent;box-shadow:none;color:var(--ca-action);font-size:13px;font-weight:700;line-height:1;text-transform:none}
+clover-auth-shell .ca-primary{display:block;width:100%;min-height:50px;margin:12px 0 9px;padding:11px 13px;border:0;border-radius:13px;background:var(--clover-primary-background,linear-gradient(135deg,#b98b22,#e0bb47));color:var(--clover-primary-text,#15120a);font-size:16px;font-weight:750;line-height:1.45;text-align:center;box-shadow:none}
+clover-auth-shell .ca-primary:disabled{background:var(--ca-off);color:var(--ca-off-text);opacity:1;cursor:default;box-shadow:none}
+clover-auth-shell .ca-link{display:block;width:100%;min-height:44px;margin:0;padding:11px 6px;border:0;border-radius:8px;background:transparent;color:var(--ca-action);font-size:15px;line-height:1.45;font-weight:600;text-align:center;box-shadow:none}
+clover-auth-shell .ca-forgot{margin:-8px auto 9px;max-width:max-content}
+clover-auth-shell .ca-link:disabled,clover-auth-shell .ca-reveal:disabled{opacity:.55;cursor:default}
+clover-auth-shell [data-action="language"]{font-size:13px;font-weight:400;margin-top:15px;color:var(--ca-muted)}
+clover-auth-shell .ca-message:empty{display:none}
+clover-auth-shell .ca-message,clover-auth-shell .ca-help{font-size:14px;line-height:1.5;margin:0 0 20px;color:var(--ca-muted)}
+clover-auth-shell .ca-help{text-align:center}
+clover-auth-shell .ca-message.ca-error,clover-auth-shell .ca-help.ca-error{border:1px solid #ad6262;border-radius:11px;padding:11px 13px;color:#ffbebe;background:rgba(150,40,40,.1)}
+clover-auth-shell[data-theme="light"] .ca-error{color:#842c2c}
+clover-auth-shell .ca-help.ca-success{border:1px solid #648474;border-radius:11px;padding:12px;color:#d9f1e4;background:#14221c}
+clover-auth-shell[data-theme="light"] .ca-help.ca-success{color:#244635;background:#eaf4ee}
+clover-auth-shell .ca-context{font-size:13px;line-height:1.5;color:var(--ca-muted);margin:20px 0 0}
+clover-auth-shell .ca-spinner{display:block;width:25px;height:25px;border:2px solid var(--ca-border);border-top-color:var(--ca-gold);border-radius:50%;margin:0 auto 18px;animation:ca-spin .9s linear infinite}
+@keyframes ca-spin{to{transform:rotate(360deg)}}
+@media(min-height:850px){clover-auth-shell .ca-wrap{padding-top:70px}}
+@media(max-width:360px){clover-auth-shell .ca-wrap{padding-left:22px;padding-right:22px}clover-auth-shell .ca-brand{width:260px}}
+/* Keep the SAME lockup on short/keyboard viewports; scroll rather than shrink it. */
+@media(prefers-reduced-motion:reduce){clover-auth-shell .ca-spinner{animation:none}}

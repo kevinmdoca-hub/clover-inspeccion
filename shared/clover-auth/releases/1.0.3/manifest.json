@@ -1,0 +1,11 @@
+{
+  "version": "1.0.3",
+  "release_date": "2026-10-11",
+  "scope": "Presentation only; host controllers own authentication and device policy",
+  "files": {
+    "clover-auth-legacy.js": "e6f74afe348802154590ee6e470da44a10b5bc3499ee2a910216b28f6e5698fc",
+    "clover-brand-mark-v1.png": "5d7096e05bad83996c9c5ea2a56afc4d039b984b67cbb47ad3944dd458e2fc65",
+    "clover-auth-ui.js": "fae3a62374f322cb6fcf12745128eb6dc14107c3ee7146cca357ccac0997e5a1",
+    "clover-auth-ui.css": "bc9358e9f69aa1a3458ec714b40b3a4dfda3f45222bdcbf003d26ca6fc7136c3"
+  }
+}
