@@ -1,3 +1,4 @@
+import {attachSharedSettings} from './shared-device/settings-access.mjs';
 import {buildRuntime} from './shared-device/runtime-builder.mjs';
 import {enrollmentScreens,mountSharedScreen} from './shared-device/enrollment-screens.mjs';
 import {startAuthorizedInspections,inspectionsAccess} from './inspections-entry.mjs';
@@ -8,6 +9,7 @@ export function installInspectionsLogin({auth,config,build=buildRuntime}){
   if(!auth?.signInWithPassword||!auth?.getSession||!auth?.onAuthStateChange||!auth?.signOut||!config?.endpoint||!config?.workspace||!config?.keys||!config?.timezone)throw Error('INSPECTIONS_LOGIN_CONFIGURATION_REQUIRED');
   const root=document.querySelector('#inspections-entry');
   if(!root||!window.CloverLegacyEntry)throw Error('INSPECTIONS_LOGIN_SHELL_REQUIRED');
+  let detachSettings=()=>{},settingsMode=false;
   let session=null,runtime=null,revision=0,pending=null,started=false,disposed=false,inEnrollment=false;
   const language=()=>document.documentElement.lang.startsWith('es')?'es':'en';
   const t=(es,en)=>language()==='es'?es:en;
@@ -17,7 +19,7 @@ export function installInspectionsLogin({auth,config,build=buildRuntime}){
     mountSharedScreen(container,body,{...options,language:language()});
   };
   const hide=()=>{document.documentElement.removeAttribute('data-inspections-ready');for(const el of document.querySelectorAll('[data-clover-operational]')){el.hidden=true;el.inert=true;}root.hidden=false;};
-  function stop(){revision++;pending?.abort();pending=null;runtime?.controller.cancel();try{runtime?.adapter.signOut();}catch{runtime?.gate.lock('sign_in_required');}runtime=null;hide();}
+  function stop(){detachSettings();settingsMode=false;revision++;pending?.abort();pending=null;runtime?.controller.cancel();try{runtime?.adapter.signOut();}catch{runtime?.gate.lock('sign_in_required');}runtime=null;hide();}
   async function logout(){stop();session=null;try{await auth.signOut();}finally{login();}}
   function message(text){const el=root.querySelector('[role="alert"]');if(el)el.textContent=text;}
   function login(){
@@ -42,10 +44,11 @@ export function installInspectionsLogin({auth,config,build=buildRuntime}){
         signal:abort.signal,getSession:()=>session,getAccessToken:async()=>{const {data,error}=await auth.getSession();if(error||data?.session?.user?.id!==session?.user?.id)throw Error('account_changed');session=data.session;return session.access_token;}});
       if(generation!==revision||disposed){built.controller.cancel();built.gate.lock('account_changed');return;}
       runtime=built;const {gate,adapter,controller}=built;
-      const ready=async()=>{if(runtime!==built)throw Error('account_changed');gate.assertOperational();inEnrollment=false;if(!started){await startAuthorizedInspections(gate);started=true;}else inspectionsAccess();root.hidden=true;};
+      const ready=async()=>{if(runtime!==built)throw Error('account_changed');gate.assertOperational();inEnrollment=false;if(settingsMode){location.reload();return;}if(!started){await startAuthorizedInspections(gate);started=true;}else inspectionsAccess();root.hidden=true;};
       controller.lock=reason=>gate.lock(reason);
       controller.activate=async({expected,code})=>{gate.expected=Object.freeze({...expected});if(!await gate.unlock(code))throw Error('unlock_failed');};
       const screens=enrollmentScreens({root,controller,mount,language,onReady:ready,onBack:()=>unlock(),onReauthenticate:logout});
+      detachSettings=attachSharedSettings({window,assert:()=>gate.assertOperational(),identity:()=>({id:session.user.id,name:session.user.email||'Clover'}),open:()=>{settingsMode=true;inEnrollment=true;gate.lock('enrollment');hide();screens.reset();}});
       function unlock(){
         inEnrollment=false;
         mount(root,`<label>${t('Código compartido','Shared device code')}<input id="sharedUnlockCode" type="password" inputmode="numeric" maxlength="8" autocomplete="off"></label><p id="authError" role="alert"></p><button id="sharedUnlock">${t('Desbloquear','Unlock')}</button><button id="sharedPair">${t('Vincular otra app','Pair another app')}</button><button id="sharedReset">${t('Cambiar código','Change code')}</button><button id="sharedLogout">${t('Cerrar sesión','Sign out')}</button>`);
