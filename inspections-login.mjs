@@ -55,7 +55,7 @@ export function installInspectionsLogin({auth,config,build=buildRuntime}){
         root.querySelector('#sharedUnlock').onclick=async()=>{const button=root.querySelector('#sharedUnlock'),field=root.querySelector('#sharedUnlockCode'),code=field.value;field.value='';button.disabled=true;try{if(!await adapter.unlock(code,{online:navigator.onLine!==false}))throw Error();await ready();}catch{message(t('No se pudo desbloquear. Revisa tu acceso; recarga si cambió tu código.','Could not unlock. Check access; reload if your code changed.'));}finally{if(button.isConnected)button.disabled=false;}};
         root.querySelector('#sharedPair').onclick=()=>{inEnrollment=true;screens.approve();};root.querySelector('#sharedReset').onclick=()=>{inEnrollment=true;screens.reset();};root.querySelector('#sharedLogout').onclick=logout;
       }
-      const before=gate.onChange;gate.onChange=status=>{before(status);if(runtime!==built)return;if(status.state==='locked'){hide();if(started){login();return;}if(!inEnrollment&&!['checking','checking_online','enrollment','cancelled','sign_in_required'].includes(status.reason))unlock();}};
+      const before=gate.onChange;gate.onChange=status=>{before(status);if(runtime!==built)return;if(status.state==='locked'){hide();if(started&&!inEnrollment){login();return;}if(!inEnrollment&&!['checking','checking_online','enrollment','cancelled','sign_in_required'].includes(status.reason))unlock();}};
       if(adapter.configured())unlock();else{inEnrollment=true;screens.choose();}
     }catch{if(generation===revision&&!disposed){login();message(t('Acceso no disponible. Verifica tu conexión y membresía de Inspections.','Access unavailable. Check your connection and Inspections membership.'));}}
   }
