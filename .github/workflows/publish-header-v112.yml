@@ -21,9 +21,6 @@ on:
       proposal_branch:
         description: Candidate branch produced by opt-in publishing; empty if there were no file changes.
         value: ${{ jobs.publish.outputs.proposal_branch }}
-  push:
-    branches: [main, phase-ab-foundation-needs-v0.3.0]
-    paths: ['.github/workflows/publish-header-v112.yml']
   workflow_dispatch:
 permissions:
   contents: write
