@@ -77,7 +77,7 @@ jobs:
           PROPOSE_AS_PULL_REQUEST: ${{ inputs.propose_as_pull_request || false }}
         shell: python
         run: |
-          import json,subprocess
+          import json,os,subprocess
           from pathlib import Path
           r=json.loads(Path('CLOVER_UI_RELEASE_REPORT.json').read_text())
           folder=Path(r['component']).parent
